@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="script.dynamic.audio.offset.adjuster" version="1.0.0" name="Dynamic Audio Offset Adjuster" provider-name="TheShoxter">
+    <requires>
+        <import addon="xbmc.python" version="3.0.0"/>
+    </requires>
+    <extension point="xbmc.service" library="script.audio_offset.py">
+        <provides>service</provides>
+    </extension>
+    <extension point="xbmc.addon.metadata">
+        <source>https://github.com/matthane/dynamic-audio-offset-adjuster</source>
+        <summary lang="en_GB">Dynamically adjusts audio offset based on video and audio stream format</summary>
+        <description lang="en_GB">This service add-on dynamically adjusts the audio offset to user configured values based on the currently playing video and audio stream format.</description>
+        <platform>all</platform>
+        <assets>
+            <icon>resources/icon.png</icon>
+            <fanart>resources/fanart.jpg</fanart>
+        </assets>
+    </extension>
+</addon>
