@@ -1,0 +1,146 @@
+# Kodi Media Center language file
+msgid ""
+msgstr ""
+"Project-Id-Version: XBMC-Addons\n"
+"Report-Msgid-Bugs-To: alanwww1@xbmc.org\n"
+"POT-Creation-Date: 2020-04-26 11:43+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+
+msgctxt "#32001"
+msgid "Configure Audio Offsets"
+msgstr ""
+
+msgctxt "#32002"
+msgid ""
+msgstr ""
+
+msgctxt "#32003"
+msgid "Dolby Vision"
+msgstr ""
+
+msgctxt "#32004"
+msgid "Dolby Atmos/TrueHD (ms)"
+msgstr ""
+
+msgctxt "#32005"
+msgid "Adjusts the audio offset for Dolby Atmos/TrueHD in milliseconds. Negative values delay the audio, positive values advance it."
+msgstr ""
+
+msgctxt "#32006"
+msgid "Dolby Digital Plus (EAC3) (ms)"
+msgstr ""
+
+msgctxt "#32007"
+msgid "Adjusts the audio offset for Dolby Digital Plus (EAC3) in milliseconds. Negative values delay the audio, positive values advance it."
+msgstr ""
+
+msgctxt "#32008"
+msgid "Dolby Digital (AC3) (ms)"
+msgstr ""
+
+msgctxt "#32009"
+msgid "Adjusts the audio offset for Dolby Digital (AC3) in milliseconds. Negative values delay the audio, positive values advance it."
+msgstr ""
+
+msgctxt "#32010"
+msgid "DTS:X/DTS-HD MA 8 Channel (ms)"
+msgstr ""
+
+msgctxt "#32011"
+msgid "Adjusts the audio offset for DTS:X/DTS-HD MA 8 Channel in milliseconds. Negative values delay the audio, positive values advance it."
+msgstr ""
+
+msgctxt "#32012"
+msgid "DTS-HD MA 6 Channel (ms)"
+msgstr ""
+
+msgctxt "#32013"
+msgid "Adjusts the audio offset for DTS-HD MA 6 Channel in milliseconds. Negative values delay the audio, positive values advance it."
+msgstr ""
+
+msgctxt "#32014"
+msgid "DTS (DCA) (ms)"
+msgstr ""
+
+msgctxt "#32015"
+msgid "Adjusts the audio offset for DTS (DCA) in milliseconds. Negative values delay the audio, positive values advance it."
+msgstr ""
+
+msgctxt "#32016"
+msgid "Playback Behavior"
+msgstr ""
+
+msgctxt "#32017"
+msgid ""
+msgstr ""
+
+msgctxt "#32018"
+msgid "Seek Back Settings"
+msgstr ""
+
+msgctxt "#32019"
+msgid "Seek back on audio offset adjustment"
+msgstr ""
+
+msgctxt "#32020"
+msgid "Control whether playback will seek back after adjusting audio offset to re-synchronize audio and video tracks"
+msgstr ""
+
+msgctxt "#32021"
+msgid "Seek back amount (seconds)"
+msgstr ""
+
+msgctxt "#32022"
+msgid "Control the amount of time that the player seeks back after adjusting audio offset"
+msgstr ""
+
+msgctxt "#32023"
+msgid "HDR10"
+msgstr ""
+
+msgctxt "#32024"
+msgid "SDR"
+msgstr ""
+
+msgctxt "#32025"
+msgid "HLG"
+msgstr ""
+
+msgctxt "#32026"
+msgid "Enable audio offset controls for Dolby Vision playback"
+msgstr ""
+
+msgctxt "#32027"
+msgid "Toggle to control whether audio offset controls for Dolby Vision playback are enabled"
+msgstr ""
+
+msgctxt "#32028"
+msgid "Enable audio offset controls for HDR10 playback"
+msgstr ""
+
+msgctxt "#32029"
+msgid "Toggle to control whether audio offset controls for HDR10 playback are enabled"
+msgstr ""
+
+msgctxt "#32030"
+msgid "Enable audio offset controls for HLG playback"
+msgstr ""
+
+msgctxt "#32031"
+msgid "Toggle to control whether audio offset controls for HLG playback are enabled"
+msgstr ""
+
+msgctxt "#32032"
+msgid "Enable audio offset controls for SDR playback"
+msgstr ""
+
+msgctxt "#32033"
+msgid "Toggle to control whether audio offset controls for SDR playback are enabled"
+msgstr ""
