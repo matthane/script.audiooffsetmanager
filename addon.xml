@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.dynamic.audio.offset.adjuster" version="1.0.0" name="Dynamic Audio Offset Adjuster" provider-name="TheShoxter">
+<addon id="script.dynamic.audio.offset.adjuster" version="1.0.0" name="Dynamic Audio Offset Adjuster" provider-name="matthane">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
     </requires>
