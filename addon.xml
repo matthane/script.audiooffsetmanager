@@ -7,7 +7,7 @@
         <provides>service</provides>
     </extension>
     <extension point="xbmc.addon.metadata">
-        <source>https://github.com/matthane/dynamic-audio-offset-adjuster</source>
+        <source>https://github.com/matthane/script.dynamic.audio.offset.adjuster</source>
         <summary lang="en_GB">Dynamically adjusts audio offset based on video and audio stream format</summary>
         <description lang="en_GB">This service add-on dynamically adjusts the audio offset to user configured values based on the currently playing video and audio stream format.</description>
         <platform>all</platform>
