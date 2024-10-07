@@ -62,7 +62,7 @@ class AudioDelayAdjuster(xbmc.Monitor):
 
         # Get the current HDR type
         video_format = self.get_current_hdr_type()
-        xbmc.log(f"Detected HDR type: {video_format}", xbmc.LOGINFO)
+        xbmc.log(f"Detected HDR type: {video_format}", xbmc.LOGDEBUG)
 
         # Check if HDR type is enabled in the settings
         if not self.hdr_control_settings.get(f"enable_{video_format}", False):
@@ -185,10 +185,10 @@ class AudioDelayAdjuster(xbmc.Monitor):
                 'dolbyvision_dca': 0,
                 'hlg_dca': 0,
             }, True, 4, {
-                'enable_dolbyvision': True,
-                'enable_hdr10': True,
-                'enable_hlg': True,
-                'enable_sdr': True,
+                'enable_dolbyvision': False,
+                'enable_hdr10': False,
+                'enable_hlg': False,
+                'enable_sdr': False,
             }
 
     def set_audio_delay(self, player_id, delay):
