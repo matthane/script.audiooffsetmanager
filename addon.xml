@@ -3,9 +3,10 @@
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
     </requires>
-    <extension point="xbmc.service" library="script.audio_offset.py">
+    <extension point="xbmc.service" library="default.py">
         <provides>service</provides>
     </extension>
+    <extension point="xbmc.python.module" library="resources/lib/"/>
     <extension point="xbmc.addon.metadata">
         <source>https://github.com/matthane/script.dynamic.audio.offset.adjuster</source>
         <summary lang="en_GB">Dynamically adjusts audio offset based on video and audio stream format</summary>

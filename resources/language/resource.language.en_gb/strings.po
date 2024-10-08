@@ -144,3 +144,35 @@ msgstr ""
 msgctxt "#32033"
 msgid "Toggle to control whether audio offset controls for SDR playback are enabled"
 msgstr ""
+
+msgctxt "#32034"
+msgid "Seek back upon opening video player"
+msgstr ""
+
+msgctxt "#32035"
+msgid "Control whether playback will seek back after opening video player to synchronize audio and video tracks"
+msgstr ""
+
+msgctxt "#32036"
+msgid "Seek back amount (seconds)"
+msgstr ""
+
+msgctxt "#32037"
+msgid "Control the amount of time that the player seeks back upon opening the video player"
+msgstr ""
+
+msgctxt "#32038"
+msgid "Seek back on unpausing video"
+msgstr ""
+
+msgctxt "#32039"
+msgid "Control whether playback will seek back after unpausing to re-synchronize audio and video tracks"
+msgstr ""
+
+msgctxt "#32040"
+msgid "Seek back amount (seconds)"
+msgstr ""
+
+msgctxt "#32041"
+msgid "Control the amount of time that the player seeks back after unpausing"
+msgstr ""
