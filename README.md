@@ -1,5 +1,4 @@
 <img src="https://raw.githubusercontent.com/matthane/script.dynamic.audio.offset.adjuster/refs/heads/main/resources/icon.png" width="256" height="256" alt="Dynamic Audio Offset Adjuster">
-<sup>Icon designed by [Freepik](http://www.freepik.com/)</sup>
 
 # Dynamic Audio Offset Adjuster
 
@@ -30,3 +29,7 @@ Dynamic Audio Offset Adjuster is a service add-on for Kodi that dynamically adju
   - When audio offsets are dynamically adjusted by the service during playback (e.g. user changes audio stream from TrueHD to DD+ during playback)
   - When playback is first initiated (e.g. title is opened for the first time or resumed from a previous session)
   - When player is unpaused (for more in-depth control, you can look at the [Unpause Jumpback](https://github.com/bossanova808/script.xbmc.unpausejumpback) plugin from [bossanova808](https://github.com/bossanova808))
+
+  ### Attributions
+
+  Icon designed by [Freepik](http://www.freepik.com/)
