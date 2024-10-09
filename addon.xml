@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.dynamic.audio.offset.adjuster" version="1.0.0" name="Dynamic Audio Offset Adjuster" provider-name="matthane">
+<addon id="script.dynamicaudiooffsetadjuster" version="0.0.1" name="Dynamic Audio Offset Adjuster" provider-name="matthane">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
     </requires>
@@ -8,7 +8,7 @@
     </extension>
     <extension point="xbmc.python.module" library="resources/lib/"/>
     <extension point="xbmc.addon.metadata">
-        <source>https://github.com/matthane/script.dynamic.audio.offset.adjuster</source>
+        <source>https://github.com/matthane/script.dynamicaudiooffsetadjuster</source>
         <summary lang="en_GB">Dynamically adjusts audio offset based on video and audio stream format</summary>
         <description lang="en_GB">This service add-on dynamically adjusts the audio offset to user configured values based on the currently playing video and audio stream format.</description>
         <platform>all</platform>
