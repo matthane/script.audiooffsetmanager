@@ -1,4 +1,5 @@
 <img src="https://raw.githubusercontent.com/matthane/script.dynamic.audio.offset.adjuster/refs/heads/main/resources/icon.png" width="256" height="256" alt="Dynamic Audio Offset Adjuster">
+<sup>Icon designed by [Freepik](http://www.freepik.com/)</sup>
 
 # Dynamic Audio Offset Adjuster
 
