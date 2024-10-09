@@ -29,6 +29,12 @@ class AudioDelayAdjuster(xbmc.Monitor):
                 break
             if self.player.isPlayingVideo():
                 if not self.player.playback_started:
+                    # Playback just started, force reload of settings to ensure latest values are applied
+                    self.load_user_settings()
+                    self.player.last_codec = None
+                    self.player.last_channel_count = None
+                    self.player.last_video_format = None
+                    self.load_user_settings()
                     # Playback just started
                     self.player.playback_started = True
                     xbmc.log("Playback started", xbmc.LOGDEBUG)
@@ -43,6 +49,7 @@ class AudioDelayAdjuster(xbmc.Monitor):
                 else:
                     # Periodically check for changes during playback
                     self.player.check_and_adjust_delay()
+                    self.player.check_user_audio_delay_change()
             elif not self.player.isPlayingVideo() and self.player.playback_started:
                 # Playback just stopped
                 xbmc.log("Playback stopped", xbmc.LOGDEBUG)
@@ -66,6 +73,7 @@ class AudioDelayPlayer(xbmc.Player):
         self.last_channel_count = None
         self.playback_started = False
         self.paused_time = 0
+        self.last_audio_delay = None
 
     def onPlayBackPaused(self):
         """
@@ -86,6 +94,7 @@ class AudioDelayPlayer(xbmc.Player):
             xbmc.log("Seek back on unpause is disabled.", xbmc.LOGDEBUG)
 
     def check_and_adjust_delay(self):
+        # Reload settings to ensure we have the latest values
         """
         Checks the current playback status and adjusts audio delay based on the user settings and content type.
         """
@@ -120,10 +129,11 @@ class AudioDelayPlayer(xbmc.Player):
             self.last_codec = codec
             self.last_channel_count = channel_count
             self.last_video_format = video_format
+            
 
             # Determine the delay based on the codec and video format
-            delay_key = f"{video_format}_{codec}"
-            delay = self.adjuster.latency_settings.get(delay_key, 0.0) / 1000.0  # Convert ms to seconds
+            delay_key = f"delay_{video_format}_{codec}"
+            delay = self.adjuster.user_settings.addon.getSettingInt(delay_key) / 1000.0  # Convert ms to seconds
             if delay != 0:
                 xbmc.log(f"Setting audio offset to {delay * 1000:.0f} ms for {video_format.upper()} + {codec.upper()}", xbmc.LOGDEBUG)
             else:
@@ -141,6 +151,30 @@ class AudioDelayPlayer(xbmc.Player):
                 xbmc.log("Seek back is disabled.", xbmc.LOGDEBUG)
         else:
             xbmc.log("Audio codec, channel count, and video format unchanged. No adjustment needed.", xbmc.LOGDEBUG)
+
+    def check_user_audio_delay_change(self):
+        """
+        Checks if the user has manually changed the audio delay and updates settings accordingly.
+        """
+        current_delay_str = xbmc.getInfoLabel('Player.AudioDelay')
+        if current_delay_str:
+            try:
+                current_delay = float(current_delay_str.split(' ')[0])  # Extract the numerical value
+                if self.last_audio_delay is None or current_delay != self.last_audio_delay:
+                    xbmc.log(f"User changed audio delay to {current_delay} seconds.", xbmc.LOGDEBUG)
+                    self.last_audio_delay = current_delay
+                    # Update settings with the new delay
+                    codec = self.last_codec
+                    video_format = self.last_video_format
+                    if codec and video_format:
+                        delay_key = f"delay_{video_format}_{codec}"
+                        
+                        # Save the updated setting back to the add-on configuration
+                        self.adjuster.user_settings.addon.setSetting(delay_key, str(int(current_delay * 1000)))  # Convert to ms
+                        
+                        xbmc.log(f"Updated settings for {delay_key} with new delay: {current_delay * 1000:.0f} ms", xbmc.LOGINFO)
+            except ValueError:
+                xbmc.log(f"Unable to parse audio delay value: {current_delay_str}", xbmc.LOGWARNING)
 
     def set_audio_delay(self, player_id, delay):
         """
@@ -177,4 +211,3 @@ class AudioDelayPlayer(xbmc.Player):
 
 if __name__ == '__main__':
     adjuster = AudioDelayAdjuster()
-    adjuster.run()
