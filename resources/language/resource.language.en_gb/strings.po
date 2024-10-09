@@ -34,19 +34,19 @@ msgid "Adjusts the audio offset for Dolby Atmos/TrueHD in milliseconds. Negative
 msgstr ""
 
 msgctxt "#32006"
-msgid "Dolby Digital Plus (EAC3) (ms)"
+msgid "Dolby Digital Plus (E-AC-3) (ms)"
 msgstr ""
 
 msgctxt "#32007"
-msgid "Adjusts the audio offset for Dolby Digital Plus (EAC3) in milliseconds. Negative values delay the audio, positive values advance it."
+msgid "Adjusts the audio offset for Dolby Digital Plus (E-AC-3) in milliseconds. Negative values delay the audio, positive values advance it."
 msgstr ""
 
 msgctxt "#32008"
-msgid "Dolby Digital (AC3) (ms)"
+msgid "Dolby Digital (AC-3) (ms)"
 msgstr ""
 
 msgctxt "#32009"
-msgid "Adjusts the audio offset for Dolby Digital (AC3) in milliseconds. Negative values delay the audio, positive values advance it."
+msgid "Adjusts the audio offset for Dolby Digital (AC-3) in milliseconds. Negative values delay the audio, positive values advance it."
 msgstr ""
 
 msgctxt "#32010"
