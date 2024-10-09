@@ -30,6 +30,6 @@ Dynamic Audio Offset Adjuster is a service add-on for Kodi that dynamically adju
   - When playback is first initiated (e.g. title is opened for the first time or resumed from a previous session)
   - When player is unpaused (for more in-depth control, you can look at the [Unpause Jumpback](https://github.com/bossanova808/script.xbmc.unpausejumpback) plugin from [bossanova808](https://github.com/bossanova808))
 
-  ### Attributions
+### Attributions
 
-  Icon designed by [Freepik](http://www.freepik.com/)
+Icon designed by [Freepik](http://www.freepik.com/)
