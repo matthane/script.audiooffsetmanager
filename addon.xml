@@ -7,9 +7,14 @@
     <extension point="xbmc.python.module" library="resources/lib/"/>
     <extension point="xbmc.addon.metadata">
         <source>https://github.com/matthane/script.dynamicaudiooffsetadjuster</source>
+        <news>v1.0.0 (2024-10-10)
+        - Initial launch
+        </news>
         <summary lang="en_GB">Dynamically adjusts and manages audio offset based on video and audio stream format</summary>
         <description lang="en_GB">This service add-on dynamically adjusts the audio offset to user configured values based on the currently playing video and audio stream format.</description>
         <platform>all</platform>
+        <language>en</language>
+        <license>GPL-3.0-or-later</license>
         <assets>
             <icon>resources/icon.png</icon>
             <fanart>resources/fanart.jpg</fanart>
