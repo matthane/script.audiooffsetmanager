@@ -80,7 +80,7 @@
                 </setting>
 
                 <!-- DTS-HD MA 6 Channel (ms) Delay Setting -->
-                <setting id="delay_dolbyvision_dtshd" type="integer" label="32012" help="32013" parent="enable_dolbyvision">
+                <setting id="delay_dolbyvision_dtshd_ma" type="integer" label="32012" help="32013" parent="enable_dolbyvision">
                     <dependencies>
                         <dependency type="visible" setting="enable_dolbyvision">true</dependency>
                     </dependencies>                
@@ -190,7 +190,7 @@
                 </setting>
 
                 <!-- DTS-HD MA 6 Channel (ms) Delay Setting -->
-                <setting id="delay_hdr10_dtshd" type="integer" label="32012" help="32013" parent="enable_hdr10">
+                <setting id="delay_hdr10_dtshd_ma" type="integer" label="32012" help="32013" parent="enable_hdr10">
                     <dependencies>
                         <dependency type="visible" setting="enable_hdr10">true</dependency>
                     </dependencies>                 
@@ -300,7 +300,7 @@
                 </setting>
 
                 <!-- DTS-HD MA 6 Channel (ms) Delay Setting -->
-                <setting id="delay_hlg_dtshd" type="integer" label="32012" help="32013" parent="enable_hlg">
+                <setting id="delay_hlg_dtshd_ma" type="integer" label="32012" help="32013" parent="enable_hlg">
                     <dependencies>
                         <dependency type="visible" setting="enable_hlg">true</dependency>
                     </dependencies>                   
@@ -410,7 +410,7 @@
                 </setting>
 
                 <!-- DTS-HD MA 6 Channel (ms) Delay Setting -->
-                <setting id="delay_sdr_dtshd" type="integer" label="32012" help="32013" parent="enable_sdr">
+                <setting id="delay_sdr_dtshd_ma" type="integer" label="32012" help="32013" parent="enable_sdr">
                     <dependencies>
                         <dependency type="visible" setting="enable_sdr">true</dependency>
                     </dependencies>                   
