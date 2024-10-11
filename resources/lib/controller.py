@@ -1,3 +1,4 @@
+# controller.py
 import xbmc
 import time
 from resources.lib.watcher import Watcher
@@ -33,8 +34,7 @@ class AudioDelayAdjuster(xbmc.Monitor):
                     self.load_user_settings()
                     self.player.last_codec = None
                     self.player.last_channel_count = None
-                    self.player.last_video_format = None
-                    self.load_user_settings()
+                    self.player.last_hdr_type = None
                     # Playback just started
                     self.player.playback_started = True
                     xbmc.log("Playback started", xbmc.LOGDEBUG)
@@ -62,14 +62,13 @@ class AudioDelayAdjuster(xbmc.Monitor):
         xbmc.log("Settings changed, reloading settings", xbmc.LOGDEBUG)
         self.load_user_settings()
 
-
 class AudioDelayPlayer(xbmc.Player):
     def __init__(self, adjuster):
         super().__init__()
         self.adjuster = adjuster
         self.watcher = adjuster.watcher
         self.last_codec = None
-        self.last_video_format = None
+        self.last_hdr_type = None
         self.last_channel_count = None
         self.playback_started = False
         self.paused_time = 0
@@ -102,11 +101,19 @@ class AudioDelayPlayer(xbmc.Player):
             xbmc.log("Seek back on unpause is disabled.", xbmc.LOGDEBUG)
 
     def check_and_adjust_delay(self):
-        # Reload settings to ensure we have the latest values
         """
         Checks the current playback status and adjusts audio delay based on the user settings and content type.
         """
         xbmc.log("Checking and adjusting audio delay", xbmc.LOGDEBUG)
+
+        # Get video properties
+        video_properties = self.watcher.get_video_properties()
+        hdr_type = video_properties.get('hdr_type') or 'sdr'
+        bit_depth = video_properties.get('bit_depth') or '8'
+        eotf_gamut = video_properties.get('eotf_gamut') or 'unknown'
+
+        xbmc.log(f"HDR Type: {hdr_type}, Bit Depth: {bit_depth}, EOTF/Gamut: {eotf_gamut}", xbmc.LOGINFO)
+
         # Get the player ID
         player_id = self.watcher.get_player_id()
         if player_id is None:
@@ -119,33 +126,24 @@ class AudioDelayPlayer(xbmc.Player):
             xbmc.log("No audio stream found. Cannot adjust audio delay.", xbmc.LOGWARNING)
             return
 
-        # Get the current HDR type
-        video_format = self.watcher.get_current_hdr_type()
-        xbmc.log(f"Detected HDR type: {video_format}", xbmc.LOGDEBUG)
-
-        # Check if HDR type is enabled in the settings
-        if not self.adjuster.hdr_control_settings.get(f"enable_{video_format}", False):
-            xbmc.log(f"Audio offset control disabled for HDR type: {video_format}", xbmc.LOGDEBUG)
-            return
-
         # Determine the audio format (codec and channel count)
         codec, channel_count = self.watcher.determine_audio_format(audio_stream)
 
-        # Only adjust if the codec, channel count, or video format has changed
-        if codec != self.last_codec or channel_count != self.last_channel_count or video_format != self.last_video_format:
-            xbmc.log(f"Audio Codec Changed: {codec}, Channels: {channel_count}, Video Format: {video_format}", xbmc.LOGDEBUG)
+        # Only adjust if the codec, channel count, or HDR type has changed
+        if codec != self.last_codec or channel_count != self.last_channel_count or hdr_type != self.last_hdr_type:
+            xbmc.log(f"Audio Codec Changed: {codec}, Channels: {channel_count}, HDR Type: {hdr_type}", xbmc.LOGDEBUG)
             self.last_codec = codec
             self.last_channel_count = channel_count
-            self.last_video_format = video_format
-            
+            self.last_hdr_type = hdr_type
 
-            # Determine the delay based on the codec and video format
-            delay_key = f"delay_{video_format}_{codec}"
+            # Determine the delay based on the codec and HDR type
+            delay_key = f"delay_{hdr_type}_{codec}"
             delay = self.adjuster.user_settings.addon.getSettingInt(delay_key) / 1000.0  # Convert ms to seconds
+
             if delay != 0:
-                xbmc.log(f"Setting audio offset to {delay * 1000:.0f} ms for {video_format.upper()} + {codec.upper()}", xbmc.LOGDEBUG)
+                xbmc.log(f"Setting audio offset to {delay * 1000:.0f} ms for {hdr_type.upper()} + {codec.upper()}", xbmc.LOGDEBUG)
             else:
-                xbmc.log(f"No offset applied for this combination: {video_format.upper()} + {codec.upper()}", xbmc.LOGDEBUG)
+                xbmc.log(f"No offset applied for this combination: {hdr_type.upper()} + {codec.upper()}", xbmc.LOGDEBUG)
 
             # Set the audio delay using JSON-RPC
             self.set_audio_delay(player_id, delay)
@@ -158,7 +156,7 @@ class AudioDelayPlayer(xbmc.Player):
             else:
                 xbmc.log("Seek back is disabled.", xbmc.LOGDEBUG)
         else:
-            xbmc.log("Audio codec, channel count, and video format unchanged. No adjustment needed.", xbmc.LOGDEBUG)
+            xbmc.log("Audio codec, channel count, and HDR type unchanged. No adjustment needed.", xbmc.LOGDEBUG)
 
     def check_user_audio_delay_change(self):
         """
@@ -169,19 +167,19 @@ class AudioDelayPlayer(xbmc.Player):
             try:
                 current_delay = float(current_delay_str.split(' ')[0])  # Extract the numerical value
                 if self.last_audio_delay is None or current_delay != self.last_audio_delay:
-                    # Only save the setting if playback has been ongoing for more than 1 second. Compatibility quirk for Up Next add-on
+                    # Only save the setting if playback has been ongoing for more than 1 second
                     if self.playback_start_time and (time.time() - self.playback_start_time) > 1:
                         xbmc.log(f"User changed audio delay to {current_delay} seconds.", xbmc.LOGDEBUG)
                         self.last_audio_delay = current_delay
                         # Update settings with the new delay
                         codec = self.last_codec
-                        video_format = self.last_video_format
-                        if codec and video_format:
-                            delay_key = f"delay_{video_format}_{codec}"
-                            
+                        hdr_type = self.last_hdr_type
+                        if codec and hdr_type:
+                            delay_key = f"delay_{hdr_type}_{codec}"
+
                             # Save the updated setting back to the add-on configuration
                             self.adjuster.user_settings.addon.setSetting(delay_key, str(int(current_delay * 1000)))  # Convert to ms
-                            
+
                             xbmc.log(f"Updated settings for {delay_key} with new delay: {current_delay * 1000:.0f} ms", xbmc.LOGDEBUG)
             except ValueError:
                 xbmc.log(f"Unable to parse audio delay value: {current_delay_str}", xbmc.LOGWARNING)
@@ -221,3 +219,4 @@ class AudioDelayPlayer(xbmc.Player):
 
 if __name__ == '__main__':
     adjuster = AudioDelayAdjuster()
+    adjuster.run()
