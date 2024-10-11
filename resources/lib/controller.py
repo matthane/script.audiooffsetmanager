@@ -74,6 +74,14 @@ class AudioDelayPlayer(xbmc.Player):
         self.playback_started = False
         self.paused_time = 0
         self.last_audio_delay = None
+        self.playback_start_time = None
+
+    def onPlayBackStarted(self):
+        """
+        Called when playback starts.
+        """
+        self.playback_start_time = time.time()
+        xbmc.log(f"Playback started at time: {self.playback_start_time}", xbmc.LOGDEBUG)
 
     def onPlayBackPaused(self):
         """
@@ -161,18 +169,20 @@ class AudioDelayPlayer(xbmc.Player):
             try:
                 current_delay = float(current_delay_str.split(' ')[0])  # Extract the numerical value
                 if self.last_audio_delay is None or current_delay != self.last_audio_delay:
-                    xbmc.log(f"User changed audio delay to {current_delay} seconds.", xbmc.LOGDEBUG)
-                    self.last_audio_delay = current_delay
-                    # Update settings with the new delay
-                    codec = self.last_codec
-                    video_format = self.last_video_format
-                    if codec and video_format:
-                        delay_key = f"delay_{video_format}_{codec}"
-                        
-                        # Save the updated setting back to the add-on configuration
-                        self.adjuster.user_settings.addon.setSetting(delay_key, str(int(current_delay * 1000)))  # Convert to ms
-                        
-                        xbmc.log(f"Updated settings for {delay_key} with new delay: {current_delay * 1000:.0f} ms", xbmc.LOGDEBUG)
+                    # Only save the setting if playback has been ongoing for more than 1 second. Compatibility quirk for Up Next add-on
+                    if self.playback_start_time and (time.time() - self.playback_start_time) > 1:
+                        xbmc.log(f"User changed audio delay to {current_delay} seconds.", xbmc.LOGDEBUG)
+                        self.last_audio_delay = current_delay
+                        # Update settings with the new delay
+                        codec = self.last_codec
+                        video_format = self.last_video_format
+                        if codec and video_format:
+                            delay_key = f"delay_{video_format}_{codec}"
+                            
+                            # Save the updated setting back to the add-on configuration
+                            self.adjuster.user_settings.addon.setSetting(delay_key, str(int(current_delay * 1000)))  # Convert to ms
+                            
+                            xbmc.log(f"Updated settings for {delay_key} with new delay: {current_delay * 1000:.0f} ms", xbmc.LOGDEBUG)
             except ValueError:
                 xbmc.log(f"Unable to parse audio delay value: {current_delay_str}", xbmc.LOGWARNING)
 
