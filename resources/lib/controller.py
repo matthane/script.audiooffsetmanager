@@ -113,7 +113,7 @@ class AudioDelayPlayer(xbmc.Player):
 
         # Get the current HDR type
         video_format = self.watcher.get_current_hdr_type()
-        xbmc.log(f"Detected HDR type: {video_format}", xbmc.LOGINFO)
+        xbmc.log(f"Detected HDR type: {video_format}", xbmc.LOGDEBUG)
 
         # Check if HDR type is enabled in the settings
         if not self.adjuster.hdr_control_settings.get(f"enable_{video_format}", False):
@@ -172,7 +172,7 @@ class AudioDelayPlayer(xbmc.Player):
                         # Save the updated setting back to the add-on configuration
                         self.adjuster.user_settings.addon.setSetting(delay_key, str(int(current_delay * 1000)))  # Convert to ms
                         
-                        xbmc.log(f"Updated settings for {delay_key} with new delay: {current_delay * 1000:.0f} ms", xbmc.LOGINFO)
+                        xbmc.log(f"Updated settings for {delay_key} with new delay: {current_delay * 1000:.0f} ms", xbmc.LOGDEBUG)
             except ValueError:
                 xbmc.log(f"Unable to parse audio delay value: {current_delay_str}", xbmc.LOGWARNING)
 
