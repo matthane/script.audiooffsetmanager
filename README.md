@@ -14,13 +14,14 @@ Designed to alleviate frustrations related to decoding times of various audio fo
   - Dolby Atmos / TrueHD
   - Dolby Digital Plus (E-AC-3)
   - Dolby Digital (AC-3)
-  - DTS:X / DTS-HD MA (8 channels)
+  - DTS:X / DTS-HD MA (8+ channels)
   - DTS-HD MA (6 channels)
   - DTS (DCA)
 
 - Currently detected video formats:
   - Dolby Vision
   - HDR10
+  - HDR10+
   - HLG
   - SDR
 
