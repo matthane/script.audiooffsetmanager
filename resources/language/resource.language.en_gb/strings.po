@@ -50,11 +50,11 @@ msgid "Adjusts the audio offset for Dolby Digital (AC-3) in milliseconds. Negati
 msgstr ""
 
 msgctxt "#32010"
-msgid "DTS:X/DTS-HD MA 8 Channel (ms)"
+msgid "DTS:X/DTS-HD MA 8+ Channel (ms)"
 msgstr ""
 
 msgctxt "#32011"
-msgid "Adjusts the audio offset for DTS:X/DTS-HD MA 8 Channel in milliseconds. Negative values delay the audio, positive values advance it."
+msgid "Adjusts the audio offset for DTS:X/DTS-HD MA 8+ Channel in milliseconds. Negative values delay the audio, positive values advance it."
 msgstr ""
 
 msgctxt "#32012"
@@ -175,4 +175,16 @@ msgstr ""
 
 msgctxt "#32041"
 msgid "Control the amount of time that the player seeks back after unpausing"
+msgstr ""
+
+msgctxt "#32042"
+msgid "Enable audio offset controls for HDR10+ playback"
+msgstr ""
+
+msgctxt "#32043"
+msgid "Toggle to control whether audio offset controls for HDR10+ playback are enabled"
+msgstr ""
+
+msgctxt "#32044"
+msgid "HDR10+"
 msgstr ""
