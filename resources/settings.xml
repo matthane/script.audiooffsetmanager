@@ -62,7 +62,7 @@
                     </control>
                 </setting>
 
-                <!-- DTS:X/DTS-HD MA 8 Channel (ms) Delay Setting -->
+                <!-- DTS:X/DTS-HD MA 8+ Channel (ms) Delay Setting -->
                 <setting id="delay_dolbyvision_dtsx" type="integer" label="32010" help="32011" parent="enable_dolbyvision">
                     <dependencies>
                         <dependency type="visible" setting="enable_dolbyvision">true</dependency>
@@ -172,7 +172,7 @@
                     </control>
                 </setting>
 
-                <!-- DTS:X/DTS-HD MA 8 Channel (ms) Delay Setting -->
+                <!-- DTS:X/DTS-HD MA 8+ Channel (ms) Delay Setting -->
                 <setting id="delay_hdr10_dtsx" type="integer" label="32010" help="32011" parent="enable_hdr10">
                     <dependencies>
                         <dependency type="visible" setting="enable_hdr10">true</dependency>
@@ -224,8 +224,118 @@
                 </setting>
             </group>
 
+            <!-- HDR10+ -->
+            <group id="3" label="32044">
+                <setting id="enable_hdr10plus" type="boolean" label="32042" help="32043">
+                    <level>0</level>
+                    <default>false</default>
+                    <control type="toggle"/>
+                </setting>            
+                <!-- Dolby Atmos/TrueHD (ms) Delay Setting -->
+                <setting id="delay_hdr10plus_truehd" type="integer" label="32004" help="32005" parent="enable_hdr10plus">
+                    <dependencies>
+                        <dependency type="visible" setting="enable_hdr10plus">true</dependency>
+                    </dependencies>                    
+                    <level>0</level>
+                    <default>0</default>
+                    <constraints>
+                        <minimum>-1000</minimum>
+                        <step>25</step>
+                        <maximum>1000</maximum>
+                    </constraints>
+                    <control type="slider" format="integer">
+                        <popup>false</popup>
+                    </control>
+                </setting>
+
+                <!-- Dolby Digital+ (EAC3) (ms) Delay Setting -->
+                <setting id="delay_hdr10plus_eac3" type="integer" label="32006" help="32007" parent="enable_hdr10plus">
+                    <dependencies>
+                        <dependency type="visible" setting="enable_hdr10plus">true</dependency>
+                    </dependencies>                 
+                    <level>0</level>
+                    <default>0</default>
+                    <constraints>
+                        <minimum>-1000</minimum>
+                        <step>25</step>
+                        <maximum>1000</maximum>
+                    </constraints>
+                    <control type="slider" format="integer">
+                        <popup>false</popup>
+                    </control>
+                </setting>
+
+                <!-- Dolby Digital (AC3) (ms) Delay Setting -->
+                <setting id="delay_hdr10plus_ac3" type="integer" label="32008" help="32009" parent="enable_hdr10plus">
+                    <dependencies>
+                        <dependency type="visible" setting="enable_hdr10plus">true</dependency>
+                    </dependencies>                 
+                    <level>0</level>
+                    <default>0</default>
+                    <constraints>
+                        <minimum>-1000</minimum>
+                        <step>25</step>
+                        <maximum>1000</maximum>
+                    </constraints>
+                    <control type="slider" format="integer">
+                        <popup>false</popup>
+                    </control>
+                </setting>
+
+                <!-- DTS:X/DTS-HD MA 8+ Channel (ms) Delay Setting -->
+                <setting id="delay_hdr10plus_dtsx" type="integer" label="32010" help="32011" parent="enable_hdr10plus">
+                    <dependencies>
+                        <dependency type="visible" setting="enable_hdr10plus">true</dependency>
+                    </dependencies>                 
+                    <level>0</level>
+                    <default>0</default>
+                    <constraints>
+                        <minimum>-1000</minimum>
+                        <step>25</step>
+                        <maximum>1000</maximum>
+                    </constraints>
+                    <control type="slider" format="integer">
+                        <popup>false</popup>
+                    </control>
+                </setting>
+
+                <!-- DTS-HD MA 6 Channel (ms) Delay Setting -->
+                <setting id="delay_hdr10plus_dtshd_ma" type="integer" label="32012" help="32013" parent="enable_hdr10plus">
+                    <dependencies>
+                        <dependency type="visible" setting="enable_hdr10plus">true</dependency>
+                    </dependencies>                 
+                    <level>0</level>
+                    <default>0</default>
+                    <constraints>
+                        <minimum>-1000</minimum>
+                        <step>25</step>
+                        <maximum>1000</maximum>
+                    </constraints>
+                    <control type="slider" format="integer">
+                        <popup>false</popup>
+                    </control>
+                </setting>
+
+                <!-- DTS (DCA) (ms) Delay Setting -->
+                <setting id="delay_hdr10plus_dca" type="integer" label="32014" help="32015" parent="enable_hdr10plus">
+                    <dependencies>
+                        <dependency type="visible" setting="enable_hdr10plus">true</dependency>
+                    </dependencies>                 
+                    <level>0</level>
+                    <default>0</default>
+                    <constraints>
+                        <minimum>-1000</minimum>
+                        <step>25</step>
+                        <maximum>1000</maximum>
+                    </constraints>
+                    <control type="slider" format="integer">
+                        <popup>false</popup>
+                    </control>
+                </setting>
+            </group>
+
             <!-- HLG -->
-            <group id="3" label="32025">
+            <group id="4" label="32025">
                 <setting id="enable_hlg" type="boolean" label="32030" help="32031">
                     <level>0</level>
                     <default>false</default>
@@ -282,7 +392,7 @@
                     </control>
                 </setting>
 
-                <!-- DTS:X/DTS-HD MA 8 Channel (ms) Delay Setting -->
+                <!-- DTS:X/DTS-HD MA 8+ Channel (ms) Delay Setting -->
                 <setting id="delay_hlg_dtsx" type="integer" label="32010" help="32011" parent="enable_hlg">
                     <dependencies>
                         <dependency type="visible" setting="enable_hlg">true</dependency>
@@ -335,7 +445,7 @@
             </group>
 
             <!-- SDR -->            
-            <group id="4" label="32024">
+            <group id="5" label="32024">
                 <setting id="enable_sdr" type="boolean" label="32032" help="32033">
                     <level>0</level>
                     <default>false</default>
@@ -392,7 +502,7 @@
                     </control>
                 </setting>
 
-                <!-- DTS:X/DTS-HD MA 8 Channel (ms) Delay Setting -->
+                <!-- DTS:X/DTS-HD MA 8+ Channel (ms) Delay Setting -->
                 <setting id="delay_sdr_dtsx" type="integer" label="32010" help="32011" parent="enable_sdr">
                     <dependencies>
                         <dependency type="visible" setting="enable_sdr">true</dependency>
@@ -447,7 +557,7 @@
 
         <!-- Category for Seek Back Settings -->
         <category id="seek_back_settings" label="32016" help="32017">
-            <group id="5" label="32018">
+            <group id="6" label="32018">
                 <!-- Enable Seek Back Behavior Toggle -->
                 <setting id="enable_seek_back" type="boolean" label="32019" help="32020">
                     <level>0</level>
