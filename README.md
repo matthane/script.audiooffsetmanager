@@ -2,7 +2,7 @@
 
 # Dynamic Audio Offset Adjuster
 
-Dynamic Audio Offset Adjuster is a service add-on for Kodi that dynamically adjusts the audio offset to user configured values based on the currently playing video and audio stream format. By default, Kodi manages audio offsets on an individual video or all video basis. This add-on increases the scope and flexibility of offset management to a per audio + video format basis.
+Dynamic Audio Offset Adjuster is a service add-on for Kodi that dynamically adjusts the audio offset to user configured values based on the currently playing video and audio stream format. By default, Kodi manages audio offsets on an individual video or all video basis. This add-on increases the scope and flexibility of offset management to a per audio/video format basis.
 
 Designed to alleviate frustrations related to decoding times of various audio formats/codecs and video playback synchronization across different home theater setups. This add-on also monitors the audio offset values during playback and saves any changes made by the user back into the configuration setting for that audio/video format—very useful for initial AV sync calibration across different media types.
 
