@@ -109,10 +109,9 @@ class AudioDelayPlayer(xbmc.Player):
         # Get video properties
         video_properties = self.watcher.get_video_properties()
         hdr_type = video_properties.get('hdr_type') or 'sdr'
-        bit_depth = video_properties.get('bit_depth') or '8'
         eotf_gamut = video_properties.get('eotf_gamut') or 'unknown'
 
-        xbmc.log(f"HDR Type: {hdr_type}, Bit Depth: {bit_depth}, EOTF/Gamut: {eotf_gamut}", xbmc.LOGINFO)
+        xbmc.log(f"HDR Type: {hdr_type}, EOTF/Gamut: {eotf_gamut}", xbmc.LOGINFO)
 
         # Get the player ID
         player_id = self.watcher.get_player_id()
