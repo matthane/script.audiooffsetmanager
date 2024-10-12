@@ -1,6 +1,6 @@
-# watcher.py
 import xbmc
 import json
+import re
 
 class Watcher:
     """
@@ -58,8 +58,8 @@ class Watcher:
         if codec.startswith('pt-'):
             codec = codec[3:]
 
-        # DTS-HD MA with 8 channels is considered DTS:X
-        if codec == 'dtshd_ma' and channel_count == 8:
+        # DTS-HD MA with more than 6 channels is considered DTS:X
+        if codec == 'dtshd_ma' and channel_count > 6:
             codec = 'dtsx'
 
         return codec, channel_count
@@ -82,16 +82,16 @@ class Watcher:
 
     def get_video_properties(self):
         """
-        Retrieves video properties related to EOTF, Gamut, HDR, and color depth using InfoLabels.
-        Adjusts hdr_type if necessary based on eotf_gamut.
+        Retrieves video properties related to EOTF, Gamut, and HDR using InfoLabels.
+        Adjusts hdr_type if necessary based on eotf_gamut and hdr_type_confirm.
         Returns:
             dict: A dictionary containing relevant video properties.
         """
         properties = {}
         info_labels = {
-            'eotf_gamut': 'Player.Process(amlogic.eoft_gamut)',       # EOTF and Gamut information
-            'hdr_type': 'VideoPlayer.HdrType',      # HDR type (e.g., 'hdr10', 'dolbyvision' or 'hlg')
-            'bit_depth': 'Player.Process(video.bit.depth)',           # Video bit depth
+            'eotf_gamut': 'Player.Process(amlogic.eoft_gamut)',           # EOTF and Gamut information
+            'hdr_type': 'VideoPlayer.HdrType',                            # General Kodi InfoLabel for HDR type
+            'hdr_type_confirm': 'Player.Process(video.source.hdr.type)',  # Detailed InfoLabel for platforms like CoreELEC
         }
 
         for key, label in info_labels.items():
@@ -103,14 +103,29 @@ class Watcher:
                 xbmc.log(f"Video Property - {key}: {value}", xbmc.LOGDEBUG)
             properties[key] = value
 
-        # Adjust hdr_type if necessary to catch all HLG videos
+        # Determine hdr_type using hdr_type_confirm if available
+        hdr_type_confirm = properties.get('hdr_type_confirm')
         hdr_type = properties.get('hdr_type') or 'sdr'
-        eotf_gamut = properties.get('eotf_gamut') or ''
-        if hdr_type.lower() == 'sdr' and 'hlg' in eotf_gamut.lower():
-            hdr_type = 'hlg'
-            xbmc.log(f"Adjusted HDR Type to 'hlg' based on EOTF/Gamut: {eotf_gamut}", xbmc.LOGINFO)
-            properties['hdr_type'] = hdr_type
+
+        if hdr_type_confirm:
+            # Replace '+' with 'plus', remove other special characters, convert to lowercase
+            hdr_type_raw = hdr_type_confirm  # Save the raw value for logging
+            hdr_type = hdr_type_confirm.replace('+', 'plus')
+            hdr_type = re.sub(r'\W+', '', hdr_type).lower()
+            xbmc.log(f"Using hdr_type_confirm: {hdr_type_raw} -> {hdr_type}", xbmc.LOGDEBUG)
         else:
-            properties['hdr_type'] = hdr_type  # Ensure hdr_type is set
+            hdr_type_raw = hdr_type  # Save the raw value for logging
+            hdr_type = hdr_type.replace('+', 'plus')
+            hdr_type = re.sub(r'\W+', '', hdr_type).lower()
+            xbmc.log(f"Using hdr_type: {hdr_type_raw} -> {hdr_type}", xbmc.LOGDEBUG)
+
+        eotf_gamut = properties.get('eotf_gamut') or ''
+
+        # Adjust hdr_type if necessary to catch all HLG videos
+        if hdr_type == 'sdr' and 'hlg' in eotf_gamut.lower():
+            hdr_type = 'hlg'
+            xbmc.log(f"Adjusted HDR Type to 'hlg' based on EOTF/Gamut: {eotf_gamut}", xbmc.LOGDEBUG)
+
+        properties['hdr_type'] = hdr_type  # Update hdr_type in properties
 
         return properties
