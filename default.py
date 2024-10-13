@@ -1,11 +1,10 @@
 import xbmc
 import xbmcaddon
 
-from resources.lib.controller import AudioDelayAdjuster, AudioDelayPlayer
+from resources.lib.controller import AudioDelayAdjuster
 
 def main():
     adjuster = AudioDelayAdjuster()
-    player = AudioDelayPlayer(adjuster)
     adjuster.run()
 
 if __name__ == '__main__':
