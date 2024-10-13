@@ -29,7 +29,7 @@ Designed to alleviate frustrations related to decoding times of various audio fo
 
 - Controls to enable automatic seek back in the following conditions:
 
-  - When audio offsets are dynamically adjusted by the service during playback (e.g. user changes audio stream from TrueHD to DD+ during playback)
+  - When audio offsets are dynamically adjusted by the service during playback (e.g. user changes audio stream from TrueHD to Dolby Digital during playback)
   - When playback is first initiated (e.g. title is opened for the first time or resumed from a previous session)
   - When player is unpaused (for more in-depth control, you can look at the [Unpause Jumpback](https://github.com/bossanova808/script.xbmc.unpausejumpback) plugin from [bossanova808](https://github.com/bossanova808))
 
