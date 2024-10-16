@@ -86,11 +86,11 @@ msgid "Seek Back Settings"
 msgstr ""
 
 msgctxt "#32019"
-msgid "Seek back on audio offset adjustment"
+msgid "Seek back on audio format change"
 msgstr ""
 
 msgctxt "#32020"
-msgid "Control whether playback will seek back after adjusting audio offset to re-synchronize audio and video tracks"
+msgid "Control whether playback will seek back after changing audio format to re-synchronize audio and video tracks"
 msgstr ""
 
 msgctxt "#32021"
