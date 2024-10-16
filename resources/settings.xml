@@ -574,7 +574,7 @@
                 </setting>
 
                 <!-- Seek Back Adjust Amount (seconds) Slider -->
-                <setting id="seek_back_adjust_seconds" parent="enable_seek_back" type="integer" label="32021" help="32022">
+                <setting id="seek_back_adjust_seconds" parent="enable_seek_back_adjust" type="integer" label="32021" help="32022">
                     <level>0</level>
                     <dependencies>
                         <dependency type="visible" setting="enable_seek_back_adjust">true</dependency>
