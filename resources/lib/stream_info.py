@@ -49,6 +49,8 @@ class StreamInfo:
         if not hdr_type:
             hdr_type = 'sdr'
         gamut_info = xbmc.getInfoLabel('Player.Process(amlogic.eoft_gamut)')
+        if not gamut_info:
+            gamut_info = 'not available'
 
         # Check for HLG detection based on gamut_info
         if hdr_type == 'sdr' and 'hlg' in gamut_info.lower():
