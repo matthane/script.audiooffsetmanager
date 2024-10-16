@@ -18,6 +18,9 @@
         <assets>
             <icon>resources/icon.png</icon>
             <fanart>resources/fanart.jpg</fanart>
+            <screenshots>resources/screenshot-1.jpg</screenshot>
+            <screenshots>resources/screenshot-2.jpg</screenshot>
+            <screenshots>resources/screenshot-3.jpg</screenshot>
         </assets>
     </extension>
 </addon>
