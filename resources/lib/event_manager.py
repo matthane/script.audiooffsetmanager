@@ -36,7 +36,7 @@ class EventManager(xbmc.Player):
             self.ignore_next_av_change = True
 
     def onAVStarted(self):
-        xbmc.log("EventManager: AV started", xbmc.LOGINFO)
+        xbmc.log("EventManager: AV started", xbmc.LOGDEBUG)
         self.playback_start_time = time.time()
         self.av_started = True
         self.publish('AV_STARTED')
@@ -60,39 +60,39 @@ class EventManager(xbmc.Player):
             return
 
         self.last_av_change_time = current_time
-        xbmc.log("EventManager: AV stream changed", xbmc.LOGINFO)
+        xbmc.log("EventManager: AV stream changed", xbmc.LOGDEBUG)
         self.publish('ON_AV_CHANGE')
 
     def onPlayBackStopped(self):
-        xbmc.log("EventManager: Playback stopped", xbmc.LOGINFO)
+        xbmc.log("EventManager: Playback stopped", xbmc.LOGDEBUG)
         self.playback_start_time = None
         self.av_started = False
         self.publish('PLAYBACK_STOPPED')
 
     def onPlayBackEnded(self):
-        xbmc.log("EventManager: Playback ended", xbmc.LOGINFO)
+        xbmc.log("EventManager: Playback ended", xbmc.LOGDEBUG)
         self.playback_start_time = None
         self.av_started = False
         self.publish('PLAYBACK_ENDED')
 
     def onPlayBackPaused(self):
-        xbmc.log("EventManager: Playback paused", xbmc.LOGINFO)
+        xbmc.log("EventManager: Playback paused", xbmc.LOGDEBUG)
         self.publish('PLAYBACK_PAUSED')
 
     def onPlayBackResumed(self):
-        xbmc.log("EventManager: Playback resumed", xbmc.LOGINFO)
+        xbmc.log("EventManager: Playback resumed", xbmc.LOGDEBUG)
         self.publish('PLAYBACK_RESUMED')
 
     def onPlayBackSeek(self, time, seekOffset):
-        xbmc.log(f"EventManager: Playback seek to time {time} with offset {seekOffset}", xbmc.LOGINFO)
+        xbmc.log(f"EventManager: Playback seek to time {time} with offset {seekOffset}", xbmc.LOGDEBUG)
         self.publish('PLAYBACK_SEEK', time, seekOffset)
 
     def onPlayBackSeekChapter(self, chapter):
-        xbmc.log(f"EventManager: Playback seek to chapter {chapter}", xbmc.LOGINFO)
+        xbmc.log(f"EventManager: Playback seek to chapter {chapter}", xbmc.LOGDEBUG)
         self.publish('PLAYBACK_SEEK_CHAPTER', chapter)
 
     def onPlayBackSpeedChanged(self, speed):
-        xbmc.log(f"EventManager: Playback speed changed to {speed}", xbmc.LOGINFO)
+        xbmc.log(f"EventManager: Playback speed changed to {speed}", xbmc.LOGDEBUG)
         self.publish('PLAYBACK_SPEED_CHANGED', speed)
 
 
