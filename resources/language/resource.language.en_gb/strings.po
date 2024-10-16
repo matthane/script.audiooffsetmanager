@@ -118,7 +118,7 @@ msgid "Enable audio offset controls for Dolby Vision playback"
 msgstr ""
 
 msgctxt "#32027"
-msgid "Toggle to control whether audio offset controls for Dolby Vision playback are enabled"
+msgid "Control whether audio offset controls for Dolby Vision playback are enabled"
 msgstr ""
 
 msgctxt "#32028"
@@ -126,7 +126,7 @@ msgid "Enable audio offset controls for HDR10 playback"
 msgstr ""
 
 msgctxt "#32029"
-msgid "Toggle to control whether audio offset controls for HDR10 playback are enabled"
+msgid "Control whether audio offset controls for HDR10 playback are enabled"
 msgstr ""
 
 msgctxt "#32030"
@@ -134,7 +134,7 @@ msgid "Enable audio offset controls for HLG playback"
 msgstr ""
 
 msgctxt "#32031"
-msgid "Toggle to control whether audio offset controls for HLG playback are enabled"
+msgid "Control whether audio offset controls for HLG playback are enabled"
 msgstr ""
 
 msgctxt "#32032"
@@ -142,7 +142,7 @@ msgid "Enable audio offset controls for SDR playback"
 msgstr ""
 
 msgctxt "#32033"
-msgid "Toggle to control whether audio offset controls for SDR playback are enabled"
+msgid "Control whether audio offset controls for SDR playback are enabled"
 msgstr ""
 
 msgctxt "#32034"
@@ -182,7 +182,7 @@ msgid "Enable audio offset controls for HDR10+ playback"
 msgstr ""
 
 msgctxt "#32043"
-msgid "Toggle to control whether audio offset controls for HDR10+ playback are enabled"
+msgid "Control whether audio offset controls for HDR10+ playback are enabled"
 msgstr ""
 
 msgctxt "#32044"
@@ -194,7 +194,7 @@ msgid "Enable active offset monitoring"
 msgstr ""
 
 msgctxt "#32046"
-msgid "Toggle to control whether changes made to audio offset during playback are saved into the addon configuration. Requires constant polling during playback."
+msgid "Control whether changes made to audio offset during playback are saved into the addon configuration. Requires constant polling during playback."
 msgstr ""
 
 msgctxt "#32047"
