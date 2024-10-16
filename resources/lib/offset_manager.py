@@ -101,37 +101,59 @@ class OffsetManager:
             self.monitor_thread = None
 
     def monitor_audio_offset(self):
+        audio_settings_open = False
         dialog_open = False
         final_offset = None
         monitor = xbmc.Monitor()
 
         while self.monitor_active and not monitor.abortRequested():
-            # Check if the audio offset dialog is open
+            # Check if the audio settings dialog is open
             dialog_id = xbmcgui.getCurrentWindowDialogId()
-            if dialog_id == 10145 and not dialog_open:
-                dialog_open = True
-            elif dialog_id != 10145 and dialog_open:
-                dialog_open = False
-                if final_offset is not None:
-                    # Convert final offset to milliseconds and store in settings
-                    try:
-                        delay_ms = int(float(final_offset.replace(' s', '')) * 1000)
-                        hdr_type = self.stream_info.info.get('hdr_type')
-                        audio_format = self.stream_info.info.get('audio_format')
-                        setting_id = f"{hdr_type}_{audio_format}"
-                        self.settings_manager.store_audio_delay(setting_id, delay_ms)
-                        xbmc.log(f"OffsetManager: Stored final audio offset {delay_ms} ms for setting ID '{setting_id}'", xbmc.LOGINFO)
-                    except ValueError:
-                        xbmc.log("OffsetManager: Failed to convert final offset to milliseconds", xbmc.LOGERROR)
+            if dialog_id == 10124 and not audio_settings_open:
+                audio_settings_open = True
+
+            if audio_settings_open:
+                # Poll every 500ms until the audio settings dialog is closed
+                if dialog_id != 10124:
+                    audio_settings_open = False
+                    # Start a search period for the audio offset slider
+                    start_time = xbmc.getGlobalIdleTime()
+                    while (xbmc.getGlobalIdleTime() - start_time) < 1:
+                        dialog_id = xbmcgui.getCurrentWindowDialogId()
+                        if dialog_id == 10145:
+                            dialog_open = True
+                            break
+                        if monitor.waitForAbort(0.1):
+                            return
 
             if dialog_open:
-                # Poll the audio delay value
+                # Poll the audio delay value every 200ms
                 audiodelay = xbmc.getInfoLabel('Player.AudioDelay')
                 if audiodelay:
                     final_offset = audiodelay
+                if dialog_id != 10145:
+                    dialog_open = False
+                    if final_offset is not None:
+                        # Convert final offset to milliseconds and store in settings
+                        try:
+                            delay_ms = int(float(final_offset.replace(' s', '')) * 1000)
+                            hdr_type = self.stream_info.info.get('hdr_type')
+                            audio_format = self.stream_info.info.get('audio_format')
+                            setting_id = f"{hdr_type}_{audio_format}"
+                            self.settings_manager.store_audio_delay(setting_id, delay_ms)
+                            xbmc.log(f"OffsetManager: Stored final audio offset {delay_ms} ms for setting ID '{setting_id}'", xbmc.LOGINFO)
+                        except ValueError:
+                            xbmc.log("OffsetManager: Failed to convert final offset to milliseconds", xbmc.LOGERROR)
 
-            # Wait for 500ms before the next check
-            if monitor.waitForAbort(0.5):
+            # Wait based on current state
+            if audio_settings_open:
+                wait_time = 0.5  # Poll every 500ms while audio settings are open
+            elif dialog_open:
+                wait_time = 0.2  # Poll every 200ms while audio offset dialog is open
+            else:
+                wait_time = 1.0  # Poll every 1 second during regular playback
+
+            if monitor.waitForAbort(wait_time):
                 break
 
 # Usage example:
