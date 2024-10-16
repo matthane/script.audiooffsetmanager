@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.audiooffsetmanager" version="0.0.1" name="Audio Offset Manager" provider-name="matthane">
+<addon id="script.audiooffsetmanager" version="1.0.0" name="Audio Offset Manager" provider-name="matthane">
     <requires>
         <import addon="xbmc.python" version="3.0.1"/>
     </requires>
     <extension point="xbmc.service" library="default.py" />
     <extension point="xbmc.python.module" library="resources/lib/"/>
     <extension point="xbmc.addon.metadata">
-        <summary lang="en_GB">Testing</summary>
-        <description lang="en_GB">Testing</description>
+        <source>https://github.com/matthane/script.audiooffsetmanager</source>
+        <news>v1.0.0 (2024-16-10)
+        - Initial launch
+        </news>
+        <summary lang="en_GB">Dynamically manages audio offset based on video and audio stream format</summary>
+        <description lang="en_GB">This service add-on dynamically adjusts the audio offset to user configured values based on the currently playing video and audio stream format, along with other helpful features</description>
         <platform>all</platform>
         <language>en</language>
         <license>GPL-3.0-or-later</license>

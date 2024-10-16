@@ -8,7 +8,7 @@ Designed to alleviate frustrations related to decoding times of various audio fo
 
 ## Features
 
-**Customizable audio latency offsets for individual audio formats based on detected video format.**
+**Customizable audio latency offsets for individual audio formats based on detected video format**
 
 - Currently supported audio formats:
   - Dolby Atmos / TrueHD
@@ -25,7 +25,11 @@ Designed to alleviate frustrations related to decoding times of various audio fo
   - HLG
   - SDR
 
-**Automatic seek back to keep audio and video streams synchronized.**
+**AV Calibration help**
+
+- Active offset monitoring mode to continually check and save any adjustments made to audio offset during playback
+
+**Automatic seek back to keep audio and video streams synchronized**
 
 - Controls to enable automatic seek back in the following conditions:
 
