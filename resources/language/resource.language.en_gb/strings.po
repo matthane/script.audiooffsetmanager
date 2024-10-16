@@ -200,3 +200,15 @@ msgstr ""
 msgctxt "#32047"
 msgid "AV Calibration"
 msgstr ""
+
+msgctxt "#32048"
+msgid "Seek back on manual offset change"
+msgstr ""
+
+msgctxt "#32049"
+msgid "Control whether playback will seek back after manual adjustments to audio offset"
+msgstr ""
+
+msgctxt "#32050"
+msgid "Control the amount of time that the player seeks back after making manual adjustements to audio offset"
+msgstr ""
