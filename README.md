@@ -1,10 +1,10 @@
-<img src="https://raw.githubusercontent.com/matthane/script.dynamicaudiooffsetadjuster/refs/heads/main/resources/icon.png" width="256" height="256" alt="Dynamic Audio Offset Adjuster">
+<img src="https://raw.githubusercontent.com/matthane/script.audiooffsetmanager/refs/heads/main/resources/icon.png" width="256" height="256" alt="Dynamic Audio Offset Adjuster">
 
-# Dynamic Audio Offset Adjuster
+# Audio Offset Manager
 
-Dynamic Audio Offset Adjuster is a service add-on for Kodi that dynamically adjusts the audio offset to user configured values based on the currently playing video and audio stream format. By default, Kodi manages audio offsets on an individual video or all video basis. This add-on increases the scope and flexibility of offset management to a per audio/video format basis.
+Audio Offset Manager is a service add-on for Kodi that dynamically adjusts the audio offset to user configured values based on the currently playing video and audio stream format. By default, Kodi manages audio offsets on an individual video or all video basis. This add-on increases the scope and flexibility of offset management to a per audio/video format basis.
 
-Designed to alleviate frustrations related to decoding times of various audio formats/codecs and video playback synchronization across different home theater setups. This add-on also monitors the audio offset values during playback and saves any changes made by the user back into the configuration setting for that audio/video format—very useful for initial AV sync calibration across different media types.
+Designed to alleviate frustrations related to decoding times of various audio formats/codecs and video playback synchronization across different home theater setups. This add-on also features an active offset monitoring mode which monitors the audio offset values during playback and saves any changes made by the user back into the configuration setting for that audio/video format—very useful for initial AV sync calibration across different media types.
 
 ## Features
 
@@ -29,7 +29,7 @@ Designed to alleviate frustrations related to decoding times of various audio fo
 
 - Controls to enable automatic seek back in the following conditions:
 
-  - When audio offsets are dynamically adjusted by the service during playback (e.g. user changes audio stream from TrueHD to Dolby Digital during playback)
+  - When audio stream changes during playback (e.g. user changes audio stream from TrueHD to Dolby Digital during playback)
   - When playback is first initiated (e.g. title is opened for the first time or resumed from a previous session)
   - When player is unpaused (for more in-depth control, you can look at the [Unpause Jumpback](https://github.com/bossanova808/script.xbmc.unpausejumpback) plugin from [bossanova808](https://github.com/bossanova808))
 

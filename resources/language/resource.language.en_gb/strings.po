@@ -188,3 +188,15 @@ msgstr ""
 msgctxt "#32044"
 msgid "HDR10+"
 msgstr ""
+
+msgctxt "#32045"
+msgid "Enable active offset monitoring"
+msgstr ""
+
+msgctxt "#32046"
+msgid "Toggle to control whether changes made to audio offset during playback are saved into the addon configuration. Requires constant polling during playback."
+msgstr ""
+
+msgctxt "#32047"
+msgid "AV Calibration"
+msgstr ""
