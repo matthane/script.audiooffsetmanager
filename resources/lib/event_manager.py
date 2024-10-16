@@ -3,6 +3,7 @@
 import xbmc
 import time
 
+
 class EventManager(xbmc.Player):
     def __init__(self):
         super().__init__()
@@ -93,6 +94,7 @@ class EventManager(xbmc.Player):
     def onPlayBackSpeedChanged(self, speed):
         xbmc.log(f"EventManager: Playback speed changed to {speed}", xbmc.LOGINFO)
         self.publish('PLAYBACK_SPEED_CHANGED', speed)
+
 
 # Usage example:
 # event_manager = EventManager()

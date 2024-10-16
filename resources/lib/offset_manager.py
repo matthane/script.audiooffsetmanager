@@ -1,9 +1,12 @@
+# resources/lib/offset_manager.py
+
 import xbmc
 import xbmcgui
 import json
 import threading
 from resources.lib.settings_manager import SettingsManager
 from resources.lib.stream_info import StreamInfo
+
 
 class OffsetManager:
     def __init__(self, event_manager, stream_info):
@@ -45,10 +48,10 @@ class OffsetManager:
         # Get stream information from StreamInfo
         hdr_type = self.stream_info.info.get('hdr_type')
         audio_format = self.stream_info.info.get('audio_format')
-        
+
         # Log the HDR type and audio format being used
         xbmc.log(f"OffsetManager: Applying audio offset for HDR type '{hdr_type}' and audio format '{audio_format}'", xbmc.LOGINFO)
-        
+
         # Check if HDR type is enabled in settings
         if not self.settings_manager.is_hdr_enabled(hdr_type):
             xbmc.log(f"OffsetManager: HDR type {hdr_type} is not enabled in settings", xbmc.LOGINFO)
@@ -155,6 +158,7 @@ class OffsetManager:
 
             if monitor.waitForAbort(wait_time):
                 break
+
 
 # Usage example:
 # offset_manager = OffsetManager(event_manager, stream_info)

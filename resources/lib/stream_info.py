@@ -5,6 +5,7 @@ import xbmcgui
 import time
 import json
 
+
 class StreamInfo:
     def __init__(self, event_manager):
         self.event_manager = event_manager
@@ -59,7 +60,7 @@ class StreamInfo:
             'audio_format': audio_format,
             'audio_channels': audio_channels,
             'hdr_type': hdr_type,
-            'gamut_info': gamut_info
+            'gamut_info': gamut_info,
         }
         return stream_info
 

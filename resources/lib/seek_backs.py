@@ -1,6 +1,9 @@
+# resources/lib/seek_backs.py
+
 import xbmc
 import json
 from resources.lib.settings_manager import SettingsManager
+
 
 class SeekBacks:
     def __init__(self, event_manager):
@@ -57,6 +60,7 @@ class SeekBacks:
             xbmc.log(f"SeekBacks: Failed to perform seek back: {response_json['error']}", xbmc.LOGERROR)
         else:
             xbmc.log(f"SeekBacks: Seeked back by {seek_seconds} seconds on {event_type}", xbmc.LOGINFO)
+
 
 # Usage example:
 # seek_backs = SeekBacks(event_manager)

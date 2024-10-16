@@ -1,5 +1,8 @@
+# resources/lib/settings_manager.py
+
 import xbmc
 import xbmcaddon
+
 
 class SettingsManager:
     def __init__(self):
@@ -26,15 +29,17 @@ class SettingsManager:
 
     def store_audio_delay(self, setting_id, delay_ms):
         """Store the updated audio delay in the add-on settings (in milliseconds)."""
+        xbmc.log(f"Storing delay for {setting_id}: {delay_ms} ms", xbmc.LOGINFO)
         self.settings.setInt(setting_id, delay_ms)
 
     def is_hdr_enabled(self, hdr_type):
         """
-        Check if the HDR type is enabled in the settings. 
+        Check if the HDR type is enabled in the settings.
         For example, check if 'enable_dolbyvision' is enabled for Dolby Vision.
         """
         setting_id = f"enable_{hdr_type}"
         return self.get_boolean_setting(setting_id)
+
 
 # Usage example:
 # settings_manager = SettingsManager()
