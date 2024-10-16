@@ -26,7 +26,6 @@ class SettingsManager:
 
     def store_audio_delay(self, setting_id, delay_ms):
         """Store the updated audio delay in the add-on settings (in milliseconds)."""
-        xbmc.log(f"Storing delay for {setting_id}: {delay_ms} ms", xbmc.LOGINFO)
         self.settings.setInt(setting_id, delay_ms)
 
     def is_hdr_enabled(self, hdr_type):
