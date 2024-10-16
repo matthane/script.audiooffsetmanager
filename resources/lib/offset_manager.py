@@ -49,24 +49,24 @@ class OffsetManager:
         hdr_type = self.stream_info.info.get('hdr_type')
         audio_format = self.stream_info.info.get('audio_format')
 
-        # Log the HDR type and audio format being used
-        xbmc.log(f"OffsetManager: Applying audio offset for HDR type '{hdr_type}' and audio format '{audio_format}'", xbmc.LOGINFO)
-
-        # Check if HDR type is enabled in settings
-        if not self.settings_manager.is_hdr_enabled(hdr_type):
-            xbmc.log(f"OffsetManager: HDR type {hdr_type} is not enabled in settings", xbmc.LOGINFO)
-            return
-
         # Retrieve the audio delay for the combination of HDR type and audio format
         delay_ms = self.settings_manager.get_audio_delay(hdr_type, audio_format)
         delay_seconds = delay_ms / 1000.0
+
+        # Log the HDR type, audio format, and delay being used
+        xbmc.log(f"AOM_OffsetManager: Applying audio offset of {delay_seconds} seconds for HDR type '{hdr_type}' and audio format '{audio_format}'", xbmc.LOGINFO)
+
+        # Check if HDR type is enabled in settings
+        if not self.settings_manager.is_hdr_enabled(hdr_type):
+            xbmc.log(f"AOM_OffsetManager: HDR type {hdr_type} is not enabled in settings", xbmc.LOGINFO)
+            return
 
         # Send JSON-RPC call to set the audio delay on the current player
         player_id = self.stream_info.info.get('player_id')
         if player_id is not None:
             self.set_audio_delay(player_id, delay_seconds)
         else:
-            xbmc.log("OffsetManager: No valid player ID found to set audio delay", xbmc.LOGERROR)
+            xbmc.log("AOM_OffsetManager: No valid player ID found to set audio delay", xbmc.LOGERROR)
 
     def set_audio_delay(self, player_id, delay_seconds):
         request = json.dumps({
@@ -81,14 +81,14 @@ class OffsetManager:
         response = xbmc.executeJSONRPC(request)
         response_json = json.loads(response)
         if "error" in response_json:
-            xbmc.log(f"OffsetManager: Failed to set audio offset: {response_json['error']}", xbmc.LOGERROR)
+            xbmc.log(f"AOM_OffsetManager: Failed to set audio offset: {response_json['error']}", xbmc.LOGERROR)
         else:
-            xbmc.log(f"OffsetManager: Audio offset set to {delay_seconds} seconds", xbmc.LOGINFO)
+            xbmc.log(f"AOM_OffsetManager: Audio offset set to {delay_seconds} seconds", xbmc.LOGDEBUG)
 
     def start_monitoring(self):
         # Start monitoring only if active monitoring is enabled
         if not self.enable_active_monitoring:
-            xbmc.log("OffsetManager: Active monitoring is not enabled in settings", xbmc.LOGINFO)
+            xbmc.log("AOM_OffsetManager: Active monitoring is not enabled in settings", xbmc.LOGINFO)
             return
 
         # Start a new thread to monitor audio offset changes
@@ -144,9 +144,11 @@ class OffsetManager:
                             audio_format = self.stream_info.info.get('audio_format')
                             setting_id = f"{hdr_type}_{audio_format}"
                             self.settings_manager.store_audio_delay(setting_id, delay_ms)
-                            xbmc.log(f"OffsetManager: Stored final audio offset {delay_ms} ms for setting ID '{setting_id}'", xbmc.LOGINFO)
+                            xbmc.log(f"AOM_OffsetManager: Stored final audio offset {delay_ms} ms for setting ID '{setting_id}'", xbmc.LOGINFO)
+                            # Publish USER_ADJUSTMENT event
+                            self.event_manager.publish('USER_ADJUSTMENT')
                         except ValueError:
-                            xbmc.log("OffsetManager: Failed to convert final offset to milliseconds", xbmc.LOGERROR)
+                            xbmc.log("AOM_OffsetManager: Failed to convert final offset to milliseconds", xbmc.LOGERROR)
 
             # Wait based on current state
             if audio_settings_open:
