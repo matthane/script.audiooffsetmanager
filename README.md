@@ -44,6 +44,7 @@ This add-on is designed to enhance your viewing experience by automating the pro
 - Controls to enable automatic seek back in the following conditions:
 
   - When audio stream changes during playback (e.g. user changes audio stream from TrueHD to Dolby Digital during playback)
+  - When audio offset is changed (requires active monitoring enabled)
   - When playback is first initiated (e.g. title is opened for the first time or resumed from a previous session)
   - When player is unpaused (for more in-depth control, you can look at the [Unpause Jumpback](https://github.com/bossanova808/script.xbmc.unpausejumpback) plugin from [bossanova808](https://github.com/bossanova808))
 
