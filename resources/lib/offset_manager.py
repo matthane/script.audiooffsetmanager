@@ -28,6 +28,8 @@ class OffsetManager:
         self.apply_audio_offset()
 
     def on_av_change(self):
+        # Reload settings to ensure the latest values are used
+        self.settings_manager = SettingsManager()
         self.apply_audio_offset()
 
     def apply_audio_offset(self):
