@@ -41,13 +41,13 @@ class OffsetManager:
         delay_ms = self.settings_manager.get_audio_delay(hdr_type, audio_format)
         delay_seconds = delay_ms / 1000.0
 
-        # Log the HDR type, audio format, and delay being used
-        xbmc.log(f"AOM_OffsetManager: Applying audio offset of {delay_seconds} seconds for HDR type '{hdr_type}' and audio format '{audio_format}'", xbmc.LOGINFO)
-
         # Check if HDR type is enabled in settings
         if not self.settings_manager.is_hdr_enabled(hdr_type):
             xbmc.log(f"AOM_OffsetManager: HDR type {hdr_type} is not enabled in settings", xbmc.LOGINFO)
             return
+
+        # Log the HDR type, audio format, and delay being used
+        xbmc.log(f"AOM_OffsetManager: Applying audio offset of {delay_seconds} seconds for HDR type '{hdr_type}' and audio format '{audio_format}'", xbmc.LOGINFO)
 
         # Send JSON-RPC call to set the audio delay on the current player
         player_id = self.stream_info.info.get('player_id')
