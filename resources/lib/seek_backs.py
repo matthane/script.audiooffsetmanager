@@ -47,7 +47,7 @@ class SeekBacks:
     def perform_seek_back(self, event_type):
         # Do not perform seek back if playback is paused
         if self.playback_paused:
-            xbmc.log(f"AOM_SeekBacks: Playback is paused, skipping seek back on {event_type}", xbmc.LOGINFO)
+            xbmc.log(f"AOM_SeekBacks: Playback is paused, skipping seek back on {event_type}", xbmc.LOGDEBUG)
             return
 
         # Reload settings to ensure the latest values are used
@@ -59,7 +59,7 @@ class SeekBacks:
         seek_seconds = self.settings_manager.get_integer_setting(f'seek_back_{event_type}_seconds')
 
         if not seek_enabled:
-            xbmc.log(f"AOM_SeekBacks: Seek back on {event_type} is not enabled in settings", xbmc.LOGINFO)
+            xbmc.log(f"AOM_SeekBacks: Seek back on {event_type} is not enabled in settings", xbmc.LOGDEBUG)
             return
 
         # Send JSON-RPC call to perform seek back
