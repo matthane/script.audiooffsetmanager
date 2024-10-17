@@ -15,9 +15,10 @@ Audio Offset Manager is a utility addon for Kodi (v20.0+) designed to enhance yo
   - When the audio stream changes during playback
   - When the audio offset is adjusted
   - When the player is unpaused
+
   This helps synchronize the audio and video streams more accurately, ensuring a smoother viewing experience.
 
-- **Modular Design**: The addon is built with a modular architecture, allowing for easy maintenance and future enhancements.
+- **Modular Event-Driven Design**: The addon is built with a modular, event-driven architecture, allowing for easy maintenance and future enhancements.
 
 This addon streamlines your viewing experience by automating the process of audio delay adjustment, ensuring that once you've configured the appropriate offsets, they are dynamically applied for each type of content.
 
@@ -58,7 +59,7 @@ This addon is designed for Kodi v20.0 and above. It may not function correctly w
 
 ## Contributing and Reporting Issues
 
-Contributions to improve Audio Offset Manager are welcome. If you encounter any issues or have suggestions for improvements, please open an issue on our GitHub repository.
+Contributions to improve Audio Offset Manager are welcome. If you encounter any issues or have suggestions for improvements, please open an issue on the [GitHub repository](https://github.com/matthane/script.audiooffsetmanager).
 
 ### Attributions
 
