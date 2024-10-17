@@ -593,6 +593,9 @@
                 <!-- Enable Seek Back on Change Behavior Toggle -->
                 <setting id="enable_seek_back_change" type="boolean" label="32048" help="32049">
                     <level>0</level>
+                    <dependencies>
+                        <dependency type="visible" setting="enable_active_monitoring">true</dependency>
+                    </dependencies>
                     <default>false</default>
                     <control type="toggle"/>
                 </setting>
@@ -602,6 +605,7 @@
                     <level>0</level>
                     <dependencies>
                         <dependency type="visible" setting="enable_seek_back_change">true</dependency>
+                        <dependency type="visible" setting="enable_active_monitoring">true</dependency>
                     </dependencies>
                     <default>4</default>
                     <constraints>
