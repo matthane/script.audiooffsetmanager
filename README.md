@@ -6,8 +6,7 @@ Audio Offset Manager is a service add-on for Kodi (v20.0+) that dynamically adju
 
 Designed to alleviate frustrations related to decoding times of various audio formats/codecs and video playback synchronization across different home theater setups. This add-on also features an active offset monitoring mode which monitors the audio offset values during playback and saves any changes made by the user back into the configuration setting for that audio/video format—very useful for initial AV sync calibration across different media types.
 
-<img src="https://raw.githubusercontent.com/matthane/script.audiooffsetmanager/refs/heads/main/resources/screenshot-1.jpg" width="49%" float="left" alt="Audio Offset Manager screenshot 1">
-<img src="https://raw.githubusercontent.com/matthane/script.audiooffsetmanager/refs/heads/main/resources/screenshot-2.jpg" width="49%" float="right" alt="Audio Offset Manager screenshot 2">
+<img src="https://raw.githubusercontent.com/matthane/script.audiooffsetmanager/refs/heads/main/resources/screenshot-1.jpg" width="100%" alt="Audio Offset Manager screenshot 1">
 
 ## Features
 
@@ -28,11 +27,15 @@ Designed to alleviate frustrations related to decoding times of various audio fo
   - HLG
   - SDR
 
+<img src="https://raw.githubusercontent.com/matthane/script.audiooffsetmanager/refs/heads/main/resources/screenshot-2.jpg" width="100%" alt="Audio Offset Manager screenshot 2">
+
 **AV Calibration help**
 
 - Active offset monitoring mode to continually check and save any adjustments made to audio offset during playback
 
 **Automatic seek back to keep audio and video streams synchronized**
+
+<img src="https://raw.githubusercontent.com/matthane/script.audiooffsetmanager/refs/heads/main/resources/screenshot-3.jpg" width="100%" alt="Audio Offset Manager screenshot 3">
 
 - Controls to enable automatic seek back in the following conditions:
 
