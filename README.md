@@ -10,7 +10,6 @@ Audio Offset Manager is a Kodi add-on designed to provide dynamic audio delay ad
 
 This add-on is designed to enhance your viewing experience by automating the process of audio delay adjustment, ensuring that once you've configured the appropriate offsets, they are dynamically applied for each type of content.
 
-Whether you're watching a movie in Dolby Vision or an HDR10 video, Audio Offset Manager has got you covered, dynamically adapting to make sure everything stays in sync.
 
 <img src="https://raw.githubusercontent.com/matthane/script.audiooffsetmanager/refs/heads/main/resources/screenshot-1.jpg" width="100%" alt="Audio Offset Manager screenshot 1">
 
