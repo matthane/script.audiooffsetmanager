@@ -2,9 +2,15 @@
 
 # Audio Offset Manager
 
-Audio Offset Manager is a service add-on for Kodi (v20.0+) that dynamically adjusts the audio offset to user configured values based on the currently playing video and audio stream format. By default, Kodi manages audio offsets on an individual video or all video basis. This add-on increases the scope and flexibility of offset management to a per audio/video format basis.
+Audio Offset Manager is a Kodi add-on designed to provide dynamic audio delay adjustments tailored to the content you're watching. This add-on intelligently adjusts the audio offset based on the detected HDR type and audio format according to user-configured settings. Key features include:
 
-Designed to alleviate frustrations related to decoding times of various audio formats/codecs and video playback synchronization across different home theater setups. This add-on also features an active offset monitoring mode which monitors the audio offset values during playback and saves any changes made by the user back into the configuration setting for that audio/video format—very useful for initial AV sync calibration across different media types.
+- Dynamic Audio Offset Application: Sets audio delay based on the HDR type and audio format of the current video, applying user-defined offsets to ensure consistent audio-visual sync without needing repeated manual adjustments.
+- Active Monitoring Mode: Actively monitors when users manually adjust audio delay via Kodi's OSD settings, stores those adjustments, and applies them for future playback of similar content. This feature is particularly useful for initial AV calibration, allowing users to fine-tune audio sync and have those settings automatically applied to similar content in the future.
+- Custom Seek-Backs: Offers user-configurable "seek-back" functionality to rewind a few seconds in specific playback situations, such as when playback starts, resumes, or the audio offset is adjusted. This helps synchronize the audio and video streams more accurately, ensuring a smoother viewing experience.
+
+This add-on is designed to enhance your viewing experience by automating the process of audio delay adjustment, ensuring that once you've configured the appropriate offsets, they are dynamically applied for each type of content.
+
+Whether you're watching a movie in Dolby Vision or an HDR10 video, Audio Offset Manager has got you covered, dynamically adapting to make sure everything stays in sync.
 
 <img src="https://raw.githubusercontent.com/matthane/script.audiooffsetmanager/refs/heads/main/resources/screenshot-1.jpg" width="100%" alt="Audio Offset Manager screenshot 1">
 
