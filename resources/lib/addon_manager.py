@@ -27,7 +27,7 @@ class AddonManager:
         self.seek_backs = SeekBacks(self.event_manager)
 
         # Initialize active monitor
-        self.active_monitor = ActiveMonitor(self.event_manager, self.stream_info, self.settings_manager, self.offset_manager)
+        self.active_monitor = ActiveMonitor(self.event_manager, self.stream_info, self.offset_manager)
 
     def start(self):
         # Start all components

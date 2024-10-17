@@ -3,13 +3,14 @@
 import xbmc
 import xbmcgui
 import threading
+from resources.lib.settings_manager import SettingsManager
 
 
 class ActiveMonitor:
-    def __init__(self, event_manager, stream_info, settings_manager, offset_manager):
+    def __init__(self, event_manager, stream_info, offset_manager):
         self.event_manager = event_manager
         self.stream_info = stream_info
-        self.settings_manager = settings_manager
+        self.settings_manager = SettingsManager()
         self.offset_manager = offset_manager
         self.monitor_thread = None
         self.monitor_active = False
@@ -50,11 +51,18 @@ class ActiveMonitor:
         xbmc.log(f"AOM_ActiveMonitor: Updated last stored audio delay to {self.last_stored_audio_delay} for HDR type {hdr_type} and audio format {audio_format}", xbmc.LOGDEBUG)
 
     def start_monitoring(self):
-        if self.settings_manager.get_boolean_setting('enable_active_monitoring') and not self.monitor_active:
+        self.settings_manager = SettingsManager()
+        hdr_type = self.stream_info.info.get('hdr_type')
+        active_monitoring_enabled = self.settings_manager.get_boolean_setting('enable_active_monitoring')
+        hdr_type_enabled = self.settings_manager.get_boolean_setting(f'enable_{hdr_type}')
+
+        if active_monitoring_enabled and hdr_type_enabled and not self.monitor_active:
             self.monitor_active = True
             self.monitor_thread = threading.Thread(target=self.monitor_audio_offset)
             self.monitor_thread.start()
-            xbmc.log("AOM_ActiveMonitor: Active monitoring started", xbmc.LOGINFO)
+            xbmc.log(f"AOM_ActiveMonitor: Active monitoring started for HDR type {hdr_type}", xbmc.LOGINFO)
+        else:
+            xbmc.log(f"AOM_ActiveMonitor: Active monitoring not started (active monitoring enabled: {active_monitoring_enabled}, HDR type {hdr_type} enabled: {hdr_type_enabled}, already active: {self.monitor_active})", xbmc.LOGDEBUG)
 
     def stop_monitoring(self):
         if self.monitor_active:
@@ -125,5 +133,5 @@ class ActiveMonitor:
             xbmc.log("AOM_ActiveMonitor: Failed to convert audio delay to milliseconds", xbmc.LOGERROR)
 
 # Usage example:
-# active_monitor = ActiveMonitor(event_manager, stream_info, settings_manager, offset_manager)
+# active_monitor = ActiveMonitor(event_manager, stream_info, offset_manager)
 # active_monitor.start()
