@@ -86,6 +86,7 @@ class OffsetManager:
             xbmc.log(f"AOM_OffsetManager: Audio offset set to {delay_seconds} seconds", xbmc.LOGDEBUG)
 
     def start_monitoring(self):
+        xbmc.log("AOM_OffsetManager: Starting active monitoring", xbmc.LOGINFO)
         # Start monitoring only if active monitoring is enabled
         if not self.enable_active_monitoring:
             xbmc.log("AOM_OffsetManager: Active monitoring is not enabled in settings", xbmc.LOGINFO)
@@ -97,6 +98,7 @@ class OffsetManager:
         self.monitor_thread.start()
 
     def stop_monitoring(self):
+        xbmc.log("AOM_OffsetManager: Stopping active monitoring", xbmc.LOGINFO)
         # Stop the monitoring thread if it is running
         self.monitor_active = False
         if self.monitor_thread is not None:
@@ -116,7 +118,7 @@ class OffsetManager:
                 audio_settings_open = True
 
             if audio_settings_open:
-                # Poll every 500ms until the audio settings dialog is closed
+                # Poll every 250ms until the audio settings dialog is closed
                 if dialog_id != 10124:
                     audio_settings_open = False
                     # Start a search period for the audio offset slider
@@ -130,33 +132,38 @@ class OffsetManager:
                             return
 
             if dialog_open:
-                # Poll the audio delay value every 200ms
+                # Poll the audio delay value every 250ms
                 audiodelay = xbmc.getInfoLabel('Player.AudioDelay')
                 if audiodelay:
                     final_offset = audiodelay
                 if dialog_id != 10145:
                     dialog_open = False
                     if final_offset is not None:
-                        # Convert final offset to milliseconds and store in settings
+                        # Convert final offset to milliseconds
                         try:
                             delay_ms = int(float(final_offset.replace(' s', '')) * 1000)
                             hdr_type = self.stream_info.info.get('hdr_type')
                             audio_format = self.stream_info.info.get('audio_format')
                             setting_id = f"{hdr_type}_{audio_format}"
-                            self.settings_manager.store_audio_delay(setting_id, delay_ms)
-                            xbmc.log(f"AOM_OffsetManager: Stored final audio offset {delay_ms} ms for setting ID '{setting_id}'", xbmc.LOGINFO)
-                            # Publish USER_ADJUSTMENT event
-                            self.event_manager.publish('USER_ADJUSTMENT')
+                            current_delay_ms = self.settings_manager.get_audio_delay(hdr_type, audio_format)
+                            # Compare with current setting and only store if different
+                            if delay_ms != current_delay_ms:
+                                self.settings_manager.store_audio_delay(setting_id, delay_ms)
+                                xbmc.log(f"AOM_OffsetManager: Stored final audio offset {delay_ms} ms for setting ID '{setting_id}'", xbmc.LOGINFO)
+                                # Publish USER_ADJUSTMENT event
+                                self.event_manager.publish('USER_ADJUSTMENT')
+                            else:
+                                xbmc.log("AOM_OffsetManager: No change in audio offset detected, skipping save", xbmc.LOGDEBUG)
                         except ValueError:
                             xbmc.log("AOM_OffsetManager: Failed to convert final offset to milliseconds", xbmc.LOGERROR)
 
             # Wait based on current state
             if audio_settings_open:
-                wait_time = 0.5  # Poll every 500ms while audio settings are open
+                wait_time = 0.25  # Poll every 250ms while audio settings are open
             elif dialog_open:
-                wait_time = 0.2  # Poll every 200ms while audio offset dialog is open
+                wait_time = 0.25  # Poll every 250ms while audio offset dialog is open
             else:
-                wait_time = 1.0  # Poll every 1 second during regular playback
+                wait_time = 0.5  # Poll every 500ms during regular playback
 
             if monitor.waitForAbort(wait_time):
                 break
