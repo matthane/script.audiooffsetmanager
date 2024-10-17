@@ -9,8 +9,8 @@
         <news>v1.0.0 (2024-16-10)
         - Initial launch
         </news>
-        <summary lang="en_GB">Dynamically manages audio offset based on video and audio stream format</summary>
-        <description lang="en_GB">This service add-on dynamically adjusts the audio offset to user configured values based on the currently playing video and audio stream format, along with other helpful features</description>
+        <summary lang="en_GB">Dynamically manages audio offsets</summary>
+        <description lang="en_GB"> This add-on intelligently adjusts the audio offset based on the detected HDR type and audio format according to user-configured settings, along with other helpful features</description>
         <platform>all</platform>
         <language>en</language>
         <license>GPL-3.0-or-later</license>
