@@ -6,7 +6,7 @@
     <extension point="xbmc.service" library="default.py" />
     <extension point="xbmc.addon.metadata">
         <source>https://github.com/matthane/script.audiooffsetmanager</source>
-        <news>v1.0.0 (2024-16-10)
+        <news>v1.0.0 (2024-17-10)
         - Initial release
         </news>
         <summary lang="en_GB">Dynamically manages audio offsets</summary>
