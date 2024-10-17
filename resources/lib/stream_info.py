@@ -28,17 +28,17 @@ class StreamInfo:
     def on_av_started(self):
         # Gather initial playback details
         self.info = self.gather_stream_info()
-        xbmc.log(f"StreamInfo: AV Started with info: {self.info}", xbmc.LOGINFO)
+        xbmc.log(f"AOM_StreamInfo: AV Started with info: {self.info}", xbmc.LOGINFO)
 
     def on_av_change(self):
         # Gather updated playback details after stream change
         self.info = self.gather_stream_info()
-        xbmc.log(f"StreamInfo: AV Change detected with updated info: {self.info}", xbmc.LOGINFO)
+        xbmc.log(f"AOM_StreamInfo: AV Change detected with updated info: {self.info}", xbmc.LOGINFO)
 
     def on_playback_stopped(self):
         # Clear the stream information when playback stops
         self.info = {}
-        xbmc.log("StreamInfo: Playback stopped, clearing stream info", xbmc.LOGINFO)
+        xbmc.log("AOM_StreamInfo: Playback stopped, clearing stream info", xbmc.LOGINFO)
 
     def gather_stream_info(self):
         # Retrieve stream information
@@ -82,10 +82,10 @@ class StreamInfo:
                 if player_id != -1:
                     return player_id
 
-            xbmc.log(f"StreamInfo: Invalid player ID, retrying... ({attempt + 1}/10)", xbmc.LOGINFO)
+            xbmc.log(f"AOM_StreamInfo: Invalid player ID, retrying... ({attempt + 1}/10)", xbmc.LOGINFO)
             time.sleep(0.5)
 
-        xbmc.log("StreamInfo: Failed to retrieve valid player ID after 10 attempts", xbmc.LOGERROR)
+        xbmc.log("AOM_StreamInfo: Failed to retrieve valid player ID after 10 attempts", xbmc.LOGERROR)
         return -1
 
     def get_audio_info(self, player_id):
@@ -115,8 +115,8 @@ class StreamInfo:
 
                     return audio_format, audio_channels
 
-            xbmc.log(f"StreamInfo: Invalid audio format 'none', retrying... ({attempt + 1}/10)", xbmc.LOGINFO)
+            xbmc.log(f"AOM_StreamInfo: Invalid audio format 'none', retrying... ({attempt + 1}/10)", xbmc.LOGINFO)
             time.sleep(0.5)
 
-        xbmc.log("StreamInfo: Failed to retrieve valid audio information after 10 attempts", xbmc.LOGERROR)
+        xbmc.log("AOM_StreamInfo: Failed to retrieve valid audio information after 10 attempts", xbmc.LOGERROR)
         return "unknown", "unknown"
