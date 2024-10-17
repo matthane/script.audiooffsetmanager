@@ -10,13 +10,11 @@ Audio Offset Manager is a utility addon for Kodi (v20.0+) designed to enhance yo
 
 - **Active Monitoring Mode**: Monitors when users manually adjust audio delay via Kodi's OSD settings, stores those adjustments, and applies them for future playback of similar content. This feature is particularly useful for initial AV calibration, allowing users to fine-tune audio sync and have those settings automatically applied to similar content in the future.
 
-- **Custom Seek-Backs**: Offers user-configurable "seek-back" functionality to rewind a few seconds in specific playback situations, such as:
+- **Custom Seek-Backs**: Offers user-configurable "seek-back" functionality to rewind a few seconds in specific playback situations to keep audio synchronized, such as:
   - When playback starts or resumes
   - When the audio stream changes during playback
   - When the audio offset is adjusted
   - When the player is unpaused
-
-  This helps synchronize the audio and video streams more accurately, ensuring a smoother viewing experience.
 
 - **Modular Event-Driven Design**: The addon is built with a modular, event-driven architecture, allowing for easy maintenance and future enhancements.
 
