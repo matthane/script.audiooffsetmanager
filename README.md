@@ -6,7 +6,8 @@ Audio Offset Manager is a service add-on for Kodi (v20.0+) that dynamically adju
 
 Designed to alleviate frustrations related to decoding times of various audio formats/codecs and video playback synchronization across different home theater setups. This add-on also features an active offset monitoring mode which monitors the audio offset values during playback and saves any changes made by the user back into the configuration setting for that audio/video format—very useful for initial AV sync calibration across different media types.
 
-<img src="https://raw.githubusercontent.com/matthane/script.audiooffsetmanager/refs/heads/main/resources/screenshot-1.jpg" width="50%" alt="Audio Offset Manager">
+<img src="https://raw.githubusercontent.com/matthane/script.audiooffsetmanager/refs/heads/main/resources/screenshot-1.jpg" width="49%" float="left" alt="Audio Offset Manager screenshot 1">
+<img src="https://raw.githubusercontent.com/matthane/script.audiooffsetmanager/refs/heads/main/resources/screenshot-2.jpg" width="49%" float="right" alt="Audio Offset Manager screenshot 2">
 
 ## Features
 
