@@ -34,6 +34,7 @@ class SeekBacks:
         self.perform_seek_back('adjust')
 
     def on_av_unpause(self):
+        xbmc.sleep(500)  # Small delay to avoid race condition on flag
         self.playback_paused = False
         self.perform_seek_back('unpause')
 
