@@ -43,18 +43,18 @@ class OffsetManager:
 
         # Check if HDR type is enabled in settings
         if not self.settings_manager.is_hdr_enabled(hdr_type):
-            xbmc.log(f"AOM_OffsetManager: HDR type {hdr_type} is not enabled in settings", xbmc.LOGINFO)
+            xbmc.log(f"AOM_OffsetManager: HDR type {hdr_type} is not enabled in settings", xbmc.LOGDEBUG)
             return
 
         # Log the HDR type, audio format, and delay being used
-        xbmc.log(f"AOM_OffsetManager: Applying audio offset of {delay_seconds} seconds for HDR type '{hdr_type}' and audio format '{audio_format}'", xbmc.LOGINFO)
+        xbmc.log(f"AOM_OffsetManager: Applying audio offset of {delay_seconds} seconds for HDR type '{hdr_type}' and audio format '{audio_format}'", xbmc.LOGDEBUG)
 
         # Send JSON-RPC call to set the audio delay on the current player
         player_id = self.stream_info.info.get('player_id')
         if player_id is not None:
             self.set_audio_delay(player_id, delay_seconds)
         else:
-            xbmc.log("AOM_OffsetManager: No valid player ID found to set audio delay", xbmc.LOGERROR)
+            xbmc.log("AOM_OffsetManager: No valid player ID found to set audio delay", xbmc.LOGDEBUG)
 
     def set_audio_delay(self, player_id, delay_seconds):
         request = json.dumps({
@@ -69,7 +69,7 @@ class OffsetManager:
         response = xbmc.executeJSONRPC(request)
         response_json = json.loads(response)
         if "error" in response_json:
-            xbmc.log(f"AOM_OffsetManager: Failed to set audio offset: {response_json['error']}", xbmc.LOGERROR)
+            xbmc.log(f"AOM_OffsetManager: Failed to set audio offset: {response_json['error']}", xbmc.LOGDEBUG)
         else:
             xbmc.log(f"AOM_OffsetManager: Audio offset set to {delay_seconds} seconds", xbmc.LOGDEBUG)
 

@@ -76,9 +76,9 @@ class SeekBacks:
         response = xbmc.executeJSONRPC(json.dumps(request))
         response_json = json.loads(response)
         if "error" in response_json:
-            xbmc.log(f"AOM_SeekBacks: Failed to perform seek back: {response_json['error']}", xbmc.LOGERROR)
+            xbmc.log(f"AOM_SeekBacks: Failed to perform seek back: {response_json['error']}", xbmc.LOGDEBUG)
         else:
-            xbmc.log(f"AOM_SeekBacks: Seeked back by {seek_seconds} seconds on {event_type}", xbmc.LOGINFO)
+            xbmc.log(f"AOM_SeekBacks: Seeked back by {seek_seconds} seconds on {event_type}", xbmc.LOGDEBUG)
 
 
 # Usage example:

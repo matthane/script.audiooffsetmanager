@@ -60,7 +60,7 @@ class ActiveMonitor:
             self.monitor_active = True
             self.monitor_thread = threading.Thread(target=self.monitor_audio_offset)
             self.monitor_thread.start()
-            xbmc.log(f"AOM_ActiveMonitor: Active monitoring started for HDR type {hdr_type}", xbmc.LOGINFO)
+            xbmc.log(f"AOM_ActiveMonitor: Active monitoring started for HDR type {hdr_type}", xbmc.LOGDEBUG)
         else:
             xbmc.log(f"AOM_ActiveMonitor: Active monitoring not started (active monitoring enabled: {active_monitoring_enabled}, HDR type {hdr_type} enabled: {hdr_type_enabled}, already active: {self.monitor_active})", xbmc.LOGDEBUG)
 
@@ -70,7 +70,7 @@ class ActiveMonitor:
             if self.monitor_thread is not None:
                 self.monitor_thread.join()
                 self.monitor_thread = None
-            xbmc.log("AOM_ActiveMonitor: Active monitoring ended", xbmc.LOGINFO)
+            xbmc.log("AOM_ActiveMonitor: Active monitoring ended", xbmc.LOGDEBUG)
 
     def monitor_audio_offset(self):
         monitor = xbmc.Monitor()
@@ -127,10 +127,10 @@ class ActiveMonitor:
             
             if delay_ms != current_delay_ms:
                 self.settings_manager.store_audio_delay(setting_id, delay_ms)
-                xbmc.log(f"AOM_ActiveMonitor: Stored audio offset {delay_ms} ms for setting ID '{setting_id}'", xbmc.LOGINFO)
+                xbmc.log(f"AOM_ActiveMonitor: Stored audio offset {delay_ms} ms for setting ID '{setting_id}'", xbmc.LOGDEBUG)
                 self.event_manager.publish('USER_ADJUSTMENT')
         except ValueError:
-            xbmc.log("AOM_ActiveMonitor: Failed to convert audio delay to milliseconds", xbmc.LOGERROR)
+            xbmc.log("AOM_ActiveMonitor: Failed to convert audio delay to milliseconds", xbmc.LOGDEBUG)
 
 # Usage example:
 # active_monitor = ActiveMonitor(event_manager, stream_info, offset_manager)
