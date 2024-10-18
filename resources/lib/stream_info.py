@@ -6,6 +6,7 @@ import time
 import json
 from resources.lib.settings_manager import SettingsManager
 
+
 class StreamInfo:
     def __init__(self, event_manager):
         self.event_manager = event_manager
