@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.audiooffsetmanager" version="1.0.0" name="Audio Offset Manager" provider-name="matthane">
+<addon id="script.audiooffsetmanager" version="1.1.0" name="Audio Offset Manager" provider-name="matthane">
     <requires>
         <import addon="xbmc.python" version="3.0.1"/>
     </requires>
     <extension point="xbmc.service" library="default.py" />
     <extension point="xbmc.addon.metadata">
         <source>https://github.com/matthane/script.audiooffsetmanager</source>
-        <news>v1.0.0 (2024-17-10)
-        - Initial release
+        <news>v1.1.0 (2024-18-10)
+        - New fallback HDR detection for better compatibility across different Kodi platforms
+        - New on-boarding process to test your platform's HDR detection and present offset settings accordingly. HDR10+ or advanced HLG (when Kodi thinks it's an SDR video) detection might not be available on all platforms.
+        - New panel in settings to show your platform capabilities
         </news>
         <summary lang="en_GB">Dynamically manages audio offsets</summary>
         <description lang="en_GB">This add-on intelligently adjusts the audio offset based on the detected HDR type and audio format according to user-configured settings, along with other helpful features</description>
