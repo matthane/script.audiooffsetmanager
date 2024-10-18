@@ -212,3 +212,39 @@ msgstr ""
 msgctxt "#32050"
 msgid "Control the amount of time that the player seeks back after making manual adjustements to audio offset"
 msgstr ""
+
+msgctxt "#32051"
+msgid "Platform HDR detection"
+msgstr ""
+
+msgctxt "#32052"
+msgid "Platform supports full HDR detection"
+msgstr ""
+
+msgctxt "#32053"
+msgid "Platform Information"
+msgstr ""
+
+msgctxt "#32054"
+msgid "Platform supports advanced HLG detection"
+msgstr ""
+
+msgctxt "#32055"
+msgid "Please open a video to detect platform capabilities and fully initialize addon settings"
+msgstr ""
+
+msgctxt "#32056"
+msgid "Platform capabilities verified"
+msgstr ""
+
+msgctxt "#32057"
+msgid "Open video library"
+msgstr ""
+
+msgctxt "#32058"
+msgid "Open and play a video to fully initialize addon settings"
+msgstr ""
+
+msgctxt "#32059"
+msgid "Videos"
+msgstr ""

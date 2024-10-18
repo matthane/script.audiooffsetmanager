@@ -4,12 +4,14 @@ import xbmc
 import xbmcgui
 import time
 import json
-
+from resources.lib.settings_manager import SettingsManager
 
 class StreamInfo:
     def __init__(self, event_manager):
         self.event_manager = event_manager
         self.info = {}
+        self.settings_manager = SettingsManager()
+        self.new_install = self.settings_manager.get_boolean_setting('new_install')
 
     def start(self):
         # Subscribe to relevant events from the event manager
@@ -44,11 +46,41 @@ class StreamInfo:
         # Retrieve stream information
         player_id = self.get_player_id()
         audio_format, audio_channels = self.get_audio_info(player_id)
+        
+        # Enhanced HDR detection with fallback to generic Kodi infolabel
         hdr_type = xbmc.getInfoLabel('Player.Process(video.source.hdr.type)')
+        if hdr_type:
+            platform_hdr_full = True
+        else:
+            hdr_type = xbmc.getInfoLabel('VideoPlayer.HdrType')
+            platform_hdr_full = False
+        
+        xbmc.log(f"AOM_StreamInfo: Platform HDR full support detected: {platform_hdr_full}", xbmc.LOGDEBUG)
+
+        gamut_info = xbmc.getInfoLabel('Player.Process(amlogic.eoft_gamut)')
+        
+        # Store settings only if it's a new install
+        if self.new_install:
+            self.settings_manager.store_platform_hdr_full(platform_hdr_full)
+            
+            # Check if gamut_info is valid and set advanced_hlg accordingly
+            if gamut_info and gamut_info != 'not available':
+                advanced_hlg = True
+                self.settings_manager.store_advanced_hlg(advanced_hlg)
+                xbmc.log("AOM_StreamInfo: Stored advanced_hlg as True", xbmc.LOGDEBUG)
+            else:
+                advanced_hlg = False
+                self.settings_manager.store_advanced_hlg(advanced_hlg)
+                xbmc.log("AOM_StreamInfo: Stored advanced_hlg as False", xbmc.LOGDEBUG)
+            
+            self.new_install = False
+            self.settings_manager.store_new_install(self.new_install)
+            xbmc.log("AOM_StreamInfo: Stored settings and set new_install to False", xbmc.LOGDEBUG)
+
         hdr_type = hdr_type.replace('+', 'plus').replace(' ', '').lower()
         if not hdr_type:
             hdr_type = 'sdr'
-        gamut_info = xbmc.getInfoLabel('Player.Process(amlogic.eoft_gamut)')
+        
         if not gamut_info:
             gamut_info = 'not available'
 
@@ -63,6 +95,7 @@ class StreamInfo:
             'audio_channels': audio_channels,
             'hdr_type': hdr_type,
             'gamut_info': gamut_info,
+            'platform_hdr_full': platform_hdr_full
         }
         return stream_info
 

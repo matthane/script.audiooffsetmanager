@@ -32,6 +32,22 @@ class SettingsManager:
         xbmc.log(f"AOM_SettingsManager: Storing delay for {setting_id}: {delay_ms} ms", xbmc.LOGDEBUG)
         self.settings.setInt(setting_id, delay_ms)
 
+    def store_platform_hdr_full(self, platform_hdr_full):
+        """Store the platform HDR full setting."""
+        xbmc.log(f"AOM_SettingsManager: Storing platform HDR full: {platform_hdr_full}", xbmc.LOGDEBUG)
+        self.settings.setBool("platform_hdr_full", platform_hdr_full)
+        self.settings.setBool("platform_hdr_full2", platform_hdr_full)
+
+    def store_advanced_hlg(self, advanced_hlg):
+        """Store the advanced HLG setting."""
+        xbmc.log(f"AOM_SettingsManager: Storing advanced HLG: {advanced_hlg}", xbmc.LOGDEBUG)
+        self.settings.setBool("advanced_hlg", advanced_hlg)
+
+    def store_new_install(self, new_install):
+        """Store the new install setting."""
+        xbmc.log(f"AOM_SettingsManager: Storing new install: {new_install}", xbmc.LOGDEBUG)
+        self.settings.setBool("new_install", new_install)
+
     def is_hdr_enabled(self, hdr_type):
         """
         Check if the HDR type is enabled in the settings.
@@ -45,3 +61,6 @@ class SettingsManager:
 # settings_manager = SettingsManager()
 # enable_seek_back = settings_manager.get_boolean_setting('enable_seek_back_adjust')
 # seek_back_duration = settings_manager.get_integer_setting('seek_back_adjust_seconds')
+# settings_manager.store_platform_hdr_full(True)
+# settings_manager.store_advanced_hlg(True)
+# settings_manager.store_new_install(False)

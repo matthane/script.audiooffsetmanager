@@ -3,10 +3,39 @@
     <section id="script.audiooffsetmanager">
         <!-- Category for Configuring Audio Offsets -->
         <category id="general" label="32001" help="32002">
-
+            <group id="1" label="" help="">
+            <!-- Hidden platform capability setting -->
+                <setting id="platform_hdr_full" type="boolean">
+                    <visible>false</visible>
+                    <level>0</level>
+                    <default>false</default>
+                    <control type="toggle"/>
+                </setting>
+            </group>
+            <group id="2" label="32055" help="">
+            <!-- Addon onboarding -->
+                <setting id="new_install" type="boolean">
+                    <visible>false</visible>
+                    <level>0</level>
+                    <default>true</default>
+                    <control type="toggle"/>
+                </setting>
+                <setting id="onboarding_status" type="boolean" label="32056">              
+                    <dependencies>
+                        <dependency type="visible" setting="new_install">true</dependency>
+                    </dependencies>
+                    <level>0</level>
+                    <enable>false</enable>
+                    <default>false</default>
+                    <control type="toggle"/>
+                </setting>               
+            </group>
             <!-- Dolby Vision -->
-            <group id="1" label="32003">
+            <group id="3" label="32003">
                 <setting id="enable_dolbyvision" type="boolean" label="32026" help="32027">
+                    <dependencies>
+                        <dependency type="visible" setting="new_install">false</dependency>
+                    </dependencies>
                     <level>0</level>
                     <default>false</default>
                     <control type="toggle"/>
@@ -49,7 +78,7 @@
                 <setting id="dolbyvision_ac3" type="integer" label="32008" help="32009" parent="enable_dolbyvision">
                     <dependencies>
                         <dependency type="visible" setting="enable_dolbyvision">true</dependency>
-                    </dependencies>                
+                    </dependencies>              
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -66,7 +95,7 @@
                 <setting id="dolbyvision_dtsx" type="integer" label="32010" help="32011" parent="enable_dolbyvision">
                     <dependencies>
                         <dependency type="visible" setting="enable_dolbyvision">true</dependency>
-                    </dependencies>                
+                    </dependencies>               
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -100,7 +129,7 @@
                 <setting id="dolbyvision_dca" type="integer" label="32014" help="32015" parent="enable_dolbyvision">
                     <dependencies>
                         <dependency type="visible" setting="enable_dolbyvision">true</dependency>
-                    </dependencies>                
+                    </dependencies>               
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -115,8 +144,11 @@
             </group>
 
             <!-- HDR10 -->
-            <group id="2" label="32023">
+            <group id="4" label="32023">
                 <setting id="enable_hdr10" type="boolean" label="32028" help="32029">
+                    <dependencies>
+                        <dependency type="visible" setting="new_install">false</dependency>
+                    </dependencies>
                     <level>0</level>
                     <default>false</default>
                     <control type="toggle"/>
@@ -225,8 +257,12 @@
             </group>
 
             <!-- HDR10+ -->
-            <group id="3" label="32044">
+            <group id="5" label="32044">
                 <setting id="enable_hdr10plus" type="boolean" label="32042" help="32043">
+                    <dependencies>
+                        <dependency type="enable" setting="platform_hdr_full">true</dependency>
+                        <dependency type="visible" setting="platform_hdr_full">true</dependency>
+                    </dependencies>                
                     <level>0</level>
                     <default>false</default>
                     <control type="toggle"/>
@@ -335,8 +371,11 @@
             </group>
 
             <!-- HLG -->
-            <group id="4" label="32025">
+            <group id="6" label="32025">
                 <setting id="enable_hlg" type="boolean" label="32030" help="32031">
+                    <dependencies>
+                        <dependency type="visible" setting="new_install">false</dependency>
+                    </dependencies>                
                     <level>0</level>
                     <default>false</default>
                     <control type="toggle"/>
@@ -445,8 +484,11 @@
             </group>
 
             <!-- SDR -->            
-            <group id="5" label="32024">
+            <group id="7" label="32024">
                 <setting id="enable_sdr" type="boolean" label="32032" help="32033">
+                    <dependencies>
+                        <dependency type="visible" setting="new_install">false</dependency>
+                    </dependencies>
                     <level>0</level>
                     <default>false</default>
                     <control type="toggle"/>
@@ -557,7 +599,7 @@
 
         <!-- Category for Playback Behavior -->
         <category id="seek_back_settings" label="32016" help="32017">
-            <group id="6" label="32047">
+            <group id="8" label="32047">
                 <!-- Enable Active Monitoring Toggle -->
                 <setting id="enable_active_monitoring" type="boolean" label="32045" help="32046">
                     <level>0</level>
@@ -565,7 +607,7 @@
                     <control type="toggle"/>
                 </setting>
             </group>
-            <group id="7" label="32018">
+            <group id="9" label="32018">
                 <!-- Enable Seek Back on Adjust Behavior Toggle -->
                 <setting id="enable_seek_back_adjust" type="boolean" label="32019" help="32020">
                     <level>0</level>
@@ -667,5 +709,24 @@
                 </setting>
             </group>
         </category>
+
+        <!-- Category for information -->
+        <category id="platform_info" label="32053">
+            <group id="10" label="32051">
+                <setting id="platform_hdr_full2" type="boolean" label="32052">              
+                    <level>0</level>
+                    <enable>false</enable>
+                    <default>false</default>
+                    <control type="toggle"/>
+                </setting>  
+                <setting id="advanced_hlg" type="boolean" label="32054">              
+                    <level>0</level>
+                    <enable>false</enable>
+                    <default>false</default>
+                    <control type="toggle"/>
+                </setting>  
+            </group>
+        </category>
+
     </section>
 </settings>
