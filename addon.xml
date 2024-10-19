@@ -8,6 +8,7 @@
     <extension point="xbmc.addon.metadata">
         <source>https://github.com/matthane/script.audiooffsetmanager</source>
         <news>v1.1.2 (2024-19-10)
+- Fixed bug related to HLG detection
 - Improved error handling for unsupported formats
 - Improved onboard experience
         </news>
