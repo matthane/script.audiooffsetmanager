@@ -1,6 +1,7 @@
 # resources/lib/addon_manager.py
 
 import xbmc
+import xbmcgui
 from resources.lib.stream_info import StreamInfo
 from resources.lib.event_manager import EventManager
 from resources.lib.settings_manager import SettingsManager
@@ -42,6 +43,15 @@ class AddonManager:
         self.offset_manager.stop()
         self.seek_backs.stop()
         self.active_monitor.stop()
+
+    def play_test_video(self):
+        """Play the test video."""
+        video_path = self.settings_manager.get_string_setting('test_video')
+        if not video_path:
+            xbmcgui.Dialog().notification('Error', 'No test video selected', xbmcgui.NOTIFICATION_ERROR, 5000)
+            return
+
+        xbmc.Player().play(video_path)
 
 
 # Usage example:
