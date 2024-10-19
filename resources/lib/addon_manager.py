@@ -8,6 +8,7 @@ from resources.lib.seek_backs import SeekBacks
 from resources.lib.active_monitor import ActiveMonitor
 from resources.lib.onboard import OnboardManager
 
+
 class AddonManager:
     def __init__(self):
         # Initialize the event manager
@@ -26,7 +27,11 @@ class AddonManager:
         self.seek_backs = SeekBacks(self.event_manager)
 
         # Initialize active monitor
-        self.active_monitor = ActiveMonitor(self.event_manager, self.stream_info, self.offset_manager)
+        self.active_monitor = ActiveMonitor(
+            self.event_manager,
+            self.stream_info,
+            self.offset_manager
+        )
 
         # Initialize onboard manager with access to all components
         self.onboard_manager = OnboardManager(
@@ -57,9 +62,3 @@ class AddonManager:
     def play_test_video(self):
         """Delegate to onboard manager to play test video."""
         self.onboard_manager.play_test_video()
-
-# Usage example:
-# addon_manager = AddonManager()
-# addon_manager.start()
-# xbmc.Monitor().waitForAbort()
-# addon_manager.stop()

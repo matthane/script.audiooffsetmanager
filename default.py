@@ -8,6 +8,7 @@ from resources.lib.addon_manager import AddonManager
 addon = xbmcaddon.Addon()
 addon_id = addon.getAddonInfo('id')
 
+
 def main():
     addon_manager = AddonManager()
     addon_manager.start()
@@ -21,6 +22,7 @@ def main():
                 break
 
     addon_manager.stop()
+
 
 if __name__ == '__main__':
     main()

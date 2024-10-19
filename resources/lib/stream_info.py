@@ -1,4 +1,4 @@
-# resources/lib/modules/stream_info.py
+# resources/lib/stream_info.py
 
 import xbmc
 import xbmcgui
@@ -105,12 +105,14 @@ class StreamInfo:
         if audio_format in self.valid_audio_formats:
             stream_info['audio_format'] = audio_format
         else:
-            xbmc.log(f"AOM_StreamInfo: Invalid audio format detected: {audio_format}. Not including in stream info.", xbmc.LOGDEBUG)
+            xbmc.log(f"AOM_StreamInfo: Invalid audio format detected: {audio_format}. "
+                     f"Not including in stream info.", xbmc.LOGDEBUG)
 
         if hdr_type in self.valid_hdr_types:
             stream_info['hdr_type'] = hdr_type
         else:
-            xbmc.log(f"AOM_StreamInfo: Invalid HDR type detected: {hdr_type}. Not including in stream info.", xbmc.LOGDEBUG)
+            xbmc.log(f"AOM_StreamInfo: Invalid HDR type detected: {hdr_type}. "
+                     f"Not including in stream info.", xbmc.LOGDEBUG)
 
         return stream_info
 
@@ -131,13 +133,16 @@ class StreamInfo:
                     if player_id != -1:
                         return player_id
 
-                xbmc.log(f"AOM_StreamInfo: Invalid player ID, retrying... ({attempt + 1}/10)", xbmc.LOGDEBUG)
+                xbmc.log(f"AOM_StreamInfo: Invalid player ID, retrying... ({attempt + 1}/10)",
+                         xbmc.LOGDEBUG)
                 time.sleep(0.5)
             except Exception as e:
-                xbmc.log(f"AOM_StreamInfo: Error getting player ID: {str(e)}", xbmc.LOGERROR)
+                xbmc.log(f"AOM_StreamInfo: Error getting player ID: {str(e)}",
+                         xbmc.LOGERROR)
                 time.sleep(0.5)
 
-        xbmc.log("AOM_StreamInfo: Failed to retrieve valid player ID after 10 attempts", xbmc.LOGWARNING)
+        xbmc.log("AOM_StreamInfo: Failed to retrieve valid player ID after 10 attempts",
+                 xbmc.LOGWARNING)
         return -1
 
     def get_audio_info(self, player_id):
@@ -168,11 +173,14 @@ class StreamInfo:
 
                         return audio_format, audio_channels
 
-                xbmc.log(f"AOM_StreamInfo: Invalid audio format 'none', retrying... ({attempt + 1}/10)", xbmc.LOGDEBUG)
+                xbmc.log(f"AOM_StreamInfo: Invalid audio format 'none', retrying... ({attempt + 1}/10)",
+                         xbmc.LOGDEBUG)
                 time.sleep(0.5)
             except Exception as e:
-                xbmc.log(f"AOM_StreamInfo: Error getting audio info: {str(e)}", xbmc.LOGERROR)
+                xbmc.log(f"AOM_StreamInfo: Error getting audio info: {str(e)}",
+                         xbmc.LOGERROR)
                 time.sleep(0.5)
 
-        xbmc.log("AOM_StreamInfo: Failed to retrieve valid audio information after 10 attempts", xbmc.LOGWARNING)
+        xbmc.log("AOM_StreamInfo: Failed to retrieve valid audio information after 10 attempts",
+                 xbmc.LOGWARNING)
         return "unknown", "unknown"

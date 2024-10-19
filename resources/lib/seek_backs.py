@@ -48,7 +48,8 @@ class SeekBacks:
     def perform_seek_back(self, event_type):
         # Do not perform seek back if playback is paused
         if self.playback_paused:
-            xbmc.log(f"AOM_SeekBacks: Playback is paused, skipping seek back on {event_type}", xbmc.LOGDEBUG)
+            xbmc.log(f"AOM_SeekBacks: Playback is paused, skipping seek back "
+                     f"on {event_type}", xbmc.LOGDEBUG)
             return
 
         # Reload settings to ensure the latest values are used
@@ -56,11 +57,14 @@ class SeekBacks:
         # Delay for 2 seconds to allow the stream to settle before seeking back
         xbmc.sleep(2000)
         # Check settings for seek back configuration based on the specific setting IDs
-        seek_enabled = self.settings_manager.get_boolean_setting(f'enable_seek_back_{event_type}')
-        seek_seconds = self.settings_manager.get_integer_setting(f'seek_back_{event_type}_seconds')
+        seek_enabled = self.settings_manager.get_boolean_setting(
+            f'enable_seek_back_{event_type}')
+        seek_seconds = self.settings_manager.get_integer_setting(
+            f'seek_back_{event_type}_seconds')
 
         if not seek_enabled:
-            xbmc.log(f"AOM_SeekBacks: Seek back on {event_type} is not enabled in settings", xbmc.LOGDEBUG)
+            xbmc.log(f"AOM_SeekBacks: Seek back on {event_type} is not "
+                     f"enabled in settings", xbmc.LOGDEBUG)
             return
 
         # Send JSON-RPC call to perform seek back
@@ -76,11 +80,8 @@ class SeekBacks:
         response = xbmc.executeJSONRPC(json.dumps(request))
         response_json = json.loads(response)
         if "error" in response_json:
-            xbmc.log(f"AOM_SeekBacks: Failed to perform seek back: {response_json['error']}", xbmc.LOGDEBUG)
+            xbmc.log(f"AOM_SeekBacks: Failed to perform seek back: "
+                     f"{response_json['error']}", xbmc.LOGDEBUG)
         else:
-            xbmc.log(f"AOM_SeekBacks: Seeked back by {seek_seconds} seconds on {event_type}", xbmc.LOGDEBUG)
-
-
-# Usage example:
-# seek_backs = SeekBacks(event_manager)
-# seek_backs.start()
+            xbmc.log(f"AOM_SeekBacks: Seeked back by {seek_seconds} seconds "
+                     f"on {event_type}", xbmc.LOGDEBUG)
