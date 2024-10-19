@@ -114,35 +114,35 @@ msgid "HLG"
 msgstr ""
 
 msgctxt "#32026"
-msgid "Enable audio offset controls for Dolby Vision playback"
+msgid "Enable audio offset controls for Dolby Vision sources"
 msgstr ""
 
 msgctxt "#32027"
-msgid "Control whether audio offset controls for Dolby Vision playback are enabled"
+msgid "Control whether audio offset controls for Dolby Vision sources are enabled"
 msgstr ""
 
 msgctxt "#32028"
-msgid "Enable audio offset controls for HDR10 playback"
+msgid "Enable audio offset controls for HDR10 sources"
 msgstr ""
 
 msgctxt "#32029"
-msgid "Control whether audio offset controls for HDR10 playback are enabled"
+msgid "Control whether audio offset controls for HDR10 sources are enabled"
 msgstr ""
 
 msgctxt "#32030"
-msgid "Enable audio offset controls for HLG playback"
+msgid "Enable audio offset controls for HLG sources"
 msgstr ""
 
 msgctxt "#32031"
-msgid "Control whether audio offset controls for HLG playback are enabled"
+msgid "Control whether audio offset controls for HLG sources are enabled"
 msgstr ""
 
 msgctxt "#32032"
-msgid "Enable audio offset controls for SDR playback"
+msgid "Enable audio offset controls for SDR sources"
 msgstr ""
 
 msgctxt "#32033"
-msgid "Control whether audio offset controls for SDR playback are enabled"
+msgid "Control whether audio offset controls for SDR sources are enabled"
 msgstr ""
 
 msgctxt "#32034"
@@ -178,11 +178,11 @@ msgid "Control the amount of time that the player seeks back after unpausing"
 msgstr ""
 
 msgctxt "#32042"
-msgid "Enable audio offset controls for HDR10+ playback"
+msgid "Enable audio offset controls for HDR10+ sources"
 msgstr ""
 
 msgctxt "#32043"
-msgid "Control whether audio offset controls for HDR10+ playback are enabled"
+msgid "Control whether audio offset controls for HDR10+ sources are enabled"
 msgstr ""
 
 msgctxt "#32044"
@@ -214,11 +214,11 @@ msgid "Control the amount of time that the player seeks back after making manual
 msgstr ""
 
 msgctxt "#32051"
-msgid "Platform HDR detection"
+msgid "Platform HDR Detection"
 msgstr ""
 
 msgctxt "#32052"
-msgid "Platform supports full HDR detection"
+msgid "Full HDR detection"
 msgstr ""
 
 msgctxt "#32053"
@@ -226,11 +226,11 @@ msgid "Platform Information"
 msgstr ""
 
 msgctxt "#32054"
-msgid "Platform supports advanced HLG detection"
+msgid "Advanced HLG detection"
 msgstr ""
 
 msgctxt "#32055"
-msgid "Please open a video to detect platform capabilities and fully initialize addon settings"
+msgid "Play a video to initialize settings, then close video and return"
 msgstr ""
 
 msgctxt "#32056"
@@ -238,13 +238,13 @@ msgid "Platform capabilities verified"
 msgstr ""
 
 msgctxt "#32057"
-msgid "Open video library"
+msgid "Onboarding"
 msgstr ""
 
 msgctxt "#32058"
-msgid "Open and play a video to fully initialize addon settings"
+msgid "Select video from library"
 msgstr ""
 
 msgctxt "#32059"
-msgid "Videos"
+msgid "Play video"
 msgstr ""
