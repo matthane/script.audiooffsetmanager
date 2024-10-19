@@ -13,6 +13,8 @@ class StreamInfo:
         self.info = {}
         self.settings_manager = SettingsManager()
         self.new_install = self.settings_manager.get_boolean_setting('new_install')
+        self.valid_audio_formats = ['truehd', 'eac3', 'ac3', 'dtsx', 'dtshd_ma', 'dca']
+        self.valid_hdr_types = ['dolbyvision', 'hdr10', 'hdr10plus', 'hlg', 'sdr']
 
     def start(self):
         # Subscribe to relevant events from the event manager
@@ -81,6 +83,8 @@ class StreamInfo:
         hdr_type = hdr_type.replace('+', 'plus').replace(' ', '').lower()
         if not hdr_type:
             hdr_type = 'sdr'
+        elif hdr_type == 'hlghdr':
+            hdr_type = 'hlg'
         
         if not gamut_info:
             gamut_info = 'not available'
@@ -92,65 +96,83 @@ class StreamInfo:
         # Construct a dictionary of stream information
         stream_info = {
             'player_id': player_id,
-            'audio_format': audio_format,
             'audio_channels': audio_channels,
-            'hdr_type': hdr_type,
             'gamut_info': gamut_info,
             'platform_hdr_full': platform_hdr_full
         }
+
+        # Only include hdr_type and audio_format if they are valid
+        if audio_format in self.valid_audio_formats:
+            stream_info['audio_format'] = audio_format
+        else:
+            xbmc.log(f"AOM_StreamInfo: Invalid audio format detected: {audio_format}. Not including in stream info.", xbmc.LOGDEBUG)
+
+        if hdr_type in self.valid_hdr_types:
+            stream_info['hdr_type'] = hdr_type
+        else:
+            xbmc.log(f"AOM_StreamInfo: Invalid HDR type detected: {hdr_type}. Not including in stream info.", xbmc.LOGDEBUG)
+
         return stream_info
 
     def get_player_id(self):
         # Use JSON-RPC to retrieve the player ID, retrying up to 10 times if necessary
         for attempt in range(10):
-            request = json.dumps({
-                "jsonrpc": "2.0",
-                "method": "Player.GetActivePlayers",
-                "id": 1
-            })
-            response = xbmc.executeJSONRPC(request)
-            response_json = json.loads(response)
+            try:
+                request = json.dumps({
+                    "jsonrpc": "2.0",
+                    "method": "Player.GetActivePlayers",
+                    "id": 1
+                })
+                response = xbmc.executeJSONRPC(request)
+                response_json = json.loads(response)
 
-            if "result" in response_json and len(response_json["result"]) > 0:
-                player_id = response_json["result"][0].get("playerid", -1)
-                if player_id != -1:
-                    return player_id
+                if "result" in response_json and len(response_json["result"]) > 0:
+                    player_id = response_json["result"][0].get("playerid", -1)
+                    if player_id != -1:
+                        return player_id
 
-            xbmc.log(f"AOM_StreamInfo: Invalid player ID, retrying... ({attempt + 1}/10)", xbmc.LOGDEBUG)
-            time.sleep(0.5)
+                xbmc.log(f"AOM_StreamInfo: Invalid player ID, retrying... ({attempt + 1}/10)", xbmc.LOGDEBUG)
+                time.sleep(0.5)
+            except Exception as e:
+                xbmc.log(f"AOM_StreamInfo: Error getting player ID: {str(e)}", xbmc.LOGERROR)
+                time.sleep(0.5)
 
-        xbmc.log("AOM_StreamInfo: Failed to retrieve valid player ID after 10 attempts", xbmc.LOGDEBUG)
+        xbmc.log("AOM_StreamInfo: Failed to retrieve valid player ID after 10 attempts", xbmc.LOGWARNING)
         return -1
 
     def get_audio_info(self, player_id):
         # Use JSON-RPC to retrieve audio codec and channel count, retrying if 'none' is detected
         for attempt in range(10):
-            request = json.dumps({
-                "jsonrpc": "2.0",
-                "method": "Player.GetProperties",
-                "params": {
-                    "playerid": player_id,
-                    "properties": ["currentaudiostream"]
-                },
-                "id": 1
-            })
-            response = xbmc.executeJSONRPC(request)
-            response_json = json.loads(response)
+            try:
+                request = json.dumps({
+                    "jsonrpc": "2.0",
+                    "method": "Player.GetProperties",
+                    "params": {
+                        "playerid": player_id,
+                        "properties": ["currentaudiostream"]
+                    },
+                    "id": 1
+                })
+                response = xbmc.executeJSONRPC(request)
+                response_json = json.loads(response)
 
-            if "result" in response_json and "currentaudiostream" in response_json["result"]:
-                audio_stream = response_json["result"]["currentaudiostream"]
-                audio_format = audio_stream.get("codec", "unknown").replace('pt-', '')
-                audio_channels = audio_stream.get("channels", "unknown")
+                if "result" in response_json and "currentaudiostream" in response_json["result"]:
+                    audio_stream = response_json["result"]["currentaudiostream"]
+                    audio_format = audio_stream.get("codec", "unknown").replace('pt-', '')
+                    audio_channels = audio_stream.get("channels", "unknown")
 
-                if audio_format != 'none':
-                    # Advanced logic for DTS-HD MA detection
-                    if audio_format == 'dtshd_ma' and isinstance(audio_channels, int) and audio_channels > 6:
-                        audio_format = 'dtsx'
+                    if audio_format != 'none':
+                        # Advanced logic for DTS-HD MA detection
+                        if audio_format == 'dtshd_ma' and isinstance(audio_channels, int) and audio_channels > 6:
+                            audio_format = 'dtsx'
 
-                    return audio_format, audio_channels
+                        return audio_format, audio_channels
 
-            xbmc.log(f"AOM_StreamInfo: Invalid audio format 'none', retrying... ({attempt + 1}/10)", xbmc.LOGDEBUG)
-            time.sleep(0.5)
+                xbmc.log(f"AOM_StreamInfo: Invalid audio format 'none', retrying... ({attempt + 1}/10)", xbmc.LOGDEBUG)
+                time.sleep(0.5)
+            except Exception as e:
+                xbmc.log(f"AOM_StreamInfo: Error getting audio info: {str(e)}", xbmc.LOGERROR)
+                time.sleep(0.5)
 
-        xbmc.log("AOM_StreamInfo: Failed to retrieve valid audio information after 10 attempts", xbmc.LOGDEBUG)
+        xbmc.log("AOM_StreamInfo: Failed to retrieve valid audio information after 10 attempts", xbmc.LOGWARNING)
         return "unknown", "unknown"

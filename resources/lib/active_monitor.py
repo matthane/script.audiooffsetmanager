@@ -47,14 +47,22 @@ class ActiveMonitor:
     def update_last_stored_audio_delay(self):
         hdr_type = self.stream_info.info.get('hdr_type')
         audio_format = self.stream_info.info.get('audio_format')
-        self.last_stored_audio_delay = self.settings_manager.get_audio_delay(hdr_type, audio_format)
-        xbmc.log(f"AOM_ActiveMonitor: Updated last stored audio delay to {self.last_stored_audio_delay} for HDR type {hdr_type} and audio format {audio_format}", xbmc.LOGDEBUG)
+        
+        if hdr_type is None or audio_format is None:
+            xbmc.log(f"AOM_ActiveMonitor: Invalid hdr_type ({hdr_type}) or audio_format ({audio_format}). Skipping audio delay update.", xbmc.LOGDEBUG)
+            return
+
+        try:
+            self.last_stored_audio_delay = self.settings_manager.get_audio_delay(hdr_type, audio_format)
+            xbmc.log(f"AOM_ActiveMonitor: Updated last stored audio delay to {self.last_stored_audio_delay} for HDR type {hdr_type} and audio format {audio_format}", xbmc.LOGDEBUG)
+        except Exception as e:
+            xbmc.log(f"AOM_ActiveMonitor: Error updating last stored audio delay: {str(e)}", xbmc.LOGERROR)
 
     def start_monitoring(self):
         self.settings_manager = SettingsManager()
         hdr_type = self.stream_info.info.get('hdr_type')
         active_monitoring_enabled = self.settings_manager.get_boolean_setting('enable_active_monitoring')
-        hdr_type_enabled = self.settings_manager.get_boolean_setting(f'enable_{hdr_type}')
+        hdr_type_enabled = self.settings_manager.get_boolean_setting(f'enable_{hdr_type}') if hdr_type else False
 
         if active_monitoring_enabled and hdr_type_enabled and not self.monitor_active:
             self.monitor_active = True
@@ -122,6 +130,11 @@ class ActiveMonitor:
             delay_ms = int(float(audio_delay.replace(' s', '')) * 1000)  # Convert to milliseconds
             hdr_type = self.stream_info.info.get('hdr_type')
             audio_format = self.stream_info.info.get('audio_format')
+            
+            if hdr_type is None or audio_format is None:
+                xbmc.log(f"AOM_ActiveMonitor: Invalid hdr_type ({hdr_type}) or audio_format ({audio_format}). Skipping audio delay processing.", xbmc.LOGDEBUG)
+                return
+
             setting_id = f"{hdr_type}_{audio_format}"
             current_delay_ms = self.settings_manager.get_audio_delay(hdr_type, audio_format)
             
@@ -131,6 +144,8 @@ class ActiveMonitor:
                 self.event_manager.publish('USER_ADJUSTMENT')
         except ValueError:
             xbmc.log("AOM_ActiveMonitor: Failed to convert audio delay to milliseconds", xbmc.LOGDEBUG)
+        except Exception as e:
+            xbmc.log(f"AOM_ActiveMonitor: Error processing audio delay change: {str(e)}", xbmc.LOGERROR)
 
 # Usage example:
 # active_monitor = ActiveMonitor(event_manager, stream_info, offset_manager)
