@@ -10,7 +10,7 @@
                     <default>true</default>
                     <control type="toggle"/>
                 </setting>
-                <setting id="test_video" type="path" label="32058" help="">
+                <setting id="test_video" type="path" label="32058" help="32060">
                     <level>0</level>
                     <dependencies>
                         <dependency type="visible" setting="new_install">true</dependency>
@@ -25,7 +25,7 @@
                         <heading>32058</heading>
                     </control>
                 </setting>   
-                <setting id="play_test_video" type="action" label="32059" help="">
+                <setting id="play_test_video" type="action" label="32059" help="32060">
                     <level>0</level>                 
                     <data>RunScript(script.audiooffsetmanager,play_test_video)</data>
                     <control type="button" format="action">
@@ -620,7 +620,7 @@
                         <dependency type="visible" setting="new_install">false</dependency>
                     </dependencies> 
                     <level>0</level>
-                    <default>true</default>
+                    <default>false</default>
                     <control type="toggle"/>
                 </setting>
             </group>

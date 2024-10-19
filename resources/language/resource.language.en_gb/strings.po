@@ -230,7 +230,7 @@ msgid "Advanced HLG detection"
 msgstr ""
 
 msgctxt "#32055"
-msgid "Play a video to initialize settings, then close video and return"
+msgid "Play any video to initialize settings"
 msgstr ""
 
 msgctxt "#32056"
@@ -247,4 +247,8 @@ msgstr ""
 
 msgctxt "#32059"
 msgid "Play video"
+msgstr ""
+
+msgctxt "#32060"
+msgid "Video will play for 5 seconds and then return to settings automatically"
 msgstr ""
