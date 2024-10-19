@@ -1,18 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <settings version="1">
     <section id="script.audiooffsetmanager">
-        <!-- Category for Configuring Audio Offsets -->
-        <category id="general" label="32001" help="32002">
-            <group id="1" label="" help="">
-            <!-- Hidden platform capability setting -->
-                <setting id="platform_hdr_full" type="boolean">
-                    <visible>false</visible>
-                    <level>0</level>
-                    <default>false</default>
-                    <control type="toggle"/>
-                </setting>
-            </group>
-            <group id="2" label="32055" help="">
+        <category id="onboarding" label="32057" help="">
+            <group id="1" label="32055" help="">
             <!-- Addon onboarding -->
                 <setting id="new_install" type="boolean">
                     <visible>false</visible>
@@ -20,18 +10,42 @@
                     <default>true</default>
                     <control type="toggle"/>
                 </setting>
-                <setting id="onboarding_status" type="boolean" label="32056">              
+                <setting id="test_video" type="path" label="32058" help="">
+                    <level>0</level>
                     <dependencies>
                         <dependency type="visible" setting="new_install">true</dependency>
+                    </dependencies>                    
+                    <default/>
+                    <constraints>
+                        <writable>false</writable>
+                        <masking>video</masking>
+                        <allowempty>true</allowempty>
+                    </constraints>
+                    <control type="button" format="file">
+                        <heading>32058</heading>
+                    </control>
+                </setting>   
+                <setting id="play_test_video" type="action" label="32059" help="">
+                    <level>0</level>                 
+                    <data>RunScript(script.audiooffsetmanager,play_test_video)</data>
+                    <control type="button" format="action">
+                        <close>true</close>
+                    </control>
+                    <dependencies>
+                        <dependency type="visible">
+                            <and>
+                                <condition setting="test_video" operator="!is"></condition>
+                                <condition setting="new_install">true</condition>
+                            </and>
+                        </dependency>
                     </dependencies>
-                    <level>0</level>
-                    <enable>false</enable>
-                    <default>false</default>
-                    <control type="toggle"/>
-                </setting>               
+                </setting>            
             </group>
+        </category>
+        <!-- Category for Configuring Audio Offsets -->
+        <category id="general" label="32001" help="32002">
             <!-- Dolby Vision -->
-            <group id="3" label="32003">
+            <group id="2" label="32003">
                 <setting id="enable_dolbyvision" type="boolean" label="32026" help="32027">
                     <dependencies>
                         <dependency type="visible" setting="new_install">false</dependency>
@@ -144,7 +158,7 @@
             </group>
 
             <!-- HDR10 -->
-            <group id="4" label="32023">
+            <group id="3" label="32023">
                 <setting id="enable_hdr10" type="boolean" label="32028" help="32029">
                     <dependencies>
                         <dependency type="visible" setting="new_install">false</dependency>
@@ -257,7 +271,7 @@
             </group>
 
             <!-- HDR10+ -->
-            <group id="5" label="32044">
+            <group id="4" label="32044">
                 <setting id="enable_hdr10plus" type="boolean" label="32042" help="32043">
                     <dependencies>
                         <dependency type="enable" setting="platform_hdr_full">true</dependency>
@@ -371,7 +385,7 @@
             </group>
 
             <!-- HLG -->
-            <group id="6" label="32025">
+            <group id="5" label="32025">
                 <setting id="enable_hlg" type="boolean" label="32030" help="32031">
                     <dependencies>
                         <dependency type="visible" setting="new_install">false</dependency>
@@ -484,7 +498,7 @@
             </group>
 
             <!-- SDR -->            
-            <group id="7" label="32024">
+            <group id="6" label="32024">
                 <setting id="enable_sdr" type="boolean" label="32032" help="32033">
                     <dependencies>
                         <dependency type="visible" setting="new_install">false</dependency>
@@ -599,17 +613,23 @@
 
         <!-- Category for Playback Behavior -->
         <category id="seek_back_settings" label="32016" help="32017">
-            <group id="8" label="32047">
+            <group id="7" label="32047">
                 <!-- Enable Active Monitoring Toggle -->
                 <setting id="enable_active_monitoring" type="boolean" label="32045" help="32046">
+                    <dependencies>
+                        <dependency type="visible" setting="new_install">false</dependency>
+                    </dependencies> 
                     <level>0</level>
                     <default>true</default>
                     <control type="toggle"/>
                 </setting>
             </group>
-            <group id="9" label="32018">
+            <group id="8" label="32018">
                 <!-- Enable Seek Back on Adjust Behavior Toggle -->
                 <setting id="enable_seek_back_adjust" type="boolean" label="32019" help="32020">
+                    <dependencies>
+                        <dependency type="visible" setting="new_install">false</dependency>
+                    </dependencies> 
                     <level>0</level>
                     <default>true</default>
                     <control type="toggle"/>
@@ -619,7 +639,12 @@
                 <setting id="seek_back_adjust_seconds" parent="enable_seek_back_adjust" type="integer" label="32021" help="32022">
                     <level>0</level>
                     <dependencies>
-                        <dependency type="visible" setting="enable_seek_back_adjust">true</dependency>
+                        <dependency type="visible">
+                            <and>
+                                <condition setting="enable_seek_back_adjust">true</condition>
+                                <condition setting="new_install">false</condition>
+                            </and>
+                        </dependency>
                     </dependencies>
                     <default>4</default>
                     <constraints>
@@ -636,8 +661,13 @@
                 <setting id="enable_seek_back_change" type="boolean" label="32048" help="32049">
                     <level>0</level>
                     <dependencies>
-                        <dependency type="visible" setting="enable_active_monitoring">true</dependency>
-                    </dependencies>
+                        <dependency type="visible">
+                            <and>
+                                <condition setting="enable_active_monitoring">true</condition>
+                                <condition setting="new_install">false</condition>
+                            </and>
+                        </dependency>
+                    </dependencies>                    
                     <default>false</default>
                     <control type="toggle"/>
                 </setting>
@@ -647,7 +677,6 @@
                     <level>0</level>
                     <dependencies>
                         <dependency type="visible" setting="enable_seek_back_change">true</dependency>
-                        <dependency type="visible" setting="enable_active_monitoring">true</dependency>
                     </dependencies>
                     <default>4</default>
                     <constraints>
@@ -663,6 +692,9 @@
                 <!-- Enable Seek Back on Start/resume Toggle -->
                 <setting id="enable_seek_back_resume" type="boolean" label="32034" help="32035">
                     <level>0</level>
+                    <dependencies>
+                        <dependency type="visible" setting="new_install">false</dependency>
+                    </dependencies> 
                     <default>false</default>
                     <control type="toggle"/>
                 </setting>
@@ -687,6 +719,9 @@
                 <!-- Enable Seek Back on unpause Toggle -->
                 <setting id="enable_seek_back_unpause" type="boolean" label="32038" help="32039">
                     <level>0</level>
+                    <dependencies>
+                        <dependency type="visible" setting="new_install">false</dependency>
+                    </dependencies>                     
                     <default>false</default>
                     <control type="toggle"/>
                 </setting>
@@ -712,14 +747,20 @@
 
         <!-- Category for information -->
         <category id="platform_info" label="32053">
-            <group id="10" label="32051">
-                <setting id="platform_hdr_full2" type="boolean" label="32052">              
+            <group id="9" label="32051">
+                <setting id="platform_hdr_full" type="boolean" label="32052"> 
+                    <dependencies>
+                        <dependency type="visible" setting="new_install">false</dependency>
+                    </dependencies>                             
                     <level>0</level>
                     <enable>false</enable>
                     <default>false</default>
                     <control type="toggle"/>
                 </setting>  
-                <setting id="advanced_hlg" type="boolean" label="32054">              
+                <setting id="advanced_hlg" type="boolean" label="32054">   
+                    <dependencies>
+                        <dependency type="visible" setting="new_install">false</dependency>
+                    </dependencies>                           
                     <level>0</level>
                     <enable>false</enable>
                     <default>false</default>
