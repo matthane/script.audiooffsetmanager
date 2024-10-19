@@ -238,7 +238,7 @@ msgid "Platform capabilities verified"
 msgstr ""
 
 msgctxt "#32057"
-msgid "Onboarding"
+msgid "On-boarding"
 msgstr ""
 
 msgctxt "#32058"
