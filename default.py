@@ -1,20 +1,26 @@
-import xbmc
+# default.py
+
 import sys
+import xbmc
+import xbmcaddon
 from resources.lib.addon_manager import AddonManager
 
-# Initialize the addon manager
-addon_manager = AddonManager()
+addon = xbmcaddon.Addon()
+addon_id = addon.getAddonInfo('id')
 
-# Check if we're being called with arguments
-if len(sys.argv) > 1:
-    if sys.argv[1] == 'play_test_video':
-        addon_manager.play_test_video()
-else:
-    # Start the addon manager for normal operation
+def main():
+    addon_manager = AddonManager()
     addon_manager.start()
 
-    # Keep the script running
-    xbmc.Monitor().waitForAbort()
+    if len(sys.argv) > 1 and sys.argv[1] == 'play_test_video':
+        addon_manager.play_test_video()
+    else:
+        monitor = xbmc.Monitor()
+        while not monitor.abortRequested():
+            if monitor.waitForAbort(10):
+                break
 
-    # On script exit, stop the addon manager
     addon_manager.stop()
+
+if __name__ == '__main__':
+    main()

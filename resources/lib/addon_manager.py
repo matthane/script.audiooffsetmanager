@@ -1,14 +1,12 @@
 # resources/lib/addon_manager.py
 
-import xbmc
-import xbmcgui
 from resources.lib.stream_info import StreamInfo
 from resources.lib.event_manager import EventManager
 from resources.lib.settings_manager import SettingsManager
 from resources.lib.offset_manager import OffsetManager
 from resources.lib.seek_backs import SeekBacks
 from resources.lib.active_monitor import ActiveMonitor
-
+from resources.lib.onboard import OnboardManager
 
 class AddonManager:
     def __init__(self):
@@ -30,12 +28,23 @@ class AddonManager:
         # Initialize active monitor
         self.active_monitor = ActiveMonitor(self.event_manager, self.stream_info, self.offset_manager)
 
+        # Initialize onboard manager with access to all components
+        self.onboard_manager = OnboardManager(
+            self.settings_manager,
+            self.event_manager,
+            self.stream_info,
+            self.offset_manager,
+            self.seek_backs,
+            self.active_monitor
+        )
+
     def start(self):
         # Start all components
         self.stream_info.start()
         self.offset_manager.start()
         self.seek_backs.start()
         self.active_monitor.start()
+        self.onboard_manager.start()
 
     def stop(self):
         # Stop all components
@@ -43,16 +52,11 @@ class AddonManager:
         self.offset_manager.stop()
         self.seek_backs.stop()
         self.active_monitor.stop()
+        self.onboard_manager.stop()
 
     def play_test_video(self):
-        """Play the test video."""
-        video_path = self.settings_manager.get_string_setting('test_video')
-        if not video_path:
-            xbmcgui.Dialog().notification('Error', 'No test video selected', xbmcgui.NOTIFICATION_ERROR, 5000)
-            return
-
-        xbmc.Player().play(video_path)
-
+        """Delegate to onboard manager to play test video."""
+        self.onboard_manager.play_test_video()
 
 # Usage example:
 # addon_manager = AddonManager()
