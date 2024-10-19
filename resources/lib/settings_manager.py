@@ -18,6 +18,10 @@ class SettingsManager:
         """Retrieve the integer setting using Settings.getInt()."""
         return self.settings.getInt(setting_id)
 
+    def get_string_setting(self, setting_id):
+        """Retrieve the string setting using Settings.getString()."""
+        return self.settings.getString(setting_id)
+
     def get_audio_delay(self, hdr_type, audio_format):
         """
         Get the appropriate audio delay based on the combination of HDR type and audio codec.
@@ -36,7 +40,6 @@ class SettingsManager:
         """Store the platform HDR full setting."""
         xbmc.log(f"AOM_SettingsManager: Storing platform HDR full: {platform_hdr_full}", xbmc.LOGDEBUG)
         self.settings.setBool("platform_hdr_full", platform_hdr_full)
-        self.settings.setBool("platform_hdr_full2", platform_hdr_full)
 
     def store_advanced_hlg(self, advanced_hlg):
         """Store the advanced HLG setting."""
@@ -61,6 +64,7 @@ class SettingsManager:
 # settings_manager = SettingsManager()
 # enable_seek_back = settings_manager.get_boolean_setting('enable_seek_back_adjust')
 # seek_back_duration = settings_manager.get_integer_setting('seek_back_adjust_seconds')
+# test_video_path = settings_manager.get_string_setting('test_video')
 # settings_manager.store_platform_hdr_full(True)
 # settings_manager.store_advanced_hlg(True)
 # settings_manager.store_new_install(False)
