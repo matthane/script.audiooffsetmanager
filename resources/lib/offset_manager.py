@@ -4,13 +4,14 @@ import xbmc
 import json
 from resources.lib.settings_manager import SettingsManager
 from resources.lib.stream_info import StreamInfo
-
+from resources.lib.active_monitor import ActiveMonitor
 
 class OffsetManager:
     def __init__(self, event_manager):
         self.event_manager = event_manager
         self.stream_info = StreamInfo()
         self.settings_manager = SettingsManager()
+        self.active_monitor = None
 
     def start(self):
         # Subscribe to AV events
@@ -25,21 +26,25 @@ class OffsetManager:
         self.event_manager.unsubscribe('ON_AV_CHANGE', self.on_av_change)
         self.event_manager.unsubscribe('PLAYBACK_STOPPED', self.on_playback_stopped)
         self.event_manager.unsubscribe('PLAYBACK_ENDED', self.on_playback_stopped)
+        self.stop_active_monitor()
 
     def on_av_started(self):
         # Reload settings to ensure the latest values are used
         self.settings_manager = SettingsManager()
         self.stream_info.update_stream_info()
         self.apply_audio_offset()
+        self.manage_active_monitor()
 
     def on_av_change(self):
         # Reload settings to ensure the latest values are used
         self.settings_manager = SettingsManager()
         self.stream_info.update_stream_info()
         self.apply_audio_offset()
+        self.manage_active_monitor()
 
     def on_playback_stopped(self):
         self.stream_info.clear_stream_info()
+        self.stop_active_monitor()
 
     def apply_audio_offset(self):
         try:
@@ -115,3 +120,25 @@ class OffsetManager:
         except Exception as e:
             xbmc.log(f"AOM_OffsetManager: Error setting audio delay: {str(e)}",
                      xbmc.LOGERROR)
+
+    def manage_active_monitor(self):
+        active_monitoring_enabled = self.settings_manager.get_boolean_setting('enable_active_monitoring')
+        hdr_type = self.stream_info.info.get('hdr_type')
+        hdr_type_enabled = self.settings_manager.get_boolean_setting(f'enable_{hdr_type}') if hdr_type else False
+
+        if active_monitoring_enabled and hdr_type_enabled:
+            self.start_active_monitor()
+        else:
+            self.stop_active_monitor()
+
+    def start_active_monitor(self):
+        if self.active_monitor is None:
+            self.active_monitor = ActiveMonitor(self.event_manager, self.stream_info, self)
+            self.active_monitor.start()
+            xbmc.log("AOM_OffsetManager: Active monitor started", xbmc.LOGDEBUG)
+
+    def stop_active_monitor(self):
+        if self.active_monitor is not None:
+            self.active_monitor.stop()
+            self.active_monitor = None
+            xbmc.log("AOM_OffsetManager: Active monitor stopped", xbmc.LOGDEBUG)
