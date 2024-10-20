@@ -4,7 +4,6 @@ import xbmc
 import xbmcgui
 import xbmcaddon
 import xbmcvfs
-import sys
 
 
 def play_test_video():
@@ -18,29 +17,14 @@ def play_test_video():
                                       xbmcgui.NOTIFICATION_ERROR, 5000)
         return
 
-    # Play the video
     xbmc.Player().play(test_video_path)
-
-    # Show notification while video is playing
     xbmcgui.Dialog().notification('Audio Offset Manager',
                                   'Please wait...',
                                   xbmcgui.NOTIFICATION_INFO, 5000)
-
-    # Wait for 5 seconds
     xbmc.sleep(5000)
-
-    # Stop the video
     xbmc.Player().stop()
 
-    # Show success notification
     xbmcgui.Dialog().notification('Audio Offset Manager',
                                   'Success! Addon initialized',
-                                  xbmcgui.NOTIFICATION_INFO, 5000)
-
-    # Open addon settings
+                                  xbmcgui.NOTIFICATION_INFO, 10000)
     xbmc.executebuiltin('Addon.OpenSettings(script.audiooffsetmanager)')
-
-if __name__ == "__main__":
-    # Check if the script is being run with a launch argument
-    if len(sys.argv) > 1 and sys.argv[1] == 'play_test_video':
-        play_test_video()
