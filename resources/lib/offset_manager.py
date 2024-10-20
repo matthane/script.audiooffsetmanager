@@ -7,30 +7,39 @@ from resources.lib.stream_info import StreamInfo
 
 
 class OffsetManager:
-    def __init__(self, event_manager, stream_info):
+    def __init__(self, event_manager):
         self.event_manager = event_manager
-        self.stream_info = stream_info
+        self.stream_info = StreamInfo()
         self.settings_manager = SettingsManager()
 
     def start(self):
         # Subscribe to AV events
         self.event_manager.subscribe('AV_STARTED', self.on_av_started)
         self.event_manager.subscribe('ON_AV_CHANGE', self.on_av_change)
+        self.event_manager.subscribe('PLAYBACK_STOPPED', self.on_playback_stopped)
+        self.event_manager.subscribe('PLAYBACK_ENDED', self.on_playback_stopped)
 
     def stop(self):
         # Unsubscribe from AV events
         self.event_manager.unsubscribe('AV_STARTED', self.on_av_started)
         self.event_manager.unsubscribe('ON_AV_CHANGE', self.on_av_change)
+        self.event_manager.unsubscribe('PLAYBACK_STOPPED', self.on_playback_stopped)
+        self.event_manager.unsubscribe('PLAYBACK_ENDED', self.on_playback_stopped)
 
     def on_av_started(self):
         # Reload settings to ensure the latest values are used
         self.settings_manager = SettingsManager()
+        self.stream_info.update_stream_info()
         self.apply_audio_offset()
 
     def on_av_change(self):
         # Reload settings to ensure the latest values are used
         self.settings_manager = SettingsManager()
+        self.stream_info.update_stream_info()
         self.apply_audio_offset()
+
+    def on_playback_stopped(self):
+        self.stream_info.clear_stream_info()
 
     def apply_audio_offset(self):
         try:

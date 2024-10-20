@@ -8,42 +8,22 @@ from resources.lib.settings_manager import SettingsManager
 
 
 class StreamInfo:
-    def __init__(self, event_manager):
-        self.event_manager = event_manager
+    def __init__(self):
         self.info = {}
         self.settings_manager = SettingsManager()
         self.new_install = self.settings_manager.get_boolean_setting('new_install')
         self.valid_audio_formats = ['truehd', 'eac3', 'ac3', 'dtsx', 'dtshd_ma', 'dca', 'pcm']
         self.valid_hdr_types = ['dolbyvision', 'hdr10', 'hdr10plus', 'hlg', 'sdr']
 
-    def start(self):
-        # Subscribe to relevant events from the event manager
-        self.event_manager.subscribe('AV_STARTED', self.on_av_started)
-        self.event_manager.subscribe('PLAYBACK_STOPPED', self.on_playback_stopped)
-        self.event_manager.subscribe('PLAYBACK_ENDED', self.on_playback_stopped)
-        self.event_manager.subscribe('ON_AV_CHANGE', self.on_av_change)
-
-    def stop(self):
-        # Unsubscribe from relevant events
-        self.event_manager.unsubscribe('AV_STARTED', self.on_av_started)
-        self.event_manager.unsubscribe('PLAYBACK_STOPPED', self.on_playback_stopped)
-        self.event_manager.unsubscribe('PLAYBACK_ENDED', self.on_playback_stopped)
-        self.event_manager.unsubscribe('ON_AV_CHANGE', self.on_av_change)
-
-    def on_av_started(self):
-        # Gather initial playback details
+    def update_stream_info(self):
+        # Gather updated playback details
         self.info = self.gather_stream_info()
-        xbmc.log(f"AOM_StreamInfo: AV Started with info: {self.info}", xbmc.LOGDEBUG)
+        xbmc.log(f"AOM_StreamInfo: Updated stream info: {self.info}", xbmc.LOGDEBUG)
 
-    def on_av_change(self):
-        # Gather updated playback details after stream change
-        self.info = self.gather_stream_info()
-        xbmc.log(f"AOM_StreamInfo: AV Change detected with updated info: {self.info}", xbmc.LOGDEBUG)
-
-    def on_playback_stopped(self):
-        # Clear the stream information when playback stops
+    def clear_stream_info(self):
+        # Clear the stream information
         self.info = {}
-        xbmc.log("AOM_StreamInfo: Playback stopped, clearing stream info", xbmc.LOGDEBUG)
+        xbmc.log("AOM_StreamInfo: Cleared stream info", xbmc.LOGDEBUG)
 
     def gather_stream_info(self):
         # Retrieve stream information

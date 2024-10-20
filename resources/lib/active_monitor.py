@@ -33,6 +33,7 @@ class ActiveMonitor:
 
     def on_av_started(self):
         self.playback_active = True
+        self.update_stream_info()
         self.update_last_stored_audio_delay()
         self.start_monitoring()
 
@@ -41,9 +42,14 @@ class ActiveMonitor:
         self.stop_monitoring()
 
     def on_av_change(self):
+        self.update_stream_info()
         self.update_last_stored_audio_delay()
-        xbmc.log("AOM_ActiveMonitor: AV Change detected, updated last stored audio delay",
+        xbmc.log("AOM_ActiveMonitor: AV Change detected, updated stream info and last stored audio delay",
                  xbmc.LOGDEBUG)
+
+    def update_stream_info(self):
+        self.stream_info.update_stream_info()
+        xbmc.log(f"AOM_ActiveMonitor: Updated stream info: {self.stream_info.info}", xbmc.LOGDEBUG)
 
     def update_last_stored_audio_delay(self):
         hdr_type = self.stream_info.info.get('hdr_type')

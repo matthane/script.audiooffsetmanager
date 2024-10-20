@@ -18,10 +18,10 @@ class AddonManager:
         self.settings_manager = SettingsManager()
 
         # Initialize stream info module
-        self.stream_info = StreamInfo(self.event_manager)
+        self.stream_info = StreamInfo()
 
         # Initialize offset manager
-        self.offset_manager = OffsetManager(self.event_manager, self.stream_info)
+        self.offset_manager = OffsetManager(self.event_manager)
 
         # Initialize seek backs
         self.seek_backs = SeekBacks(self.event_manager)
@@ -33,19 +33,17 @@ class AddonManager:
             self.offset_manager
         )
 
-        # Initialize onboard manager with only the settings manager
-        self.onboard_manager = OnboardManager(self.settings_manager)
+        # Initialize onboard manager with settings manager and stream info
+        self.onboard_manager = OnboardManager(self.settings_manager, self.stream_info)
 
     def start(self):
-        # Start all components except onboard_manager
-        self.stream_info.start()
+        # Start all components except onboard_manager and stream_info
         self.offset_manager.start()
         self.seek_backs.start()
         self.active_monitor.start()
 
     def stop(self):
-        # Stop all components except onboard_manager
-        self.stream_info.stop()
+        # Stop all components except onboard_manager and stream_info
         self.offset_manager.stop()
         self.seek_backs.stop()
         self.active_monitor.stop()
