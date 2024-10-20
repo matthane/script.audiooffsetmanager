@@ -9,8 +9,8 @@
     <extension point="xbmc.addon.metadata">
         <source>https://github.com/matthane/script.audiooffsetmanager</source>
         <news>v1.2.0 (2024-20-10)
-- Initial launch on Kodi repo
-- Add 'Other/PCM' audio format
+- Further onboard improvements. Small test video included, or you can back out of settings and play your own video.
+- Add 'Other/PCM' audio format offset settings
         </news>
         <summary lang="en_GB">Dynamically manages audio offsets</summary>
         <description lang="en_GB">This add-on intelligently adjusts the audio offset based on the detected HDR type and audio format according to user-configured settings, along with other helpful features</description>
