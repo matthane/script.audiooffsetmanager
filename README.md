@@ -65,3 +65,5 @@ Contributions to improve Audio Offset Manager are welcome. If you encounter any 
 ### Attributions
 
 Icon designed by [Freepik](http://www.freepik.com/)
+
+Test video from [Pexels](https://www.pexels.com/license/)
