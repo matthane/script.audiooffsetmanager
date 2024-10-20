@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.audiooffsetmanager" version="1.1.2" name="Audio Offset Manager" provider-name="matthane">
+    <reuselanguageinvoker>true</reuselanguageinvoker>
     <requires>
         <import addon="xbmc.python" version="3.0.1"/>
     </requires>
@@ -7,11 +8,9 @@
     <extension point="xbmc.python.script" library="default.py" />
     <extension point="xbmc.addon.metadata">
         <source>https://github.com/matthane/script.audiooffsetmanager</source>
-        <news>v1.1.2 (2024-19-10)
-- Fixed bug with HLG detection (case where infolabel reports 'hlghdr' instead of 'hlg')
-- Improved error handling when playing unsupported HDR or audio types (such as video with AAC audio)
-- Further optimized on-boarding, now is mostly automated by the script
-- Active offset monitoring defaults to OFF
+        <news>v1.2.0 (2024-20-10)
+- Initial launch on Kodi repo
+- Add 'Other/PCM' audio format
         </news>
         <summary lang="en_GB">Dynamically manages audio offsets</summary>
         <description lang="en_GB">This add-on intelligently adjusts the audio offset based on the detected HDR type and audio format according to user-configured settings, along with other helpful features</description>
