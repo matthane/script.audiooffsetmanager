@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <settings version="1">
     <section id="script.audiooffsetmanager">
-        <category id="onboarding" label="32057" help="">
+        <category id="onboarding" label="32057" help="32064">
             <group id="1" label="32055" help="">
             <!-- Addon onboarding -->
                 <setting id="new_install" type="boolean">
