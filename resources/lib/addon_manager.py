@@ -1,5 +1,6 @@
 # resources/lib/addon_manager.py
 
+import xbmc
 from resources.lib.stream_info import StreamInfo
 from resources.lib.event_manager import EventManager
 from resources.lib.settings_manager import SettingsManager
@@ -9,6 +10,8 @@ from resources.lib.seek_backs import SeekBacks
 
 class AddonManager:
     def __init__(self):
+        self.monitor = xbmc.Monitor()
+        
         # Initialize the event manager
         self.event_manager = EventManager()
 
@@ -33,3 +36,10 @@ class AddonManager:
         # Stop all components
         self.offset_manager.stop()
         self.seek_backs.stop()
+
+    def run(self):
+        self.start()
+        while not self.monitor.abortRequested():
+            if self.monitor.waitForAbort(10):
+                break
+        self.stop()
