@@ -14,7 +14,6 @@
         <summary lang="en_GB">Dynamically manages audio offsets</summary>
         <description lang="en_GB">This add-on intelligently adjusts the audio offset based on the detected HDR type and audio format according to user-configured settings, along with other helpful features</description>
         <platform>all</platform>
-        <language>en</language>
         <license>GPL-3.0-or-later</license>
         <assets>
             <icon>resources/icon.png</icon>
