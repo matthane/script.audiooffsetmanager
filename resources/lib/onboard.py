@@ -5,22 +5,8 @@ import xbmcgui
 
 
 class OnboardManager:
-    def __init__(self, settings_manager, event_manager, stream_info,
-                 offset_manager, seek_backs, active_monitor):
+    def __init__(self, settings_manager):
         self.settings_manager = settings_manager
-        self.event_manager = event_manager
-        self.stream_info = stream_info
-        self.offset_manager = offset_manager
-        self.seek_backs = seek_backs
-        self.active_monitor = active_monitor
-
-    def start(self):
-        # Any initialization code can go here
-        pass
-
-    def stop(self):
-        # Any cleanup code can go here
-        pass
 
     def play_test_video(self):
         """Play the test video for 5 seconds and return to addon settings."""

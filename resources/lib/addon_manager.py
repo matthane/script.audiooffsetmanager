@@ -33,31 +33,22 @@ class AddonManager:
             self.offset_manager
         )
 
-        # Initialize onboard manager with access to all components
-        self.onboard_manager = OnboardManager(
-            self.settings_manager,
-            self.event_manager,
-            self.stream_info,
-            self.offset_manager,
-            self.seek_backs,
-            self.active_monitor
-        )
+        # Initialize onboard manager with only the settings manager
+        self.onboard_manager = OnboardManager(self.settings_manager)
 
     def start(self):
-        # Start all components
+        # Start all components except onboard_manager
         self.stream_info.start()
         self.offset_manager.start()
         self.seek_backs.start()
         self.active_monitor.start()
-        self.onboard_manager.start()
 
     def stop(self):
-        # Stop all components
+        # Stop all components except onboard_manager
         self.stream_info.stop()
         self.offset_manager.stop()
         self.seek_backs.stop()
         self.active_monitor.stop()
-        self.onboard_manager.stop()
 
     def play_test_video(self):
         """Delegate to onboard manager to play test video."""
