@@ -230,7 +230,7 @@ msgid "Advanced HLG detection"
 msgstr ""
 
 msgctxt "#32055"
-msgid "Play any video to initialize settings"
+msgid "Play video to initialize settings"
 msgstr ""
 
 msgctxt "#32056"
@@ -246,7 +246,7 @@ msgid "Select video from library"
 msgstr ""
 
 msgctxt "#32059"
-msgid "Play video"
+msgid "Play bundled test video"
 msgstr ""
 
 msgctxt "#32060"

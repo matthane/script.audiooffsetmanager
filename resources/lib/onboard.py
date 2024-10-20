@@ -2,23 +2,27 @@
 
 import xbmc
 import xbmcgui
-
+import xbmcaddon
+import xbmcvfs
+import os
 
 class OnboardManager:
     def __init__(self, settings_manager, stream_info):
         self.settings_manager = settings_manager
         self.stream_info = stream_info
+        self.addon = xbmcaddon.Addon()
+        self.addon_path = xbmcvfs.translatePath(self.addon.getAddonInfo('path'))
+        self.test_video_path = os.path.join(self.addon_path, 'resources', 'lib', 'test-video.mp4')
 
     def play_test_video(self):
         """Play the test video for 5 seconds and return to addon settings."""
-        video_path = self.settings_manager.get_setting_string('test_video')
-        if not video_path:
-            xbmcgui.Dialog().notification('Error', 'No test video selected',
+        if not xbmcvfs.exists(self.test_video_path):
+            xbmcgui.Dialog().notification('Error', 'Test video not found',
                                           xbmcgui.NOTIFICATION_ERROR, 5000)
             return
 
         # Play the video
-        xbmc.Player().play(video_path)
+        xbmc.Player().play(self.test_video_path)
 
         # Show notification while video is playing
         xbmcgui.Dialog().notification('Audio Offset Manager',
@@ -33,7 +37,6 @@ class OnboardManager:
 
         # Stop the video
         xbmc.Player().stop()
-
 
         # Show success notification
         xbmcgui.Dialog().notification('Audio Offset Manager',
