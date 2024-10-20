@@ -13,7 +13,7 @@ class StreamInfo:
         self.info = {}
         self.settings_manager = SettingsManager()
         self.new_install = self.settings_manager.get_boolean_setting('new_install')
-        self.valid_audio_formats = ['truehd', 'eac3', 'ac3', 'dtsx', 'dtshd_ma', 'dca']
+        self.valid_audio_formats = ['truehd', 'eac3', 'ac3', 'dtsx', 'dtshd_ma', 'dca', 'pcm']
         self.valid_hdr_types = ['dolbyvision', 'hdr10', 'hdr10plus', 'hlg', 'sdr']
 
     def start(self):
@@ -170,6 +170,9 @@ class StreamInfo:
                         # Advanced logic for DTS-HD MA detection
                         if audio_format == 'dtshd_ma' and isinstance(audio_channels, int) and audio_channels > 6:
                             audio_format = 'dtsx'
+                        # New check for PCM
+                        elif audio_format not in self.valid_audio_formats and audio_format != 'unknown':
+                            audio_format = 'pcm'
 
                         return audio_format, audio_channels
 

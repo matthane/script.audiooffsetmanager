@@ -155,6 +155,23 @@
                         <popup>false</popup>
                     </control>
                 </setting>
+
+                <!-- Other/PCM (ms) Delay Setting -->
+                <setting id="dolbyvision_pcm" type="integer" label="32061" help="32062" parent="enable_dolbyvision">
+                    <dependencies>
+                        <dependency type="visible" setting="enable_dolbyvision">true</dependency>
+                    </dependencies>               
+                    <level>0</level>
+                    <default>0</default>
+                    <constraints>
+                        <minimum>-1000</minimum>
+                        <step>25</step>
+                        <maximum>1000</maximum>
+                    </constraints>
+                    <control type="slider" format="integer">
+                        <popup>false</popup>
+                    </control>
+                </setting>
             </group>
 
             <!-- HDR10 -->
@@ -254,6 +271,23 @@
 
                 <!-- DTS (DCA) (ms) Delay Setting -->
                 <setting id="hdr10_dca" type="integer" label="32014" help="32015" parent="enable_hdr10">
+                    <dependencies>
+                        <dependency type="visible" setting="enable_hdr10">true</dependency>
+                    </dependencies>                 
+                    <level>0</level>
+                    <default>0</default>
+                    <constraints>
+                        <minimum>-1000</minimum>
+                        <step>25</step>
+                        <maximum>1000</maximum>
+                    </constraints>
+                    <control type="slider" format="integer">
+                        <popup>false</popup>
+                    </control>
+                </setting>
+
+                <!-- Other/PCM (ms) Delay Setting -->
+                <setting id="hdr10_pcm" type="integer" label="32061" help="32062" parent="enable_hdr10">
                     <dependencies>
                         <dependency type="visible" setting="enable_hdr10">true</dependency>
                     </dependencies>                 
@@ -382,6 +416,23 @@
                         <popup>false</popup>
                     </control>
                 </setting>
+
+                <!-- Other/PCM (ms) Delay Setting -->
+                <setting id="hdr10plus_pcm" type="integer" label="32061" help="32062" parent="enable_hdr10plus">
+                    <dependencies>
+                        <dependency type="visible" setting="enable_hdr10plus">true</dependency>
+                    </dependencies>                 
+                    <level>0</level>
+                    <default>0</default>
+                    <constraints>
+                        <minimum>-1000</minimum>
+                        <step>25</step>
+                        <maximum>1000</maximum>
+                    </constraints>
+                    <control type="slider" format="integer">
+                        <popup>false</popup>
+                    </control>
+                </setting>
             </group>
 
             <!-- HLG -->
@@ -495,6 +546,23 @@
                         <popup>false</popup>
                     </control>
                 </setting>
+
+                <!-- Other/PCM (ms) Delay Setting -->
+                <setting id="hlg_pcm" type="integer" label="32061" help="32062" parent="enable_hlg">
+                    <dependencies>
+                        <dependency type="visible" setting="enable_hlg">true</dependency>
+                    </dependencies>                   
+                    <level>0</level>
+                    <default>0</default>
+                    <constraints>
+                        <minimum>-1000</minimum>
+                        <step>25</step>
+                        <maximum>1000</maximum>
+                    </constraints>
+                    <control type="slider" format="integer">
+                        <popup>false</popup>
+                    </control>
+                </setting>
             </group>
 
             <!-- SDR -->            
@@ -594,6 +662,23 @@
 
                 <!-- DTS (DCA) (ms) Delay Setting -->
                 <setting id="sdr_dca" type="integer" label="32014" help="32015" parent="enable_sdr">
+                    <dependencies>
+                        <dependency type="visible" setting="enable_sdr">true</dependency>
+                    </dependencies>                   
+                    <level>0</level>
+                    <default>0</default>
+                    <constraints>
+                        <minimum>-1000</minimum>
+                        <step>25</step>
+                        <maximum>1000</maximum>
+                    </constraints>
+                    <control type="slider" format="integer">
+                        <popup>false</popup>
+                    </control>
+                </setting>
+
+                <!-- Other/PCM (ms) Delay Setting -->
+                <setting id="sdr_pcm" type="integer" label="32061" help="32062" parent="enable_sdr">
                     <dependencies>
                         <dependency type="visible" setting="enable_sdr">true</dependency>
                     </dependencies>                   

@@ -252,3 +252,11 @@ msgstr ""
 msgctxt "#32060"
 msgid "Video will play for 5 seconds and then return to settings automatically"
 msgstr ""
+
+msgctxt "#32061"
+msgid "Other/PCM (ms)"
+msgstr ""
+
+msgctxt "#32062"
+msgid "Adjusts the audio offset for Other/PCM in milliseconds. Negative values delay the audio, positive values advance it."
+msgstr ""
