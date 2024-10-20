@@ -49,7 +49,7 @@ class OffsetManager:
     def apply_audio_offset(self):
         try:
             # Check if it's a new install
-            if self.settings_manager.get_boolean_setting('new_install'):
+            if self.settings_manager.get_setting_boolean('new_install'):
                 xbmc.log("AOM_OffsetManager: New install detected. Skipping "
                          "audio offset application.", xbmc.LOGDEBUG)
                 return
@@ -66,13 +66,14 @@ class OffsetManager:
                 return
 
             # Check if HDR type is enabled in settings
-            if not self.settings_manager.is_hdr_enabled(hdr_type):
+            if not self.settings_manager.get_setting_boolean(f'enable_{hdr_type}'):
                 xbmc.log(f"AOM_OffsetManager: HDR type {hdr_type} is not "
                          f"enabled in settings", xbmc.LOGDEBUG)
                 return
 
             # Retrieve the audio delay for the combination of HDR type and audio format
-            delay_ms = self.settings_manager.get_audio_delay(hdr_type, audio_format)
+            setting_id = f"{hdr_type}_{audio_format}"
+            delay_ms = self.settings_manager.get_setting_integer(setting_id)
             if delay_ms is None:
                 xbmc.log(f"AOM_OffsetManager: No audio delay found for HDR "
                          f"type {hdr_type} and audio format {audio_format}",
@@ -122,9 +123,9 @@ class OffsetManager:
                      xbmc.LOGERROR)
 
     def manage_active_monitor(self):
-        active_monitoring_enabled = self.settings_manager.get_boolean_setting('enable_active_monitoring')
+        active_monitoring_enabled = self.settings_manager.get_setting_boolean('enable_active_monitoring')
         hdr_type = self.stream_info.info.get('hdr_type')
-        hdr_type_enabled = self.settings_manager.get_boolean_setting(f'enable_{hdr_type}') if hdr_type else False
+        hdr_type_enabled = self.settings_manager.get_setting_boolean(f'enable_{hdr_type}') if hdr_type else False
 
         if active_monitoring_enabled and hdr_type_enabled:
             self.start_active_monitor()

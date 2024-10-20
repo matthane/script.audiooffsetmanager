@@ -50,8 +50,8 @@ class ActiveMonitor:
             return
 
         try:
-            self.last_stored_audio_delay = self.settings_manager.get_audio_delay(
-                hdr_type, audio_format)
+            setting_id = f"{hdr_type}_{audio_format}"
+            self.last_stored_audio_delay = self.settings_manager.get_setting_integer(setting_id)
             xbmc.log(f"AOM_ActiveMonitor: Updated last stored audio delay to "
                      f"{self.last_stored_audio_delay} for HDR type {hdr_type} "
                      f"and audio format {audio_format}", xbmc.LOGDEBUG)
@@ -117,10 +117,10 @@ class ActiveMonitor:
                 return
 
             setting_id = f"{hdr_type}_{audio_format}"
-            current_delay_ms = self.settings_manager.get_audio_delay(hdr_type, audio_format)
+            current_delay_ms = self.settings_manager.get_setting_integer(setting_id)
             
             if delay_ms != current_delay_ms:
-                self.settings_manager.store_audio_delay(setting_id, delay_ms)
+                self.settings_manager.store_setting_integer(setting_id, delay_ms)
                 xbmc.log(f"AOM_ActiveMonitor: Stored audio offset {delay_ms} ms for setting ID "
                          f"'{setting_id}'", xbmc.LOGDEBUG)
                 self.event_manager.publish('USER_ADJUSTMENT')

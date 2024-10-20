@@ -11,7 +11,7 @@ class StreamInfo:
     def __init__(self):
         self.info = {}
         self.settings_manager = SettingsManager()
-        self.new_install = self.settings_manager.get_boolean_setting('new_install')
+        self.new_install = self.settings_manager.get_setting_boolean('new_install')
         self.valid_audio_formats = ['truehd', 'eac3', 'ac3', 'dtsx', 'dtshd_ma', 'dca', 'pcm']
         self.valid_hdr_types = ['dolbyvision', 'hdr10', 'hdr10plus', 'hlg', 'sdr']
 
@@ -56,20 +56,20 @@ class StreamInfo:
         
         # Store settings only if it's a new install
         if self.new_install:
-            self.settings_manager.store_platform_hdr_full(platform_hdr_full)
+            self.settings_manager.store_setting_boolean('platform_hdr_full', platform_hdr_full)
             
             # Check if gamut_info is valid and set advanced_hlg accordingly
             if gamut_info_valid:
                 advanced_hlg = True
-                self.settings_manager.store_advanced_hlg(advanced_hlg)
+                self.settings_manager.store_setting_boolean('advanced_hlg', advanced_hlg)
                 xbmc.log("AOM_StreamInfo: Stored advanced_hlg as True", xbmc.LOGDEBUG)
             else:
                 advanced_hlg = False
-                self.settings_manager.store_advanced_hlg(advanced_hlg)
+                self.settings_manager.store_setting_boolean('advanced_hlg', advanced_hlg)
                 xbmc.log("AOM_StreamInfo: Stored advanced_hlg as False", xbmc.LOGDEBUG)
             
             self.new_install = False
-            self.settings_manager.store_new_install(self.new_install)
+            self.settings_manager.store_setting_boolean('new_install', self.new_install)
             xbmc.log("AOM_StreamInfo: Stored settings and set new_install to False", xbmc.LOGDEBUG)
 
         hdr_type = hdr_type.replace('+', 'plus').replace(' ', '').lower()

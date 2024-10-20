@@ -57,9 +57,9 @@ class SeekBacks:
         # Delay for 2 seconds to allow the stream to settle before seeking back
         xbmc.sleep(2000)
         # Check settings for seek back configuration based on the specific setting IDs
-        seek_enabled = self.settings_manager.get_boolean_setting(
+        seek_enabled = self.settings_manager.get_setting_boolean(
             f'enable_seek_back_{event_type}')
-        seek_seconds = self.settings_manager.get_integer_setting(
+        seek_seconds = self.settings_manager.get_setting_integer(
             f'seek_back_{event_type}_seconds')
 
         if not seek_enabled:

@@ -11,7 +11,7 @@ class OnboardManager:
 
     def play_test_video(self):
         """Play the test video for 5 seconds and return to addon settings."""
-        video_path = self.settings_manager.get_string_setting('test_video')
+        video_path = self.settings_manager.get_setting_string('test_video')
         if not video_path:
             xbmcgui.Dialog().notification('Error', 'No test video selected',
                                           xbmcgui.NOTIFICATION_ERROR, 5000)
@@ -49,16 +49,16 @@ class OnboardManager:
         
         # Store platform HDR full support
         platform_hdr_full = self.stream_info.info.get('platform_hdr_full', False)
-        self.settings_manager.store_platform_hdr_full(platform_hdr_full)
+        self.settings_manager.store_setting_boolean('platform_hdr_full', platform_hdr_full)
         
         # Store advanced HLG support
         gamut_info = self.stream_info.info.get('gamut_info', 'not available')
         advanced_hlg = gamut_info != 'not available'
-        self.settings_manager.store_advanced_hlg(advanced_hlg)
+        self.settings_manager.store_setting_boolean('advanced_hlg', advanced_hlg)
         
         # Log the gathered information
         xbmc.log(f"AOM_Onboard: Platform HDR full support: {platform_hdr_full}", xbmc.LOGINFO)
         xbmc.log(f"AOM_Onboard: Advanced HLG support: {advanced_hlg}", xbmc.LOGINFO)
         
         # Set new_install to False as we've gathered the initial platform capabilities
-        self.settings_manager.store_new_install(False)
+        self.settings_manager.store_setting_boolean('new_install', False)
