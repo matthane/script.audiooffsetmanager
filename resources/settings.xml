@@ -816,7 +816,7 @@
         </category>
 
         <!-- Category for information -->
-        <category id="platform_info" label="32053">
+        <category id="platform_info" label="32053" help="32063">
             <group id="9" label="32051">
                 <setting id="platform_hdr_full" type="boolean" label="32052"> 
                     <dependencies>

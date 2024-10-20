@@ -260,3 +260,7 @@ msgstr ""
 msgctxt "#32062"
 msgid "Adjusts the audio offset for Other/PCM in milliseconds. Negative values delay the audio, positive values advance it."
 msgstr ""
+
+msgctxt "#32063"
+msgid "These settings refresh on video playback, in case of resets to default"
+msgstr ""

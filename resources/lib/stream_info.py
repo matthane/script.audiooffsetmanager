@@ -54,23 +54,22 @@ class StreamInfo:
         gamut_info_valid = self.is_valid_infolabel(gamut_label, gamut_info)
         xbmc.log(f"AOM_StreamInfo: Gamut info valid: {gamut_info_valid}", xbmc.LOGDEBUG)
         
-        # Store settings only if it's a new install
-        if self.new_install:
-            self.settings_manager.store_setting_boolean('platform_hdr_full', platform_hdr_full)
-            
-            # Check if gamut_info is valid and set advanced_hlg accordingly
-            if gamut_info_valid:
-                advanced_hlg = True
-                self.settings_manager.store_setting_boolean('advanced_hlg', advanced_hlg)
-                xbmc.log("AOM_StreamInfo: Stored advanced_hlg as True", xbmc.LOGDEBUG)
-            else:
-                advanced_hlg = False
-                self.settings_manager.store_setting_boolean('advanced_hlg', advanced_hlg)
-                xbmc.log("AOM_StreamInfo: Stored advanced_hlg as False", xbmc.LOGDEBUG)
-            
-            self.new_install = False
-            self.settings_manager.store_setting_boolean('new_install', self.new_install)
-            xbmc.log("AOM_StreamInfo: Stored settings and set new_install to False", xbmc.LOGDEBUG)
+        
+        self.settings_manager.store_setting_boolean('platform_hdr_full', platform_hdr_full)
+        
+        # Check if gamut_info is valid and set advanced_hlg accordingly
+        if gamut_info_valid:
+            advanced_hlg = True
+            self.settings_manager.store_setting_boolean('advanced_hlg', advanced_hlg)
+            xbmc.log("AOM_StreamInfo: Stored advanced_hlg as True", xbmc.LOGDEBUG)
+        else:
+            advanced_hlg = False
+            self.settings_manager.store_setting_boolean('advanced_hlg', advanced_hlg)
+            xbmc.log("AOM_StreamInfo: Stored advanced_hlg as False", xbmc.LOGDEBUG)
+        
+        self.new_install = False
+        self.settings_manager.store_setting_boolean('new_install', self.new_install)
+        xbmc.log("AOM_StreamInfo: Stored settings and set new_install to False", xbmc.LOGDEBUG)
 
         hdr_type = hdr_type.replace('+', 'plus').replace(' ', '').lower()
         if not hdr_type or hdr_type == hdr_label.lower():
