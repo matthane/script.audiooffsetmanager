@@ -34,6 +34,7 @@ This addon streamlines your viewing experience by automating the process of audi
 - DTS:X / DTS-HD MA (8+ channels)
 - DTS-HD MA (6 channels)
 - DTS (DCA)
+- Other/PCM 
 
 ### Video Formats
 - Dolby Vision
