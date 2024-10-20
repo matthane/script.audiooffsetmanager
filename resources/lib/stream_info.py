@@ -25,29 +25,41 @@ class StreamInfo:
         self.info = {}
         xbmc.log("AOM_StreamInfo: Cleared stream info", xbmc.LOGDEBUG)
 
+    def is_valid_infolabel(self, label, value):
+        return value and value.strip() and value.lower() != label.lower()
+
     def gather_stream_info(self):
         # Retrieve stream information
         player_id = self.get_player_id()
         audio_format, audio_channels = self.get_audio_info(player_id)
         
         # Enhanced HDR detection with fallback to generic Kodi infolabel
-        hdr_type = xbmc.getInfoLabel('Player.Process(video.source.hdr.type)')
-        if hdr_type:
+        hdr_label = 'Player.Process(video.source.hdr.type)'
+        hdr_type = xbmc.getInfoLabel(hdr_label)
+        xbmc.log(f"AOM_StreamInfo: Raw HDR type: '{hdr_type}'", xbmc.LOGDEBUG)
+        
+        if self.is_valid_infolabel(hdr_label, hdr_type):
             platform_hdr_full = True
+            xbmc.log("AOM_StreamInfo: Platform HDR full support detected", xbmc.LOGDEBUG)
         else:
             hdr_type = xbmc.getInfoLabel('VideoPlayer.HdrType')
             platform_hdr_full = False
+            xbmc.log("AOM_StreamInfo: Platform HDR full support not detected", xbmc.LOGDEBUG)
         
-        xbmc.log(f"AOM_StreamInfo: Platform HDR full support detected: {platform_hdr_full}", xbmc.LOGDEBUG)
+        xbmc.log(f"AOM_StreamInfo: Final HDR type: '{hdr_type}', Platform HDR full: {platform_hdr_full}", xbmc.LOGDEBUG)
 
-        gamut_info = xbmc.getInfoLabel('Player.Process(amlogic.eoft_gamut)')
+        gamut_label = 'Player.Process(amlogic.eoft_gamut)'
+        gamut_info = xbmc.getInfoLabel(gamut_label)
+        xbmc.log(f"AOM_StreamInfo: Raw gamut info: '{gamut_info}'", xbmc.LOGDEBUG)
+        gamut_info_valid = self.is_valid_infolabel(gamut_label, gamut_info)
+        xbmc.log(f"AOM_StreamInfo: Gamut info valid: {gamut_info_valid}", xbmc.LOGDEBUG)
         
         # Store settings only if it's a new install
         if self.new_install:
             self.settings_manager.store_platform_hdr_full(platform_hdr_full)
             
             # Check if gamut_info is valid and set advanced_hlg accordingly
-            if gamut_info and gamut_info != 'not available':
+            if gamut_info_valid:
                 advanced_hlg = True
                 self.settings_manager.store_advanced_hlg(advanced_hlg)
                 xbmc.log("AOM_StreamInfo: Stored advanced_hlg as True", xbmc.LOGDEBUG)
@@ -61,16 +73,16 @@ class StreamInfo:
             xbmc.log("AOM_StreamInfo: Stored settings and set new_install to False", xbmc.LOGDEBUG)
 
         hdr_type = hdr_type.replace('+', 'plus').replace(' ', '').lower()
-        if not hdr_type:
+        if not hdr_type or hdr_type == hdr_label.lower():
             hdr_type = 'sdr'
         elif hdr_type == 'hlghdr':
             hdr_type = 'hlg'
         
-        if not gamut_info:
+        if not gamut_info_valid:
             gamut_info = 'not available'
 
         # Check for HLG detection based on gamut_info
-        if hdr_type == 'sdr' and 'hlg' in gamut_info.lower():
+        if hdr_type == 'sdr' and gamut_info_valid and 'hlg' in gamut_info.lower():
             hdr_type = 'hlg'
 
         # Construct a dictionary of stream information
@@ -78,7 +90,8 @@ class StreamInfo:
             'player_id': player_id,
             'audio_channels': audio_channels,
             'gamut_info': gamut_info,
-            'platform_hdr_full': platform_hdr_full
+            'platform_hdr_full': platform_hdr_full,
+            'gamut_info_valid': gamut_info_valid
         }
 
         # Only include hdr_type and audio_format if they are valid
