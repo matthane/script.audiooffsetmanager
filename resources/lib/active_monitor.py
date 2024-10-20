@@ -5,13 +5,12 @@ import xbmcgui
 import threading
 from resources.lib.settings_manager import SettingsManager
 
-
 class ActiveMonitor:
     def __init__(self, event_manager, stream_info, offset_manager):
         self.event_manager = event_manager
         self.stream_info = stream_info
-        self.settings_manager = SettingsManager()
         self.offset_manager = offset_manager
+        self.settings_manager = SettingsManager()
         self.monitor_thread = None
         self.monitor_active = False
         self.playback_active = False
@@ -19,31 +18,27 @@ class ActiveMonitor:
         self.last_stored_audio_delay = None
 
     def start(self):
-        self.event_manager.subscribe('AV_STARTED', self.on_av_started)
-        self.event_manager.subscribe('PLAYBACK_STOPPED', self.on_playback_stopped)
-        self.event_manager.subscribe('PLAYBACK_ENDED', self.on_playback_stopped)
-        self.event_manager.subscribe('ON_AV_CHANGE', self.on_av_change)
+        if not self.monitor_active:
+            self.monitor_active = True
+            self.playback_active = True
+            self.update_stream_info()
+            self.update_last_stored_audio_delay()
+            self.monitor_thread = threading.Thread(target=self.monitor_audio_offset)
+            self.monitor_thread.start()
+            xbmc.log("AOM_ActiveMonitor: Active monitoring started", xbmc.LOGDEBUG)
 
     def stop(self):
-        self.event_manager.unsubscribe('AV_STARTED', self.on_av_started)
-        self.event_manager.unsubscribe('PLAYBACK_STOPPED', self.on_playback_stopped)
-        self.event_manager.unsubscribe('PLAYBACK_ENDED', self.on_playback_stopped)
-        self.event_manager.unsubscribe('ON_AV_CHANGE', self.on_av_change)
-        self.stop_monitoring()
+        if self.monitor_active:
+            self.monitor_active = False
+            self.playback_active = False
+            if self.monitor_thread is not None:
+                self.monitor_thread.join()
+                self.monitor_thread = None
+            xbmc.log("AOM_ActiveMonitor: Active monitoring stopped", xbmc.LOGDEBUG)
 
-    def on_av_started(self):
-        self.playback_active = True
-        self.update_last_stored_audio_delay()
-        self.start_monitoring()
-
-    def on_playback_stopped(self):
-        self.playback_active = False
-        self.stop_monitoring()
-
-    def on_av_change(self):
-        self.update_last_stored_audio_delay()
-        xbmc.log("AOM_ActiveMonitor: AV Change detected, updated last stored audio delay",
-                 xbmc.LOGDEBUG)
+    def update_stream_info(self):
+        self.stream_info.update_stream_info()
+        xbmc.log(f"AOM_ActiveMonitor: Updated stream info: {self.stream_info.info}", xbmc.LOGDEBUG)
 
     def update_last_stored_audio_delay(self):
         hdr_type = self.stream_info.info.get('hdr_type')
@@ -55,42 +50,14 @@ class ActiveMonitor:
             return
 
         try:
-            self.last_stored_audio_delay = self.settings_manager.get_audio_delay(
-                hdr_type, audio_format)
+            setting_id = f"{hdr_type}_{audio_format}"
+            self.last_stored_audio_delay = self.settings_manager.get_setting_integer(setting_id)
             xbmc.log(f"AOM_ActiveMonitor: Updated last stored audio delay to "
                      f"{self.last_stored_audio_delay} for HDR type {hdr_type} "
                      f"and audio format {audio_format}", xbmc.LOGDEBUG)
         except Exception as e:
             xbmc.log(f"AOM_ActiveMonitor: Error updating last stored audio delay: {str(e)}",
                      xbmc.LOGERROR)
-
-    def start_monitoring(self):
-        self.settings_manager = SettingsManager()
-        hdr_type = self.stream_info.info.get('hdr_type')
-        active_monitoring_enabled = self.settings_manager.get_boolean_setting(
-            'enable_active_monitoring')
-        hdr_type_enabled = self.settings_manager.get_boolean_setting(f'enable_{hdr_type}') \
-            if hdr_type else False
-
-        if active_monitoring_enabled and hdr_type_enabled and not self.monitor_active:
-            self.monitor_active = True
-            self.monitor_thread = threading.Thread(target=self.monitor_audio_offset)
-            self.monitor_thread.start()
-            xbmc.log(f"AOM_ActiveMonitor: Active monitoring started for HDR type {hdr_type}",
-                     xbmc.LOGDEBUG)
-        else:
-            xbmc.log(f"AOM_ActiveMonitor: Active monitoring not started (active monitoring "
-                     f"enabled: {active_monitoring_enabled}, HDR type {hdr_type} enabled: "
-                     f"{hdr_type_enabled}, already active: {self.monitor_active})",
-                     xbmc.LOGDEBUG)
-
-    def stop_monitoring(self):
-        if self.monitor_active:
-            self.monitor_active = False
-            if self.monitor_thread is not None:
-                self.monitor_thread.join()
-                self.monitor_thread = None
-            xbmc.log("AOM_ActiveMonitor: Active monitoring ended", xbmc.LOGDEBUG)
 
     def monitor_audio_offset(self):
         monitor = xbmc.Monitor()
@@ -150,10 +117,10 @@ class ActiveMonitor:
                 return
 
             setting_id = f"{hdr_type}_{audio_format}"
-            current_delay_ms = self.settings_manager.get_audio_delay(hdr_type, audio_format)
+            current_delay_ms = self.settings_manager.get_setting_integer(setting_id)
             
             if delay_ms != current_delay_ms:
-                self.settings_manager.store_audio_delay(setting_id, delay_ms)
+                self.settings_manager.store_setting_integer(setting_id, delay_ms)
                 xbmc.log(f"AOM_ActiveMonitor: Stored audio offset {delay_ms} ms for setting ID "
                          f"'{setting_id}'", xbmc.LOGDEBUG)
                 self.event_manager.publish('USER_ADJUSTMENT')

@@ -8,42 +8,25 @@ from resources.lib.settings_manager import SettingsManager
 
 
 class StreamInfo:
-    def __init__(self, event_manager):
-        self.event_manager = event_manager
+    def __init__(self):
         self.info = {}
         self.settings_manager = SettingsManager()
-        self.new_install = self.settings_manager.get_boolean_setting('new_install')
+        self.new_install = self.settings_manager.get_setting_boolean('new_install')
         self.valid_audio_formats = ['truehd', 'eac3', 'ac3', 'dtsx', 'dtshd_ma', 'dca', 'pcm']
         self.valid_hdr_types = ['dolbyvision', 'hdr10', 'hdr10plus', 'hlg', 'sdr']
 
-    def start(self):
-        # Subscribe to relevant events from the event manager
-        self.event_manager.subscribe('AV_STARTED', self.on_av_started)
-        self.event_manager.subscribe('PLAYBACK_STOPPED', self.on_playback_stopped)
-        self.event_manager.subscribe('PLAYBACK_ENDED', self.on_playback_stopped)
-        self.event_manager.subscribe('ON_AV_CHANGE', self.on_av_change)
-
-    def stop(self):
-        # Unsubscribe from relevant events
-        self.event_manager.unsubscribe('AV_STARTED', self.on_av_started)
-        self.event_manager.unsubscribe('PLAYBACK_STOPPED', self.on_playback_stopped)
-        self.event_manager.unsubscribe('PLAYBACK_ENDED', self.on_playback_stopped)
-        self.event_manager.unsubscribe('ON_AV_CHANGE', self.on_av_change)
-
-    def on_av_started(self):
-        # Gather initial playback details
+    def update_stream_info(self):
+        # Gather updated playback details
         self.info = self.gather_stream_info()
-        xbmc.log(f"AOM_StreamInfo: AV Started with info: {self.info}", xbmc.LOGDEBUG)
+        xbmc.log(f"AOM_StreamInfo: Updated stream info: {self.info}", xbmc.LOGDEBUG)
 
-    def on_av_change(self):
-        # Gather updated playback details after stream change
-        self.info = self.gather_stream_info()
-        xbmc.log(f"AOM_StreamInfo: AV Change detected with updated info: {self.info}", xbmc.LOGDEBUG)
-
-    def on_playback_stopped(self):
-        # Clear the stream information when playback stops
+    def clear_stream_info(self):
+        # Clear the stream information
         self.info = {}
-        xbmc.log("AOM_StreamInfo: Playback stopped, clearing stream info", xbmc.LOGDEBUG)
+        xbmc.log("AOM_StreamInfo: Cleared stream info", xbmc.LOGDEBUG)
+
+    def is_valid_infolabel(self, label, value):
+        return value and value.strip() and value.lower() != label.lower()
 
     def gather_stream_info(self):
         # Retrieve stream information
@@ -51,46 +34,55 @@ class StreamInfo:
         audio_format, audio_channels = self.get_audio_info(player_id)
         
         # Enhanced HDR detection with fallback to generic Kodi infolabel
-        hdr_type = xbmc.getInfoLabel('Player.Process(video.source.hdr.type)')
-        if hdr_type:
+        hdr_label = 'Player.Process(video.source.hdr.type)'
+        hdr_type = xbmc.getInfoLabel(hdr_label)
+        xbmc.log(f"AOM_StreamInfo: Raw HDR type: '{hdr_type}'", xbmc.LOGDEBUG)
+        
+        if self.is_valid_infolabel(hdr_label, hdr_type):
             platform_hdr_full = True
+            xbmc.log("AOM_StreamInfo: Platform HDR full support detected", xbmc.LOGDEBUG)
         else:
             hdr_type = xbmc.getInfoLabel('VideoPlayer.HdrType')
             platform_hdr_full = False
+            xbmc.log("AOM_StreamInfo: Platform HDR full support not detected", xbmc.LOGDEBUG)
         
-        xbmc.log(f"AOM_StreamInfo: Platform HDR full support detected: {platform_hdr_full}", xbmc.LOGDEBUG)
+        xbmc.log(f"AOM_StreamInfo: Final HDR type: '{hdr_type}', Platform HDR full: {platform_hdr_full}", xbmc.LOGDEBUG)
 
-        gamut_info = xbmc.getInfoLabel('Player.Process(amlogic.eoft_gamut)')
+        gamut_label = 'Player.Process(amlogic.eoft_gamut)'
+        gamut_info = xbmc.getInfoLabel(gamut_label)
+        xbmc.log(f"AOM_StreamInfo: Raw gamut info: '{gamut_info}'", xbmc.LOGDEBUG)
+        gamut_info_valid = self.is_valid_infolabel(gamut_label, gamut_info)
+        xbmc.log(f"AOM_StreamInfo: Gamut info valid: {gamut_info_valid}", xbmc.LOGDEBUG)
         
         # Store settings only if it's a new install
         if self.new_install:
-            self.settings_manager.store_platform_hdr_full(platform_hdr_full)
+            self.settings_manager.store_setting_boolean('platform_hdr_full', platform_hdr_full)
             
             # Check if gamut_info is valid and set advanced_hlg accordingly
-            if gamut_info and gamut_info != 'not available':
+            if gamut_info_valid:
                 advanced_hlg = True
-                self.settings_manager.store_advanced_hlg(advanced_hlg)
+                self.settings_manager.store_setting_boolean('advanced_hlg', advanced_hlg)
                 xbmc.log("AOM_StreamInfo: Stored advanced_hlg as True", xbmc.LOGDEBUG)
             else:
                 advanced_hlg = False
-                self.settings_manager.store_advanced_hlg(advanced_hlg)
+                self.settings_manager.store_setting_boolean('advanced_hlg', advanced_hlg)
                 xbmc.log("AOM_StreamInfo: Stored advanced_hlg as False", xbmc.LOGDEBUG)
             
             self.new_install = False
-            self.settings_manager.store_new_install(self.new_install)
+            self.settings_manager.store_setting_boolean('new_install', self.new_install)
             xbmc.log("AOM_StreamInfo: Stored settings and set new_install to False", xbmc.LOGDEBUG)
 
         hdr_type = hdr_type.replace('+', 'plus').replace(' ', '').lower()
-        if not hdr_type:
+        if not hdr_type or hdr_type == hdr_label.lower():
             hdr_type = 'sdr'
         elif hdr_type == 'hlghdr':
             hdr_type = 'hlg'
         
-        if not gamut_info:
+        if not gamut_info_valid:
             gamut_info = 'not available'
 
         # Check for HLG detection based on gamut_info
-        if hdr_type == 'sdr' and 'hlg' in gamut_info.lower():
+        if hdr_type == 'sdr' and gamut_info_valid and 'hlg' in gamut_info.lower():
             hdr_type = 'hlg'
 
         # Construct a dictionary of stream information
@@ -98,7 +90,8 @@ class StreamInfo:
             'player_id': player_id,
             'audio_channels': audio_channels,
             'gamut_info': gamut_info,
-            'platform_hdr_full': platform_hdr_full
+            'platform_hdr_full': platform_hdr_full,
+            'gamut_info_valid': gamut_info_valid
         }
 
         # Only include hdr_type and audio_format if they are valid
