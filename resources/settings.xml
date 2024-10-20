@@ -761,7 +761,12 @@
                 <setting id="seek_back_change_seconds" parent="enable_seek_back_change" type="integer" label="32021" help="32050">
                     <level>0</level>
                     <dependencies>
-                        <dependency type="visible" setting="enable_seek_back_change">true</dependency>
+                        <dependency type="visible">
+                            <and>
+                                <condition setting="enable_active_monitoring">true</condition>
+                                <condition setting="enable_seek_back_change">true</condition>
+                            </and>
+                        </dependency>
                     </dependencies>
                     <default>4</default>
                     <constraints>
