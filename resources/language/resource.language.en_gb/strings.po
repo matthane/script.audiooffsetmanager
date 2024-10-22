@@ -218,7 +218,7 @@ msgid "Platform HDR Detection"
 msgstr ""
 
 msgctxt "#32052"
-msgid "Full HDR detection"
+msgid "HDR10+ detection"
 msgstr ""
 
 msgctxt "#32053"
