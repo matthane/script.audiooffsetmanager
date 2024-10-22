@@ -41,7 +41,7 @@ class OnboardManager:
         # Show success notification
         xbmcgui.Dialog().notification('Audio Offset Manager',
                                       'Success! Addon initialized',
-                                      xbmcgui.NOTIFICATION_INFO, 5000)
+                                      xbmcgui.NOTIFICATION_INFO, 10000)
 
         # Open addon settings
         xbmc.executebuiltin('Addon.OpenSettings(script.audiooffsetmanager)')
