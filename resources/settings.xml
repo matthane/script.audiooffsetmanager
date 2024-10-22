@@ -816,7 +816,7 @@
         </category>
 
         <!-- Category for information -->
-        <category id="platform_info" label="32053" help="32063">
+        <category id="platform_info" label="32053" help="">
             <group id="9" label="32051">
                 <setting id="platform_hdr_full" type="boolean" label="32052"> 
                     <dependencies>
@@ -835,7 +835,23 @@
                     <enable>false</enable>
                     <default>false</default>
                     <control type="toggle"/>
-                </setting>  
+                </setting>
+                <setting id="re-validate" type="action" label="32063" help="32065">
+                    <level>0</level>                 
+                    <data>RunScript(script.audiooffsetmanager,play_test_video)</data>
+                    <control type="button" format="action">
+                        <close>true</close>
+                    </control>
+                    <dependencies>
+                        <dependency type="visible" setting="new_install">false</dependency>
+                        <dependency type="visible">
+                            <or>
+                                <condition setting="platform_hdr_full">false</condition>
+                                <condition setting="advanced_hlg">false</condition>
+                            </or>
+                        </dependency>
+                    </dependencies>
+                </setting>   
             </group>
         </category>
 

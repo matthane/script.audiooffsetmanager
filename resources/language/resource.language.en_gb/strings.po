@@ -262,9 +262,13 @@ msgid "Adjusts the audio offset for Other/PCM in milliseconds. Negative values d
 msgstr ""
 
 msgctxt "#32063"
-msgid "These settings refresh on video playback, in case of resets to default"
+msgid "Re-validate platform capabilities"
 msgstr ""
 
 msgctxt "#32064"
 msgid "Please complete on-boarding to unlock all settings. HDR10+ detection is platform dependent"
+msgstr ""
+
+msgctxt "#32065"
+msgid "Play the test video again to re-validate your platform HDR capabilities"
 msgstr ""
