@@ -4,7 +4,7 @@ import xbmc
 import xbmcgui
 import xbmcaddon
 import xbmcvfs
-import os
+
 
 class OnboardManager:
     def __init__(self, settings_manager, stream_info):
@@ -12,7 +12,7 @@ class OnboardManager:
         self.stream_info = stream_info
         self.addon = xbmcaddon.Addon()
         self.addon_path = xbmcvfs.translatePath(self.addon.getAddonInfo('path'))
-        self.test_video_path = os.path.join(self.addon_path, 'resources', 'lib', 'test-video.mp4')
+        self.test_video_path = xbmcvfs.translatePath(self.addon_path + '/resources/media/test-video.mp4')
 
     def play_test_video(self):
         """Play the test video for 5 seconds and return to addon settings."""

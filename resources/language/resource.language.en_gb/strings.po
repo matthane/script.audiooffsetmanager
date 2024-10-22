@@ -260,15 +260,3 @@ msgstr ""
 msgctxt "#32062"
 msgid "Adjusts the audio offset for Other/PCM in milliseconds. Negative values delay the audio, positive values advance it."
 msgstr ""
-
-msgctxt "#32063"
-msgid "Re-validate platform capabilities"
-msgstr ""
-
-msgctxt "#32064"
-msgid "Please complete on-boarding to unlock all settings. HDR10+ detection is platform dependent"
-msgstr ""
-
-msgctxt "#32065"
-msgid "Play the test video again to re-validate your platform HDR capabilities"
-msgstr ""
