@@ -4,7 +4,7 @@
         <import addon="xbmc.python" version="3.0.1"/>
     </requires>
     <extension point="xbmc.service" library="default.py" />
-    <extension point="xbmc.python.script" library="resources/lib/onboard_manager.py" />
+    <extension point="xbmc.python.script" library="resources/lib/play_test_video.py" />
     <extension point="xbmc.addon.metadata">
         <source>https://github.com/matthane/script.audiooffsetmanager</source>
         <news>v1.2.0 (2024-20-10)
