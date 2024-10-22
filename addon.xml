@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.audiooffsetmanager" version="1.2.0" name="Audio Offset Manager" provider-name="matthane">
-    <reuselanguageinvoker>true</reuselanguageinvoker>
+<addon id="script.audiooffsetmanager" version="1.2.1" name="Audio Offset Manager" provider-name="matthane">
     <requires>
         <import addon="xbmc.python" version="3.0.1"/>
     </requires>
@@ -8,9 +7,8 @@
     <extension point="xbmc.python.script" library="default.py" />
     <extension point="xbmc.addon.metadata">
         <source>https://github.com/matthane/script.audiooffsetmanager</source>
-        <news>v1.2.0 (2024-20-10)
-- Further onboard improvements. Small test video included, or you can back out of settings and play your own video.
-- Add 'Other/PCM' audio format offset settings
+        <news>v1.2.1 (2024-21-10)
+
         </news>
         <summary lang="en_GB">Dynamically manages audio offsets</summary>
         <description lang="en_GB">This add-on intelligently adjusts the audio offset based on the detected HDR type and audio format according to user-configured settings, along with other helpful features</description>

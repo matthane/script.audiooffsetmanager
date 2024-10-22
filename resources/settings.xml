@@ -835,7 +835,23 @@
                     <enable>false</enable>
                     <default>false</default>
                     <control type="toggle"/>
-                </setting>  
+                </setting>
+                <setting id="re-validate" type="action" label="32063" help="32064">
+                    <level>0</level>                 
+                    <data>RunScript(script.audiooffsetmanager,play_test_video)</data>
+                    <control type="button" format="action">
+                        <close>true</close>
+                    </control>
+                    <dependencies>
+                        <dependency type="visible" setting="new_install">false</dependency>
+                        <dependency type="visible">
+                            <or>
+                                <condition setting="platform_hdr_full">false</condition>
+                                <condition setting="advanced_hlg">false</condition>
+                            </or>
+                        </dependency>
+                    </dependencies> 
+                </setting>   
             </group>
         </category>
 
