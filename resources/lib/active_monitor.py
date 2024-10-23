@@ -56,7 +56,7 @@ class ActiveMonitor:
             self.last_processed_delay = self.last_stored_audio_delay
             xbmc.log(f"AOM_ActiveMonitor: Updated last stored audio delay to "
                      f"{self.last_stored_audio_delay} for HDR type {hdr_type} "
-                     f"and audio format {audio_format}", xbmc.LOGINFO)
+                     f"and audio format {audio_format}", xbmc.LOGDEBUG)
         except Exception as e:
             xbmc.log(f"AOM_ActiveMonitor: Error updating last stored audio delay: {str(e)}",
                      xbmc.LOGERROR)
@@ -124,7 +124,7 @@ class ActiveMonitor:
     def process_audio_delay_change(self, audio_delay):
         try:
             xbmc.log(f"AOM_ActiveMonitor: Processing final selected audio delay: {audio_delay}",
-                     xbmc.LOGINFO)
+                     xbmc.LOGDEBUG)
             delay_ms = self.convert_delay_to_ms(audio_delay)
             if delay_ms is None:
                 return
@@ -143,7 +143,7 @@ class ActiveMonitor:
             if delay_ms != current_delay_ms:
                 self.settings_manager.store_setting_integer(setting_id, delay_ms)
                 xbmc.log(f"AOM_ActiveMonitor: Stored audio offset {delay_ms} ms for setting ID "
-                         f"'{setting_id}'", xbmc.LOGINFO)
+                         f"'{setting_id}'", xbmc.LOGDEBUG)
                 self.event_manager.publish('USER_ADJUSTMENT')
                 self.last_stored_audio_delay = delay_ms
         except Exception as e:
