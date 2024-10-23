@@ -1,4 +1,4 @@
-# resources/lib/seek_backs.py
+"""Seek backs module submits player seek commands based on playback events."""
 
 import xbmc
 import json

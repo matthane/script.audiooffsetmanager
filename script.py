@@ -1,4 +1,4 @@
-"""Script module for Audio Offset Manager addon."""
+"""Script entry point for Audio Offset Manager addon."""
 
 import sys
 from resources.lib.addon_manager import AddonManager

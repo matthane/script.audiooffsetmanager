@@ -1,4 +1,6 @@
-# resources/lib/settings_manager.py
+"""Settings manager module to provide methods for other modules to interface with 
+the addon settings.
+"""
 
 import xbmc
 import xbmcaddon

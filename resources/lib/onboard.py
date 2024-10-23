@@ -1,4 +1,4 @@
-# resources/lib/onboard.py
+"""Onboard module to control out of box experience and main script behavior."""
 
 import xbmc
 import xbmcgui

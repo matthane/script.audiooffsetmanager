@@ -1,9 +1,10 @@
-# resources/lib/active_monitor.py
+"""Active monitor module to detect user changes in audio offset values during playback."""
 
 import xbmc
 import xbmcgui
 import threading
 from resources.lib.settings_manager import SettingsManager
+
 
 class ActiveMonitor:
     def __init__(self, event_manager, stream_info, offset_manager):

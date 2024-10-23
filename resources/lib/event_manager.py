@@ -1,4 +1,6 @@
-# resources/lib/event_manager.py
+"""Event manager module receives callback functions from Kodi regarding
+playback events, filters them, and posts them to subscribers/other modules.
+"""
 
 import xbmc
 import time

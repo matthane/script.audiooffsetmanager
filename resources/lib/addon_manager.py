@@ -1,4 +1,4 @@
-# resources/lib/addon_manager.py
+"""Addon Manager module to start up the service and delegate script launch."""
 
 from resources.lib.stream_info import StreamInfo
 from resources.lib.event_manager import EventManager
@@ -39,5 +39,4 @@ class AddonManager:
         self.seek_backs.stop()
 
     def play_test_video(self):
-        """Delegate to onboard manager to play test video."""
         self.onboard_manager.play_test_video()

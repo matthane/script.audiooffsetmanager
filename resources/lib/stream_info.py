@@ -1,4 +1,4 @@
-# resources/lib/stream_info.py
+"""Stream Info module used to gather stream HDR and audio format information."""
 
 import xbmc
 import xbmcgui

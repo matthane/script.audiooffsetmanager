@@ -1,10 +1,13 @@
-# resources/lib/offset_manager.py
+"""Offset manager module to receive playback events and assign audio offsets as needed.
+This module also controls the deployment of the Active Monitor when it's enabled.
+"""
 
 import xbmc
 import json
 from resources.lib.settings_manager import SettingsManager
 from resources.lib.stream_info import StreamInfo
 from resources.lib.active_monitor import ActiveMonitor
+
 
 class OffsetManager:
     def __init__(self, event_manager):
