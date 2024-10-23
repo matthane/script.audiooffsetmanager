@@ -14,7 +14,7 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
 
 msgctxt "#32001"
-msgid "Configure Audio Offsets"
+msgid "Dolby Vision"
 msgstr ""
 
 msgctxt "#32002"
@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 
 msgctxt "#32003"
-msgid "Dolby Vision"
+msgid "Offset Controls"
 msgstr ""
 
 msgctxt "#32004"
@@ -311,4 +311,12 @@ msgstr ""
 
 msgctxt "#32075"
 msgid "Control whether offsets are applied based on source FPS"
+msgstr ""
+
+msgctxt "#32076"
+msgid "Dolby Vision"
+msgstr ""
+
+msgctxt "#32077"
+msgid "Offset Controls"
 msgstr ""

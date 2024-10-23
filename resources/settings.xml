@@ -21,10 +21,10 @@
                 </setting>            
             </group>
         </category>
-        <!-- Category for Configuring Audio Offsets -->
-        <category id="general" label="32001" help="32002">
+        <!-- Category for Dolby Vision -->
+        <category id="dolbyvision" label="32076" help="32002">
             <!-- Dolby Vision -->
-            <group id="2" label="32003">
+            <group id="2" label="32077">
                 <setting id="enable_dolbyvision" type="boolean" label="32026" help="32027">
                     <dependencies>
                         <dependency type="visible" setting="new_install">false</dependency>
@@ -1496,9 +1496,11 @@
                     </control>
                 </setting> 
             </group>
+        </category>
 
+        <category id="hdr10" label="32023" help="">
             <!-- HDR10 -->
-            <group id="3" label="32023">
+            <group id="3" label="32077">
                 <setting id="enable_hdr10" type="boolean" label="32028" help="32029">
                     <dependencies>
                         <dependency type="visible" setting="new_install">false</dependency>
@@ -2970,9 +2972,11 @@
                     </control>
                 </setting> 
             </group>
+        </category>
 
+        <category id="hdr10plus" label="32044" help="">
             <!-- HDR10+ -->
-            <group id="4" label="32044">
+            <group id="4" label="32077">
                 <setting id="enable_hdr10plus" type="boolean" label="32042" help="32043">
                     <dependencies>
                         <dependency type="enable" setting="platform_hdr_full">true</dependency>
@@ -4445,9 +4449,11 @@
                     </control>
                 </setting> 
             </group>
+        </category>
 
+        <category id="hlg" label="32025" help="">
             <!-- HLG -->
-            <group id="5" label="32025">
+            <group id="5" label="32077">
                 <setting id="enable_hlg" type="boolean" label="32030" help="32031">
                     <dependencies>
                         <dependency type="visible" setting="new_install">false</dependency>
@@ -5919,9 +5925,11 @@
                     </control>
                 </setting> 
             </group>
+        </category>
 
+        <category id="sdr" label="32024" help="">
             <!-- SDR -->            
-            <group id="6" label="32024">
+            <group id="6" label="32077">
                 <setting id="enable_sdr" type="boolean" label="32032" help="32033">
                     <dependencies>
                         <dependency type="visible" setting="new_install">false</dependency>
