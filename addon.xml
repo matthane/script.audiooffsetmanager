@@ -3,8 +3,8 @@
     <requires>
         <import addon="xbmc.python" version="3.0.1"/>
     </requires>
-    <extension point="xbmc.service" library="default.py" />
-    <extension point="xbmc.python.script" library="default.py" />
+    <extension point="xbmc.service" library="service.py" />
+    <extension point="xbmc.python.script" library="script.py" />
     <extension point="xbmc.addon.metadata">
         <source>https://github.com/matthane/script.audiooffsetmanager</source>
         <news>v1.2.1 (2024-21-10)
