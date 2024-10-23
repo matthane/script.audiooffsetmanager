@@ -58,14 +58,21 @@ class OffsetManager:
                 return
 
             # Get stream information from StreamInfo
-            hdr_type = self.stream_info.info.get('hdr_type')
-            audio_format = self.stream_info.info.get('audio_format')
+            stream_info = self.stream_info.info
+            hdr_type = stream_info['hdr_type']
+            audio_format = stream_info['audio_format']
+            fps_type = stream_info['video_fps_type']
+            player_id = stream_info['player_id']
 
-            # Check if we have valid hdr_type and audio_format
-            if not hdr_type or not audio_format:
-                xbmc.log(f"AOM_OffsetManager: Invalid hdr_type ({hdr_type}) or "
-                         f"audio_format ({audio_format}). Skipping audio "
-                         f"offset application.", xbmc.LOGDEBUG)
+            # Log current stream information
+            xbmc.log(f"AOM_OffsetManager: Current stream info - HDR: {hdr_type}, "
+                     f"Audio: {audio_format}, FPS: {fps_type}", xbmc.LOGDEBUG)
+
+            # Skip if using unknown formats
+            if hdr_type == 'unknown' or audio_format == 'unknown' or fps_type == 'unknown':
+                xbmc.log(f"AOM_OffsetManager: Skipping audio offset - Unknown format detected "
+                         f"(HDR: {hdr_type}, Audio: {audio_format}, FPS: {fps_type})", 
+                         xbmc.LOGDEBUG)
                 return
 
             # Check if HDR type is enabled in settings
@@ -74,25 +81,22 @@ class OffsetManager:
                          f"enabled in settings", xbmc.LOGDEBUG)
                 return
 
-            # Retrieve the audio delay for the combination of HDR type and audio format
-            setting_id = f"{hdr_type}_{audio_format}"
+            # Retrieve the audio delay using the new setting ID format that includes fps_type
+            setting_id = f"{hdr_type}_{fps_type}_{audio_format}"
             delay_ms = self.settings_manager.get_setting_integer(setting_id)
             if delay_ms is None:
-                xbmc.log(f"AOM_OffsetManager: No audio delay found for HDR "
-                         f"type {hdr_type} and audio format {audio_format}",
+                xbmc.log(f"AOM_OffsetManager: No audio delay found for setting ID: {setting_id}",
                          xbmc.LOGDEBUG)
                 return
 
             delay_seconds = delay_ms / 1000.0
 
-            # Log the HDR type, audio format, and delay being used
-            xbmc.log(f"AOM_OffsetManager: Applying audio offset of "
-                     f"{delay_seconds} seconds for HDR type '{hdr_type}' "
-                     f"and audio format '{audio_format}'", xbmc.LOGDEBUG)
+            # Log the stream details and delay being used
+            xbmc.log(f"AOM_OffsetManager: Applying audio offset of {delay_seconds} seconds "
+                     f"for setting ID '{setting_id}'", xbmc.LOGDEBUG)
 
-            # Send JSON-RPC call to set the audio delay on the current player
-            player_id = self.stream_info.info.get('player_id')
-            if player_id is not None and player_id != -1:
+            # Set audio delay if we have a valid player
+            if player_id != -1:
                 self.set_audio_delay(player_id, delay_seconds)
             else:
                 xbmc.log("AOM_OffsetManager: No valid player ID found to set "
@@ -126,11 +130,20 @@ class OffsetManager:
                      xbmc.LOGERROR)
 
     def manage_active_monitor(self):
+        stream_info = self.stream_info.info
         active_monitoring_enabled = self.settings_manager.get_setting_boolean('enable_active_monitoring')
-        hdr_type = self.stream_info.info.get('hdr_type')
-        hdr_type_enabled = self.settings_manager.get_setting_boolean(f'enable_{hdr_type}') if hdr_type else False
+        hdr_type = stream_info['hdr_type']
+        fps_type = stream_info['video_fps_type']
+        hdr_type_enabled = self.settings_manager.get_setting_boolean(f'enable_{hdr_type}')
 
-        if active_monitoring_enabled and hdr_type_enabled:
+        # Log active monitor status check
+        xbmc.log(f"AOM_OffsetManager: Checking active monitor status - "
+                 f"HDR: {hdr_type}, FPS: {fps_type}, "
+                 f"Monitoring enabled: {active_monitoring_enabled}, "
+                 f"HDR type enabled: {hdr_type_enabled}", xbmc.LOGDEBUG)
+
+        if (active_monitoring_enabled and hdr_type_enabled and 
+            hdr_type != 'unknown' and fps_type != 'unknown'):
             self.start_active_monitor()
         else:
             self.stop_active_monitor()

@@ -268,3 +268,47 @@ msgstr ""
 msgctxt "#32064"
 msgid "Play the test video again to re-validate your platform HDR capabilities"
 msgstr ""
+
+msgctxt "#32065"
+msgid "Frames per second (FPS)"
+msgstr ""
+
+msgctxt "#32066"
+msgid "23.98"
+msgstr ""
+
+msgctxt "#32067"
+msgid "24.00"
+msgstr ""
+
+msgctxt "#32068"
+msgid "25.00"
+msgstr ""
+
+msgctxt "#32069"
+msgid "29.97"
+msgstr ""
+
+msgctxt "#32070"
+msgid "30"
+msgstr ""
+
+msgctxt "#32071"
+msgid "50"
+msgstr ""
+
+msgctxt "#32072"
+msgid "59.94"
+msgstr ""
+
+msgctxt "#32073"
+msgid "60.00"
+msgstr ""
+
+msgctxt "#32074"
+msgid "Enable FPS based offsets"
+msgstr ""
+
+msgctxt "#32075"
+msgid "Control whether offsets are applied based on source FPS"
+msgstr ""
