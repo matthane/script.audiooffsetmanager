@@ -27,7 +27,7 @@ class OnboardManager:
         # Show notification while video is playing
         xbmcgui.Dialog().notification('Audio Offset Manager',
                                       'Please wait...',
-                                      xbmcgui.NOTIFICATION_INFO, 5000)
+                                      xbmcgui.NOTIFICATION_INFO, 10000)
 
         # Gather platform capabilities
         self.gather_platform_capabilities()
