@@ -16,6 +16,7 @@ class ActiveMonitor:
         self.playback_active = False
         self.last_audio_delay = None
         self.last_stored_audio_delay = None
+        self.last_processed_delay = None
 
     def start(self):
         if not self.monitor_active:
@@ -52,12 +53,23 @@ class ActiveMonitor:
         try:
             setting_id = f"{hdr_type}_{audio_format}"
             self.last_stored_audio_delay = self.settings_manager.get_setting_integer(setting_id)
+            self.last_processed_delay = self.last_stored_audio_delay
             xbmc.log(f"AOM_ActiveMonitor: Updated last stored audio delay to "
                      f"{self.last_stored_audio_delay} for HDR type {hdr_type} "
-                     f"and audio format {audio_format}", xbmc.LOGDEBUG)
+                     f"and audio format {audio_format}", xbmc.LOGINFO)
         except Exception as e:
             xbmc.log(f"AOM_ActiveMonitor: Error updating last stored audio delay: {str(e)}",
                      xbmc.LOGERROR)
+
+    def convert_delay_to_ms(self, delay_str):
+        """Convert delay string (e.g., '-0.075 s') to milliseconds integer."""
+        try:
+            # Remove ' s' suffix and convert to float
+            delay_seconds = float(delay_str.replace(' s', ''))
+            # Convert to milliseconds
+            return int(delay_seconds * 1000)
+        except (ValueError, AttributeError):
+            return None
 
     def monitor_audio_offset(self):
         monitor = xbmc.Monitor()
@@ -69,6 +81,8 @@ class ActiveMonitor:
             dialog_id = xbmcgui.getCurrentWindowDialogId()
             if dialog_id == 10124 and not audio_settings_open:
                 audio_settings_open = True
+                # Reset last_processed_delay when opening audio settings
+                self.last_processed_delay = None
 
             if audio_settings_open:
                 if dialog_id != 10124:
@@ -90,9 +104,13 @@ class ActiveMonitor:
 
                 if dialog_id != 10145:
                     dialog_open = False
-                    if self.last_audio_delay != self.last_stored_audio_delay:
+                    current_delay_ms = self.convert_delay_to_ms(self.last_audio_delay)
+                    
+                    # Only process if the delay has changed and hasn't been processed yet
+                    if (current_delay_ms is not None and 
+                        current_delay_ms != self.last_processed_delay):
                         self.process_audio_delay_change(self.last_audio_delay)
-                        self.last_stored_audio_delay = self.last_audio_delay
+                        self.last_processed_delay = current_delay_ms
 
             # Wait based on current state
             if audio_settings_open or dialog_open:
@@ -106,8 +124,11 @@ class ActiveMonitor:
     def process_audio_delay_change(self, audio_delay):
         try:
             xbmc.log(f"AOM_ActiveMonitor: Processing final selected audio delay: {audio_delay}",
-                     xbmc.LOGDEBUG)
-            delay_ms = int(float(audio_delay.replace(' s', '')) * 1000)  # Convert to milliseconds
+                     xbmc.LOGINFO)
+            delay_ms = self.convert_delay_to_ms(audio_delay)
+            if delay_ms is None:
+                return
+
             hdr_type = self.stream_info.info.get('hdr_type')
             audio_format = self.stream_info.info.get('audio_format')
             
@@ -122,11 +143,9 @@ class ActiveMonitor:
             if delay_ms != current_delay_ms:
                 self.settings_manager.store_setting_integer(setting_id, delay_ms)
                 xbmc.log(f"AOM_ActiveMonitor: Stored audio offset {delay_ms} ms for setting ID "
-                         f"'{setting_id}'", xbmc.LOGDEBUG)
+                         f"'{setting_id}'", xbmc.LOGINFO)
                 self.event_manager.publish('USER_ADJUSTMENT')
-        except ValueError:
-            xbmc.log("AOM_ActiveMonitor: Failed to convert audio delay to milliseconds",
-                     xbmc.LOGDEBUG)
+                self.last_stored_audio_delay = delay_ms
         except Exception as e:
             xbmc.log(f"AOM_ActiveMonitor: Error processing audio delay change: {str(e)}",
                      xbmc.LOGERROR)
