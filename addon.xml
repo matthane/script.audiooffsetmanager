@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.audiooffsetmanager" version="1.3.0" name="Audio Offset Manager" provider-name="matthane">
+<addon id="script.audiooffsetmanager" version="1.3.0~beta" name="Audio Offset Manager" provider-name="matthane">
     <requires>
         <import addon="xbmc.python" version="3.0.1"/>
     </requires>
@@ -7,7 +7,7 @@
     <extension point="xbmc.python.script" library="script.py" />
     <extension point="xbmc.addon.metadata">
         <source>https://github.com/matthane/script.audiooffsetmanager</source>
-        <news>v1.3.0 (2024-23-10)
+        <news>v1.3.0~beta (2024-23-10)
 - Add FPS based offset management ability
 - Add button to re-validate platform HDR capabilities if they get reset to default
 - Improve active offset monitoring reliability
