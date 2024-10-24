@@ -105,9 +105,16 @@ class StreamInfo:
         # Check if FPS type should be overridden based on HDR setting
         if hdr_type != 'unknown':
             setting_name = f'enable_fps_{hdr_type}'
-            if not self.settings_manager.get_setting_boolean(setting_name):
+            # Reload settings manager to ensure we have the latest values
+            self.settings_manager = SettingsManager()
+            setting_value = self.settings_manager.get_setting_boolean(setting_name)
+            xbmc.log(f"AOM_StreamInfo: Checking setting '{setting_name}' = {setting_value}", xbmc.LOGDEBUG)
+            
+            if not setting_value:
                 fps_type = 'all'
                 xbmc.log(f"AOM_StreamInfo: FPS type overridden to 'all' due to {setting_name} being disabled", xbmc.LOGDEBUG)
+            else:
+                xbmc.log(f"AOM_StreamInfo: Keeping original FPS type '{fps_type}' as {setting_name} is enabled", xbmc.LOGDEBUG)
 
         # Construct comprehensive stream information dictionary
         stream_info = {
