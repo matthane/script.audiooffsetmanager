@@ -7,13 +7,23 @@ import xbmcaddon
 
 
 class SettingsManager:
-    def __init__(self):
-        # Initialize the Addon object to access settings
-        self.addon = xbmcaddon.Addon('script.audiooffsetmanager')
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(SettingsManager, cls).__new__(cls)
+            # Initialize the instance attributes
+            cls._instance.addon = xbmcaddon.Addon('script.audiooffsetmanager')
+            cls._instance.settings = cls._instance.addon.getSettings()
+        return cls._instance
+
+    def _reload_settings(self):
+        """Reload settings to ensure we have the most up-to-date values."""
         self.settings = self.addon.getSettings()
 
     def get_setting_boolean(self, setting_id):
         """Retrieve the boolean setting using Settings.getBool()."""
+        self._reload_settings()
         try:
             return self.settings.getBool(setting_id)
         except:
@@ -23,6 +33,7 @@ class SettingsManager:
 
     def get_setting_integer(self, setting_id):
         """Retrieve the integer setting using Settings.getInt()."""
+        self._reload_settings()
         try:
             return self.settings.getInt(setting_id)
         except:
@@ -32,6 +43,7 @@ class SettingsManager:
 
     def get_setting_string(self, setting_id):
         """Retrieve the string setting using Settings.getString()."""
+        self._reload_settings()
         try:
             return self.settings.getString(setting_id)
         except:
@@ -41,6 +53,7 @@ class SettingsManager:
 
     def store_setting_boolean(self, setting_id, value):
         """Store a boolean setting."""
+        self._reload_settings()
         try:
             xbmc.log(f"AOM_SettingsManager: Storing boolean setting {setting_id}: "
                      f"{value}", xbmc.LOGDEBUG)
@@ -51,6 +64,7 @@ class SettingsManager:
 
     def store_setting_integer(self, setting_id, value):
         """Store an integer setting."""
+        self._reload_settings()
         try:
             xbmc.log(f"AOM_SettingsManager: Storing integer setting {setting_id}: "
                      f"{value}", xbmc.LOGDEBUG)
@@ -61,6 +75,7 @@ class SettingsManager:
 
     def store_setting_string(self, setting_id, value):
         """Store a string setting."""
+        self._reload_settings()
         try:
             xbmc.log(f"AOM_SettingsManager: Storing string setting {setting_id}: "
                      f"{value}", xbmc.LOGDEBUG)

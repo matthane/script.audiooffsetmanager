@@ -32,15 +32,11 @@ class OffsetManager:
         self.stop_active_monitor()
 
     def on_av_started(self):
-        # Reload settings to ensure the latest values are used
-        self.settings_manager = SettingsManager()
         self.stream_info.update_stream_info()
         self.apply_audio_offset()
         self.manage_active_monitor()
 
     def on_av_change(self):
-        # Reload settings to ensure the latest values are used
-        self.settings_manager = SettingsManager()
         self.stream_info.update_stream_info()
         self.apply_audio_offset()
         self.manage_active_monitor()

@@ -52,8 +52,6 @@ class SeekBacks:
                      f"on {event_type}", xbmc.LOGDEBUG)
             return
 
-        # Reload settings to ensure the latest values are used
-        self.settings_manager = SettingsManager()
         # Delay for 2 seconds to allow the stream to settle before seeking back
         xbmc.sleep(2000)
         # Check settings for seek back configuration based on the specific setting IDs
