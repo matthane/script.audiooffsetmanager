@@ -93,14 +93,17 @@ class StreamInfo:
             hdr_type = 'hlg'
             xbmc.log("AOM_StreamInfo: HLG detected via gamut info", xbmc.LOGDEBUG)
         
-        # Store settings if it's a new install
+        # Store platform capabilities on every playback
+        self.settings_manager.store_setting_boolean('platform_hdr_full', platform_hdr_full)
+        advanced_hlg = gamut_info_valid
+        self.settings_manager.store_setting_boolean('advanced_hlg', advanced_hlg)
+        xbmc.log("AOM_StreamInfo: Updated platform capabilities", xbmc.LOGDEBUG)
+        
+        # Handle new install flag if needed
         if self.new_install:
-            self.settings_manager.store_setting_boolean('platform_hdr_full', platform_hdr_full)
-            advanced_hlg = gamut_info_valid
-            self.settings_manager.store_setting_boolean('advanced_hlg', advanced_hlg)
             self.new_install = False
             self.settings_manager.store_setting_boolean('new_install', self.new_install)
-            xbmc.log("AOM_StreamInfo: Stored initial settings", xbmc.LOGDEBUG)
+            xbmc.log("AOM_StreamInfo: Updated new install flag", xbmc.LOGDEBUG)
 
         # Check if FPS type should be overridden based on HDR setting
         if hdr_type != 'unknown':
