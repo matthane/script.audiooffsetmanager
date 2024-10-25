@@ -41,7 +41,7 @@
                     <default>false</default>
                     <control type="toggle"/>
                 </setting>
-                <setting id="dolbyvision_fps" type="integer" label="32065" help="">
+                <setting id="dolbyvision_fps" type="integer" label="32065" help="32078">
                     <dependencies>
                         <dependency type="visible">
                             <and>
@@ -1539,7 +1539,7 @@
                     <default>false</default>
                     <control type="toggle"/>
                 </setting>
-                <setting id="hdr10_fps" type="integer" label="32065" help="">
+                <setting id="hdr10_fps" type="integer" label="32065" help="32078">
                     <dependencies>
                         <dependency type="visible">
                             <and>
@@ -3038,7 +3038,7 @@
                     <default>false</default>
                     <control type="toggle"/>
                 </setting>
-                <setting id="hdr10plus_fps" type="integer" label="32065" help="">
+                <setting id="hdr10plus_fps" type="integer" label="32065" help="32078">
                     <dependencies>
                         <dependency type="visible">
                             <and>
@@ -4536,7 +4536,7 @@
                     <default>false</default>
                     <control type="toggle"/>
                 </setting>
-                <setting id="hlg_fps" type="integer" label="32065" help="">
+                <setting id="hlg_fps" type="integer" label="32065" help="32078">
                     <dependencies>
                         <dependency type="visible">
                             <and>
@@ -6034,7 +6034,7 @@
                     <default>false</default>
                     <control type="toggle"/>
                 </setting>
-                <setting id="sdr_fps" type="integer" label="32065" help="">
+                <setting id="sdr_fps" type="integer" label="32065" help="32078">
                     <dependencies>
                         <dependency type="visible">
                             <and>

@@ -320,3 +320,7 @@ msgstr ""
 msgctxt "#32077"
 msgid "Offset Controls"
 msgstr ""
+
+msgctxt "#32078"
+msgid "Offset configurations will save to selected FPS type"
+msgstr ""
