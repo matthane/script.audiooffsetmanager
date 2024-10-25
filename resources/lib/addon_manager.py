@@ -1,6 +1,5 @@
-"""Addon Manager module to start up the service and delegate script launch."""
+"""Addon Manager module to start up the service components."""
 
-from resources.lib.stream_info import StreamInfo
 from resources.lib.event_manager import EventManager
 from resources.lib.settings_manager import SettingsManager
 from resources.lib.offset_manager import OffsetManager
@@ -14,9 +13,6 @@ class AddonManager:
 
         # Initialize the settings manager
         self.settings_manager = SettingsManager()
-
-        # Initialize stream info module
-        self.stream_info = StreamInfo()
 
         # Initialize offset manager
         self.offset_manager = OffsetManager(self.event_manager)
