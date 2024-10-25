@@ -2,6 +2,7 @@
 
 import xbmc
 import json
+import time
 from resources.lib.settings_manager import SettingsManager
 
 
@@ -18,7 +19,8 @@ class SeekBacks:
         self.event_manager = event_manager
         self.settings_manager = SettingsManager()
         self.playback_state = {
-            'paused': False
+            'paused': False,
+            'last_seek_time': 0  # Track the last time we performed a seek
         }
 
     def start(self):
@@ -92,6 +94,13 @@ class SeekBacks:
         Returns:
             tuple: (should_seek, seek_seconds) or (False, None) if seek is not needed
         """
+        # Check if we've performed a seek back recently (within 2 seconds)
+        current_time = time.time()
+        if current_time - self.playback_state['last_seek_time'] < 2:
+            xbmc.log(f"AOM_SeekBacks: Skipping seek back on {event_type} - too soon after last seek",
+                     xbmc.LOGDEBUG)
+            return False, None
+
         if self.playback_state['paused']:
             xbmc.log(f"AOM_SeekBacks: Playback is paused, skipping seek back "
                      f"on {event_type}", xbmc.LOGDEBUG)
@@ -150,6 +159,8 @@ class SeekBacks:
                          f"{response_json['error']}", xbmc.LOGWARNING)
                 return False
                 
+            # Update last seek time only on successful seek
+            self.playback_state['last_seek_time'] = time.time()
             xbmc.log(f"AOM_SeekBacks: Successfully seeked back by {seconds} seconds "
                      f"on {event_type}", xbmc.LOGDEBUG)
             return True
