@@ -10,6 +10,7 @@
         <news>v1.3.1 (2024-25-10)
 - The addon can now be saved to favorites, providing easy access to offset controls
 - Bug fix: Fixed missing PCM controls to non-FPS based offsets
+- Bug fix: Fixed double seek backs when transitioning episodes with Up Next addon
 - Code refactoring and optimization
         </news>
         <summary lang="en_GB">Dynamically manages audio offsets</summary>
