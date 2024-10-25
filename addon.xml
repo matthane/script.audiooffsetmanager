@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<<<<<<< Updated upstream
 <addon id="script.audiooffsetmanager" version="1.2.1" name="Audio Offset Manager" provider-name="matthane">
+=======
+<addon id="script.audiooffsetmanager" version="1.3.0" name="Audio Offset Manager" provider-name="matthane">
+>>>>>>> Stashed changes
     <requires>
         <import addon="xbmc.python" version="3.0.1"/>
     </requires>
@@ -10,6 +14,7 @@
         <news>v1.2.1 (2024-23-10)
 - Add button to re-validate platform HDR capabilities if they get reset to default
 - Improve active offset monitoring reliability
+- Fix setting handling to be more efficient
         </news>
         <summary lang="en_GB">Dynamically manages audio offsets</summary>
         <description lang="en_GB">This add-on intelligently adjusts the audio offset based on the detected HDR type and audio format according to user-configured settings, along with other helpful features</description>
