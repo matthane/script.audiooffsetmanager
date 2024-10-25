@@ -40,6 +40,9 @@ This addon streamlines your viewing experience by automating the process of audi
 - HLG
 - SDR
 
+### FPS Types
+23.98, 24, 25, 29.97, 30, 50, 59.94, 60
+
 ## Installation and Usage
 
 1. Download the addon from the Kodi repository or install it manually.
