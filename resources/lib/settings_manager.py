@@ -7,9 +7,18 @@ import xbmcaddon
 
 
 class SettingsManager:
-    def __init__(self):
-        # Initialize the Addon object to access settings
-        self.addon = xbmcaddon.Addon('script.audiooffsetmanager')
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(SettingsManager, cls).__new__(cls)
+            # Initialize the instance attributes
+            cls._instance.addon = xbmcaddon.Addon('script.audiooffsetmanager')
+            cls._instance.settings = cls._instance.addon.getSettings()
+        return cls._instance
+
+    def reload_if_needed(self):
+        """Public method to reload settings when explicitly needed."""
         self.settings = self.addon.getSettings()
 
     def get_setting_boolean(self, setting_id):
