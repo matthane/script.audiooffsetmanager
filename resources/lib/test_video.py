@@ -1,4 +1,4 @@
-"""Onboard module to control out of box experience and main script behavior."""
+"""Module for handling test video playback functionality."""
 
 import xbmc
 import xbmcgui
@@ -6,7 +6,9 @@ import xbmcaddon
 import xbmcvfs
 
 
-class OnboardManager:
+class TestVideoManager:
+    """Manages test video playback functionality."""
+    
     def __init__(self):
         self.addon = xbmcaddon.Addon()
         self.addon_path = xbmcvfs.translatePath(self.addon.getAddonInfo('path'))

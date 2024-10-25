@@ -1,9 +1,7 @@
-"""Script entry point for Audio Offset Manager addon."""
+"""Addon helper script entry point."""
 
-import sys
-from resources.lib.onboard import OnboardManager
+from resources.lib.script_handler import handle_script_call
 
 
-if __name__ == '__main__' and len(sys.argv) > 1 and sys.argv[1] == 'play_test_video':
-    onboard_manager = OnboardManager()
-    onboard_manager.play_test_video()
+if __name__ == '__main__':
+    handle_script_call()

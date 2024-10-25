@@ -1,4 +1,4 @@
-"""Service entry point for Audio Offset Manager addon."""
+"""Main addon service entry point."""
 
 import xbmc
 from resources.lib.addon_manager import AddonManager
