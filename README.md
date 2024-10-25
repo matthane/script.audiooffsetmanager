@@ -48,7 +48,7 @@ This addon streamlines your viewing experience by automating the process of audi
 1. Download the addon from the Kodi repository or install it manually.
 2. Enable the addon in Kodi's addon settings.
 3. Open and briefly play any video to fully initialize and enable all addon settings.
-4. Configure your desired audio offsets for different HDR types and audio formats in the addon settings.
+4. Configure your desired audio offsets for different HDR types, audio formats, and FPS types in the addon settings.
 5. If you want to perform initial AV calibration, enable the active monitoring mode in the addon settings. This will allow the addon to learn and store your manual audio offset adjustments for future use.
 6. The addon will run as a background service, automatically applying your configured offsets during playback.
 
