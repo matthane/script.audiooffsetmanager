@@ -8,72 +8,109 @@ import xbmcaddon
 
 class SettingsManager:
     _instance = None
-
+    _settings = None
+    
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(SettingsManager, cls).__new__(cls)
-            # Initialize the instance attributes
-            cls._instance.addon = xbmcaddon.Addon('script.audiooffsetmanager')
-            cls._instance.settings = cls._instance.addon.getSettings()
+            cls._instance._initialize()
         return cls._instance
+        
+    def _initialize(self):
+        """Initialize the settings manager with addon settings."""
+        self.addon = xbmcaddon.Addon('script.audiooffsetmanager')
+        self._settings = self.addon.getSettings()
 
     def reload_if_needed(self):
         """Public method to reload settings when explicitly needed."""
-        self.settings = self.addon.getSettings()
+        self._settings = self.addon.getSettings()
+
+    def _safe_setting_operation(self, operation, setting_id, default_value, value_type):
+        """Safely execute a settings operation with proper error handling.
+        
+        Args:
+            operation: The settings method to call (getBool, getInt, etc)
+            setting_id: The ID of the setting to access
+            default_value: Value to return if operation fails
+            value_type: String description of the value type for logging
+        """
+        try:
+            return operation(setting_id)
+        except:
+            xbmc.log(f"AOM_SettingsManager: Error getting {value_type} setting "
+                     f"'{setting_id}'. Using default: {default_value}", 
+                     xbmc.LOGWARNING)
+            return default_value
 
     def get_setting_boolean(self, setting_id):
         """Retrieve the boolean setting using Settings.getBool()."""
-        try:
-            return self.settings.getBool(setting_id)
-        except:
-            xbmc.log(f"AOM_SettingsManager: Error getting boolean setting "
-                     f"'{setting_id}'. Returning False.", xbmc.LOGWARNING)
-            return False
+        return self._safe_setting_operation(
+            self._settings.getBool, 
+            setting_id, 
+            False, 
+            "boolean"
+        )
 
     def get_setting_integer(self, setting_id):
         """Retrieve the integer setting using Settings.getInt()."""
-        try:
-            return self.settings.getInt(setting_id)
-        except:
-            xbmc.log(f"AOM_SettingsManager: Error getting integer setting "
-                     f"'{setting_id}'. Returning 0.", xbmc.LOGWARNING)
-            return 0
+        return self._safe_setting_operation(
+            self._settings.getInt, 
+            setting_id, 
+            0, 
+            "integer"
+        )
 
     def get_setting_string(self, setting_id):
         """Retrieve the string setting using Settings.getString()."""
+        return self._safe_setting_operation(
+            self._settings.getString, 
+            setting_id, 
+            "", 
+            "string"
+        )
+
+    def _safe_setting_store(self, operation, setting_id, value, value_type):
+        """Safely store a setting value with proper error handling.
+        
+        Args:
+            operation: The settings method to call (setBool, setInt, etc)
+            setting_id: The ID of the setting to store
+            value: The value to store
+            value_type: String description of the value type for logging
+        """
         try:
-            return self.settings.getString(setting_id)
+            xbmc.log(f"AOM_SettingsManager: Storing {value_type} setting {setting_id}: "
+                     f"{value}", xbmc.LOGDEBUG)
+            operation(setting_id, value)
+            return True
         except:
-            xbmc.log(f"AOM_SettingsManager: Error getting string setting "
-                     f"'{setting_id}'. Returning empty string.", xbmc.LOGWARNING)
-            return ""
+            xbmc.log(f"AOM_SettingsManager: Error storing {value_type} setting "
+                     f"'{setting_id}'.", xbmc.LOGWARNING)
+            return False
 
     def store_setting_boolean(self, setting_id, value):
         """Store a boolean setting."""
-        try:
-            xbmc.log(f"AOM_SettingsManager: Storing boolean setting {setting_id}: "
-                     f"{value}", xbmc.LOGDEBUG)
-            self.settings.setBool(setting_id, value)
-        except:
-            xbmc.log(f"AOM_SettingsManager: Error storing boolean setting "
-                     f"'{setting_id}'.", xbmc.LOGWARNING)
+        return self._safe_setting_store(
+            self._settings.setBool,
+            setting_id,
+            value,
+            "boolean"
+        )
 
     def store_setting_integer(self, setting_id, value):
         """Store an integer setting."""
-        try:
-            xbmc.log(f"AOM_SettingsManager: Storing integer setting {setting_id}: "
-                     f"{value}", xbmc.LOGDEBUG)
-            self.settings.setInt(setting_id, value)
-        except:
-            xbmc.log(f"AOM_SettingsManager: Error storing integer setting "
-                     f"'{setting_id}'.", xbmc.LOGWARNING)
+        return self._safe_setting_store(
+            self._settings.setInt,
+            setting_id,
+            value,
+            "integer"
+        )
 
     def store_setting_string(self, setting_id, value):
         """Store a string setting."""
-        try:
-            xbmc.log(f"AOM_SettingsManager: Storing string setting {setting_id}: "
-                     f"{value}", xbmc.LOGDEBUG)
-            self.settings.setString(setting_id, value)
-        except:
-            xbmc.log(f"AOM_SettingsManager: Error storing string setting "
-                     f"'{setting_id}'.", xbmc.LOGWARNING)
+        return self._safe_setting_store(
+            self._settings.setString,
+            setting_id,
+            value,
+            "string"
+        )
