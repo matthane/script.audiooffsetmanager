@@ -30,7 +30,9 @@ class SeekBacks:
             'ON_AV_CHANGE': self.on_av_change,
             'PLAYBACK_RESUMED': self.on_av_unpause,
             'PLAYBACK_PAUSED': self.on_playback_paused,
-            'USER_ADJUSTMENT': self.on_user_adjustment
+            'USER_ADJUSTMENT': self.on_user_adjustment,
+            'PLAYBACK_STOPPED': self.on_playback_stopped,
+            'PLAYBACK_ENDED': self.on_playback_stopped  # Use same handler for both stop and end
         }
         for event, callback in events.items():
             self.event_manager.subscribe(event, callback)
@@ -42,13 +44,17 @@ class SeekBacks:
             'ON_AV_CHANGE': self.on_av_change,
             'PLAYBACK_RESUMED': self.on_av_unpause,
             'PLAYBACK_PAUSED': self.on_playback_paused,
-            'USER_ADJUSTMENT': self.on_user_adjustment
+            'USER_ADJUSTMENT': self.on_user_adjustment,
+            'PLAYBACK_STOPPED': self.on_playback_stopped,
+            'PLAYBACK_ENDED': self.on_playback_stopped
         }
         for event, callback in events.items():
             self.event_manager.unsubscribe(event, callback)
 
     def on_av_started(self):
         """Handle AV started event."""
+        # Reset playback state when new playback starts
+        self.playback_state['paused'] = False
         self.perform_seek_back('resume')
 
     def on_av_change(self):
@@ -64,6 +70,12 @@ class SeekBacks:
     def on_playback_paused(self):
         """Handle playback paused event."""
         self.playback_state['paused'] = True
+
+    def on_playback_stopped(self):
+        """Handle playback stopped/ended event."""
+        xbmc.log("AOM_SeekBacks: Playback stopped/ended, resetting playback state", xbmc.LOGDEBUG)
+        self.playback_state['paused'] = False
+        self.playback_state['last_seek_time'] = 0
 
     def on_user_adjustment(self):
         """Handle user adjustment event."""
