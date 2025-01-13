@@ -182,11 +182,19 @@ class StreamInfo:
                     audio_stream = response_json["result"]["currentaudiostream"]
                     audio_format = audio_stream.get("codec", "unknown").replace('pt-', '')
                     audio_channels = audio_stream.get("channels", "unknown")
+                    
+                    xbmc.log(f"AOM_StreamInfo: Raw audio format detected: {audio_format}", xbmc.LOGDEBUG)
+
+                    # Handle TrueHD Atmos format
+                    if audio_format == 'truehd_atmos':
+                        audio_format = 'truehd'
+                        xbmc.log("AOM_StreamInfo: Converted truehd_atmos to truehd", xbmc.LOGDEBUG)
 
                     if audio_format != 'none':
                         # Advanced logic for DTS-HD MA detection
-                        if audio_format == 'dtshd_ma' and isinstance(audio_channels, int) and audio_channels > 6:
+                        if (audio_format == 'dtshd_ma' and isinstance(audio_channels, int) and audio_channels > 6) or audio_format == 'dtshd_ma_x':
                             audio_format = 'dtsx'
+                            xbmc.log("AOM_StreamInfo: Converted to dtsx based on channel count or format", xbmc.LOGDEBUG)
                         # New check for PCM
                         elif audio_format not in self.valid_audio_formats and audio_format != 'unknown':
                             audio_format = 'pcm'
@@ -203,4 +211,3 @@ class StreamInfo:
 
         xbmc.log("AOM_StreamInfo: Failed to retrieve valid audio information after 10 attempts",
                  xbmc.LOGWARNING)
-        return "unknown", "unknown"
