@@ -32,6 +32,7 @@ This addon streamlines your viewing experience by automating the process of audi
 - DTS-HD HRA*
 - DTS (DCA)
 - Other/PCM 
+
 *These formats can also contain spatial audio encoding such as Dolby Atmos or DTS:X on top of the base audio format
 
 ### Video Formats
