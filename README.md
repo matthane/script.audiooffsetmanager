@@ -25,18 +25,19 @@ This addon streamlines your viewing experience by automating the process of audi
 ## Supported Formats
 
 ### Audio Formats
-- Dolby Atmos / TrueHD
-- Dolby Digital Plus (E-AC-3)
+- Dolby TrueHD*
+- Dolby Digital Plus (E-AC-3)*
 - Dolby Digital (AC-3)
-- DTS:X / DTS-HD MA (8+ channels)
-- DTS-HD MA (6 channels)
+- DTS-HD MA*
+- DTS-HD HRA*
 - DTS (DCA)
 - Other/PCM 
+*These formats can also contain spatial audio encoding such as Dolby Atmos or DTS:X on top of the base audio format
 
 ### Video Formats
 - Dolby Vision
 - HDR10
-- HDR10+
+- HDR10+ (platform/build specific)
 - HLG
 - SDR
 
