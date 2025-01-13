@@ -12,7 +12,7 @@ class StreamInfo:
         self.info = {}
         self.settings_manager = SettingsManager()
         self.new_install = self.settings_manager.get_setting_boolean('new_install')
-        self.valid_audio_formats = ['truehd', 'eac3', 'ac3', 'dtsx', 'dtshd_ma', 'dca', 'pcm']
+        self.valid_audio_formats = ['truehd', 'eac3', 'ac3', 'dtshd_ma', 'dtshd_hra', 'dca', 'pcm']
         self.valid_hdr_types = ['dolbyvision', 'hdr10', 'hdr10plus', 'hlg', 'sdr']
         self.valid_fps_types = [23, 24, 25, 29, 30, 50, 59, 60]
 
@@ -162,52 +162,65 @@ class StreamInfo:
                  xbmc.LOGWARNING)
         return -1
 
+    def _get_audio_stream(self, player_id):
+        """Helper method to get audio stream information via JSON-RPC."""
+        request = json.dumps({
+            "jsonrpc": "2.0",
+            "method": "Player.GetProperties",
+            "params": {
+                "playerid": player_id,
+                "properties": ["currentaudiostream"]
+            },
+            "id": 1
+        })
+        response = xbmc.executeJSONRPC(request)
+        response_json = json.loads(response)
+        
+        if "result" in response_json and "currentaudiostream" in response_json["result"]:
+            return response_json["result"]["currentaudiostream"]
+        return None
+
+    def _process_audio_format(self, raw_format, channels):
+        """Process raw audio format into standardized format."""
+        if not raw_format or raw_format == 'none':
+            return 'unknown'
+            
+        # Remove any 'pt-' prefix and convert to lowercase
+        audio_format = raw_format.replace('pt-', '').lower()
+        xbmc.log(f"AOM_StreamInfo: Processing audio format: {audio_format}", xbmc.LOGDEBUG)
+        
+        # Check for any valid format within the reported string
+        for valid_format in self.valid_audio_formats:
+            if valid_format in audio_format:
+                xbmc.log(f"AOM_StreamInfo: Matched valid format: {valid_format}", xbmc.LOGDEBUG)
+                return valid_format
+        
+        # Default to PCM for unrecognized formats
+        if audio_format != 'unknown':
+            return 'pcm'
+        
+        return 'unknown'
+
     def get_audio_info(self, player_id):
-        # Use JSON-RPC to retrieve audio codec and channel count, retrying if 'none' is detected
+        """Get audio format and channel information with retry logic."""
         for attempt in range(10):
             try:
-                request = json.dumps({
-                    "jsonrpc": "2.0",
-                    "method": "Player.GetProperties",
-                    "params": {
-                        "playerid": player_id,
-                        "properties": ["currentaudiostream"]
-                    },
-                    "id": 1
-                })
-                response = xbmc.executeJSONRPC(request)
-                response_json = json.loads(response)
-
-                if "result" in response_json and "currentaudiostream" in response_json["result"]:
-                    audio_stream = response_json["result"]["currentaudiostream"]
-                    audio_format = audio_stream.get("codec", "unknown").replace('pt-', '')
-                    audio_channels = audio_stream.get("channels", "unknown")
+                audio_stream = self._get_audio_stream(player_id)
+                if audio_stream:
+                    raw_format = audio_stream.get("codec", "unknown")
+                    channels = audio_stream.get("channels", "unknown")
                     
-                    xbmc.log(f"AOM_StreamInfo: Raw audio format detected: {audio_format}", xbmc.LOGDEBUG)
+                    xbmc.log(f"AOM_StreamInfo: Raw audio format detected: {raw_format}", xbmc.LOGDEBUG)
+                    
+                    audio_format = self._process_audio_format(raw_format, channels)
+                    if audio_format != 'unknown':
+                        return audio_format, channels
 
-                    # Handle TrueHD Atmos format
-                    if audio_format == 'truehd_atmos':
-                        audio_format = 'truehd'
-                        xbmc.log("AOM_StreamInfo: Converted truehd_atmos to truehd", xbmc.LOGDEBUG)
-
-                    if audio_format != 'none':
-                        # Advanced logic for DTS-HD MA detection
-                        if (audio_format == 'dtshd_ma' and isinstance(audio_channels, int) and audio_channels > 6) or audio_format == 'dtshd_ma_x':
-                            audio_format = 'dtsx'
-                            xbmc.log("AOM_StreamInfo: Converted to dtsx based on channel count or format", xbmc.LOGDEBUG)
-                        # New check for PCM
-                        elif audio_format not in self.valid_audio_formats and audio_format != 'unknown':
-                            audio_format = 'pcm'
-
-                        return audio_format, audio_channels
-
-                xbmc.log(f"AOM_StreamInfo: Invalid audio format 'none', retrying... ({attempt + 1}/10)",
-                         xbmc.LOGDEBUG)
+                xbmc.log(f"AOM_StreamInfo: Invalid audio format, retrying... ({attempt + 1}/10)", xbmc.LOGDEBUG)
                 time.sleep(0.5)
             except Exception as e:
-                xbmc.log(f"AOM_StreamInfo: Error getting audio info: {str(e)}",
-                         xbmc.LOGERROR)
+                xbmc.log(f"AOM_StreamInfo: Error getting audio info: {str(e)}", xbmc.LOGERROR)
                 time.sleep(0.5)
 
-        xbmc.log("AOM_StreamInfo: Failed to retrieve valid audio information after 10 attempts",
-                 xbmc.LOGWARNING)
+        xbmc.log("AOM_StreamInfo: Failed to retrieve valid audio information after 10 attempts", xbmc.LOGWARNING)
+        return 'unknown', 'unknown'
