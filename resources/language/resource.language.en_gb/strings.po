@@ -78,7 +78,7 @@ msgid "Playback Behavior"
 msgstr ""
 
 msgctxt "#32017"
-msgid ""
+msgid "Settings related to addon playback behavior"
 msgstr ""
 
 msgctxt "#32018"
@@ -363,4 +363,8 @@ msgstr ""
 
 msgctxt "#32087"
 msgid "Offset controls for SDR sources"
+msgstr ""
+
+msgctxt "#32089"
+msgid "Capabilities of the currently installed Kodi platform"
 msgstr ""
