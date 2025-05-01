@@ -32,7 +32,7 @@
             </group>
         </category>
         <!-- Category for Dolby Vision -->
-        <category id="dolbyvision" label="32076" help="32002">
+        <category id="dolbyvision" label="32076" help="32083">
             <!-- Dolby Vision -->
             <group id="2" label="32077">
                 <setting id="enable_dolbyvision" type="boolean" label="32026" help="32027">
@@ -1530,7 +1530,7 @@
             </group>
         </category>
 
-        <category id="hdr10" label="32023" help="">
+        <category id="hdr10" label="32023" help="32084">
             <!-- HDR10 -->
             <group id="3" label="32077">
                 <setting id="enable_hdr10" type="boolean" label="32028" help="32029">
@@ -3028,7 +3028,7 @@
             </group>
         </category>
 
-        <category id="hdr10plus" label="32044" help="">
+        <category id="hdr10plus" label="32044" help="32085">
             <!-- HDR10+ -->
             <group id="4" label="32077">
                 <setting id="enable_hdr10plus" type="boolean" label="32042" help="32043">
@@ -4527,7 +4527,7 @@
             </group>
         </category>
 
-        <category id="hlg" label="32025" help="">
+        <category id="hlg" label="32025" help="32086">
             <!-- HLG -->
             <group id="5" label="32077">
                 <setting id="enable_hlg" type="boolean" label="32030" help="32031">
@@ -6025,7 +6025,7 @@
             </group>
         </category>
 
-        <category id="sdr" label="32024" help="">
+        <category id="sdr" label="32024" help="32087">
             <!-- SDR -->            
             <group id="6" label="32077">
                 <setting id="enable_sdr" type="boolean" label="32032" help="32033">

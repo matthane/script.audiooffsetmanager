@@ -344,3 +344,23 @@ msgstr ""
 msgctxt "#32083"
 msgid "Bypass the test video and unlock settings. Some settings may not be visible until after first video playback."
 msgstr ""
+
+msgctxt "#32083"
+msgid "Offset controls for Dolby Vision content"
+msgstr ""
+
+msgctxt "#32084"
+msgid "Offset controls for HDR10 content"
+msgstr ""
+
+msgctxt "#32085"
+msgid "Offset controls for HDR10+ content"
+msgstr ""
+
+msgctxt "#32086"
+msgid "Offset controls for HLG content"
+msgstr ""
+
+msgctxt "#32087"
+msgid "Offset controls for SDR content"
+msgstr ""
