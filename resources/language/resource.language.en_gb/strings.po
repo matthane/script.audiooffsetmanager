@@ -345,7 +345,7 @@ msgctxt "#32083"
 msgid "Bypass the test video and unlock settings. Some settings may not be visible until after first video playback."
 msgstr ""
 
-msgctxt "#32083"
+msgctxt "#32088"
 msgid "Offset controls for Dolby Vision content"
 msgstr ""
 
