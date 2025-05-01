@@ -324,3 +324,23 @@ msgstr ""
 msgctxt "#32078"
 msgid "Offset configurations will save to selected FPS type"
 msgstr ""
+
+msgctxt "#32079"
+msgid "Enable notifications"
+msgstr ""
+
+msgctxt "#32080"
+msgid "Show notifications when audio offset is dynamically applied or when manual offset adjustments are saved"
+msgstr ""
+
+msgctxt "#32081"
+msgid "Notifications"
+msgstr ""
+
+msgctxt "#32082"
+msgid "Skip and unlock settings"
+msgstr ""
+
+msgctxt "#32083"
+msgid "Bypass the test video and unlock settings. Some settings may not be visible until after first video playback."
+msgstr ""
