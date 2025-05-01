@@ -32,7 +32,7 @@
             </group>
         </category>
         <!-- Category for Dolby Vision -->
-        <category id="dolbyvision" label="32076" help="32083">
+        <category id="dolbyvision" label="32076" help="32088">
             <!-- Dolby Vision -->
             <group id="2" label="32077">
                 <setting id="enable_dolbyvision" type="boolean" label="32026" help="32027">
