@@ -18,7 +18,17 @@
                     <dependencies>
                         <dependency type="visible" setting="new_install">true</dependency>
                     </dependencies> 
-                </setting>            
+                </setting>
+                <setting id="bypass_test_video" type="action" label="32082" help="32083">
+                    <level>0</level>                 
+                    <data>RunScript(script.audiooffsetmanager,bypass_test_video)</data>
+                    <control type="button" format="action">
+                        <close>true</close>
+                    </control>
+                    <dependencies>
+                        <dependency type="visible" setting="new_install">true</dependency>
+                    </dependencies> 
+                </setting>                              
             </group>
         </category>
         <!-- Category for Dolby Vision -->
@@ -7515,18 +7525,29 @@
 
         <!-- Category for Playback Behavior -->
         <category id="seek_back_settings" label="32016" help="32017">
-            <group id="7" label="32047">
+            <group id="7" label="32081">                
+                <!-- Enable Notifications Toggle -->
+                <setting id="enable_notifications" type="boolean" label="32079" help="32080">
+                    <dependencies>
+                        <dependency type="visible" setting="new_install">false</dependency>
+                    </dependencies>
+                    <level>0</level>
+                    <default>true</default>
+                    <control type="toggle"/>
+                </setting>
+            </group>
+            <group id="8" label="32047">
                 <!-- Enable Active Monitoring Toggle -->
                 <setting id="enable_active_monitoring" type="boolean" label="32045" help="32046">
                     <dependencies>
                         <dependency type="visible" setting="new_install">false</dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
-                    <default>false</default>
+                    <default>true</default>
                     <control type="toggle"/>
                 </setting>
             </group>
-            <group id="8" label="32018">
+            <group id="9" label="32018">
                 <!-- Enable Seek Back on Adjust Behavior Toggle -->
                 <setting id="enable_seek_back_adjust" type="boolean" label="32019" help="32020">
                     <dependencies>
@@ -7654,7 +7675,7 @@
 
         <!-- Category for information -->
         <category id="platform_info" label="32053">
-            <group id="9" label="32051">
+            <group id="10" label="32051">
                 <setting id="platform_hdr_full" type="boolean" label="32052"> 
                     <dependencies>
                         <dependency type="visible" setting="new_install">false</dependency>
