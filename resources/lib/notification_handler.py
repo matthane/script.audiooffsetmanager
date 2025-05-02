@@ -1,5 +1,5 @@
 """
-This module handles notifications for the audio offset activies.
+This module handles notifications for audio offset activies.
 """
 
 import xbmc
@@ -101,11 +101,13 @@ class NotificationHandler:
             message = f"{prefix} {delay_text}\n{hdr_type_name} | {fps_type_name} FPS | {audio_format_name}"
         
         # Send notification
+        # Get notification duration from settings (in seconds) and convert to milliseconds
+        notification_duration_ms = self.settings_manager.get_setting_integer('notification_seconds') * 1000
         xbmcgui.Dialog().notification(
             self.addon_name,
             message,
             self.addon_icon,
-            5000
+            notification_duration_ms
         )
         xbmc.log(f"AOM_NotificationHandler: {message}", xbmc.LOGDEBUG)
     
