@@ -7,7 +7,7 @@
     <extension point="xbmc.python.script" library="script.py" />
     <extension point="xbmc.addon.metadata">
         <source>https://github.com/matthane/script.audiooffsetmanager</source>
-        <news>v1.5.0 (2025-05-01)
+        <news>v1.5.0 (2025-05-02)
 - Add notifications (toggleable) for when offsets are applied or saved during playback
 - Add test video bypass option
         </news>
