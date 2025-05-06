@@ -376,3 +376,35 @@ msgstr ""
 msgctxt "#32091"
 msgid "Control the length of time that notifications appear"
 msgstr ""
+
+msgctxt "#32092"
+msgid "Offset applied"
+msgstr ""
+
+msgctxt "#32093"
+msgid "Offset saved"
+msgstr ""
+
+msgctxt "#32094"
+msgid "Error"
+msgstr ""
+
+msgctxt "#32095"
+msgid "Test video not found"
+msgstr ""
+
+msgctxt "#32096"
+msgid "Please wait"
+msgstr ""
+
+msgctxt "#32097"
+msgid "Success! Test video completed"
+msgstr ""
+
+msgctxt "#32098"
+msgid "Test video requirement bypassed"
+msgstr ""
+
+msgctxt "#32099"
+msgid "Fail to bypass test video"
+msgstr ""
