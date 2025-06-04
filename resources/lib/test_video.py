@@ -19,7 +19,7 @@ class TestVideoManager:
     def play_test_video(self):
         """Play the test video for 5 seconds and return to addon settings."""
         if not xbmcvfs.exists(self.test_video_path):
-            xbmcgui.Dialog().notification('Error', 'Test video not found',
+            xbmcgui.Dialog().notification('$ADDON[script.audiooffsetmanager 32094]', '$ADDON[script.audiooffsetmanager 32095]',
                                         xbmcgui.NOTIFICATION_ERROR, 5000)
             return
 
@@ -28,7 +28,7 @@ class TestVideoManager:
 
         # Show notification while video is playing
         xbmcgui.Dialog().notification('Audio Offset Manager',
-                                    'Please wait...',
+                                    '$ADDON[script.audiooffsetmanager 32096]...',
                                     self.addon_icon, 10000)
 
         # Wait for 5 seconds
@@ -39,7 +39,7 @@ class TestVideoManager:
 
         # Show success notification
         xbmcgui.Dialog().notification('Audio Offset Manager',
-                                    'Success! Test video completed',
+                                    '$ADDON[script.audiooffsetmanager 32097]',
                                     self.addon_icon, 10000)
 
         # Open addon settings
@@ -61,7 +61,7 @@ class TestVideoManager:
             xbmc.log("AOM_TestVideoManager: Successfully bypassed test video requirement", xbmc.LOGINFO)
             # Show success notification
             xbmcgui.Dialog().notification('Audio Offset Manager',
-                                        'Test video requirement bypassed',
+                                        '$ADDON[script.audiooffsetmanager 32098]',
                                         self.addon_icon, 3000)
             
             # Add a small delay to ensure settings are saved before reopening
@@ -73,5 +73,5 @@ class TestVideoManager:
             xbmc.log(f"AOM_TestVideoManager: Failed to bypass test video requirement: {str(e)}", xbmc.LOGWARNING)
             # Show error notification
             xbmcgui.Dialog().notification('Error',
-                                        'Failed to bypass test video',
+                                        '$ADDON[script.audiooffsetmanager 32099]',
                                         xbmcgui.NOTIFICATION_ERROR, 3000)

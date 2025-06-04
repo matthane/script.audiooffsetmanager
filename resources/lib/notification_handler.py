@@ -120,7 +120,7 @@ class NotificationHandler:
             delay_ms: The audio delay in milliseconds
             stream_info: The stream information object containing details about the current stream
         """
-        self._send_notification(delay_ms, stream_info, "Offset applied:")
+        self._send_notification(delay_ms, stream_info, "$ADDON[script.audiooffsetmanager 32092]:")
         
     def notify_manual_offset_saved(self, delay_ms, stream_info):
         """
@@ -132,4 +132,4 @@ class NotificationHandler:
             delay_ms: The audio delay in milliseconds
             stream_info: The stream information object containing details about the current stream
         """
-        self._send_notification(delay_ms, stream_info, "Offset saved:")
+        self._send_notification(delay_ms, stream_info, "$ADDON[script.audiooffsetmanager 32093]:")
