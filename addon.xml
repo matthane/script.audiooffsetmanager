@@ -12,7 +12,9 @@
 - Add test video bypass option
         </news>
         <summary lang="en_GB">Dynamically manages audio offsets</summary>
+        <summary lang="sv_SE">Hanterar ljudförskjutningar dynamiskt</summary>
         <description lang="en_GB">This add-on intelligently adjusts the audio offset based on the detected HDR type, audio format, and FPS type according to user-configured settings, along with other helpful features</description>
+        <description lang="sv_SE">Detta tillägg justerar ljudförskjutningen på ett intelligent sätt baserat på den upptäckta HDR-typen, ljudformatet och FPS-typen enligt användarens inställningar, tillsammans med andra användbara funktioner.</description>
         <platform>all</platform>
         <license>GPL-3.0-or-later</license>
         <assets>
