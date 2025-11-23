@@ -4,14 +4,15 @@ playback events, filters them, and posts them to subscribers/other modules.
 
 import xbmc
 import time
-import json
 import threading
+from resources.lib.stream_info import StreamInfo
 
 
 class EventManager(xbmc.Player):
     def __init__(self):
         super().__init__()
         self._subscribers = {}
+        self.stream_info = StreamInfo()
         self.playback_state = {
             'start_time': None,
             'av_started': False,
@@ -44,51 +45,18 @@ class EventManager(xbmc.Player):
         self.publish('AV_STARTED')
 
     def _get_current_audio_codec(self):
-        """Get current audio codec from Kodi player via JSON-RPC."""
-        try:
-            # Get active player ID
-            request = json.dumps({
-                "jsonrpc": "2.0",
-                "method": "Player.GetActivePlayers",
-                "id": 1
-            })
-            response = xbmc.executeJSONRPC(request)
-            response_json = json.loads(response)
+        """Get current audio codec using StreamInfo module."""
+        player_id = self.stream_info.get_player_id()
+        if player_id == -1:
+            return None
 
-            if "result" in response_json and len(response_json["result"]) > 0:
-                player_id = response_json["result"][0].get("playerid", -1)
+        audio_format, _ = self.stream_info.get_audio_info(player_id)
 
-                if player_id == -1:
-                    return None
+        # Treat 'unknown' or 'none' as codec not available yet
+        if audio_format in ['unknown', 'none']:
+            return None
 
-                # Get current audio stream info
-                request = json.dumps({
-                    "jsonrpc": "2.0",
-                    "method": "Player.GetProperties",
-                    "params": {
-                        "playerid": player_id,
-                        "properties": ["currentaudiostream"]
-                    },
-                    "id": 1
-                })
-                response = xbmc.executeJSONRPC(request)
-                response_json = json.loads(response)
-
-                if "result" in response_json and "currentaudiostream" in response_json["result"]:
-                    audio_stream = response_json["result"]["currentaudiostream"]
-                    codec = audio_stream.get("codec", "unknown")
-                    codec = codec.replace('pt-', '').lower()
-
-                    # Treat 'none' as codec not available yet
-                    if codec == 'none':
-                        return None
-
-                    return codec
-        except Exception as e:
-            xbmc.log(f"AOM_EventManager: Error getting audio codec: {str(e)}",
-                     xbmc.LOGDEBUG)
-
-        return None
+        return audio_format
 
     def _should_process_av_change(self):
         """Check if AV change event should be processed based on codec state."""
