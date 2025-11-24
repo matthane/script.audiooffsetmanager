@@ -34,12 +34,13 @@ class SettingsManager:
             default_value: Value to return if operation fails
             value_type: String description of the value type for logging
         """
+        from resources.lib.logger import log
         try:
             return operation(setting_id)
         except:
-            xbmc.log(f"AOM_SettingsManager: Error getting {value_type} setting "
-                     f"'{setting_id}'. Using default: {default_value}", 
-                     xbmc.LOGWARNING)
+            log(f"AOM_SettingsManager: Error getting {value_type} setting "
+                f"'{setting_id}'. Using default: {default_value}", 
+                xbmc.LOGWARNING)
             return default_value
 
     def get_setting_boolean(self, setting_id):
@@ -78,18 +79,25 @@ class SettingsManager:
             value: The value to store
             value_type: String description of the value type for logging
         """
+        from resources.lib.logger import log
         try:
-            xbmc.log(f"AOM_SettingsManager: Storing {value_type} setting {setting_id}: "
-                     f"{value}", xbmc.LOGDEBUG)
+            log(f"AOM_SettingsManager: Storing {value_type} setting {setting_id}: "
+                f"{value}", xbmc.LOGDEBUG)
             operation(setting_id, value)
             return True
         except:
-            xbmc.log(f"AOM_SettingsManager: Error storing {value_type} setting "
-                     f"'{setting_id}'.", xbmc.LOGWARNING)
+            log(f"AOM_SettingsManager: Error storing {value_type} setting "
+                f"'{setting_id}'.", xbmc.LOGWARNING)
             return False
 
     def store_setting_boolean(self, setting_id, value):
         """Store a boolean setting."""
+        try:
+            current_value = self.get_setting_boolean(setting_id)
+            if current_value == value:
+                return True
+        except Exception:
+            pass
         return self._safe_setting_store(
             self._settings.setBool,
             setting_id,
@@ -99,6 +107,12 @@ class SettingsManager:
 
     def store_setting_integer(self, setting_id, value):
         """Store an integer setting."""
+        try:
+            current_value = self.get_setting_integer(setting_id)
+            if current_value == value:
+                return True
+        except Exception:
+            pass
         return self._safe_setting_store(
             self._settings.setInt,
             setting_id,
@@ -108,6 +122,12 @@ class SettingsManager:
 
     def store_setting_string(self, setting_id, value):
         """Store a string setting."""
+        try:
+            current_value = self.get_setting_string(setting_id)
+            if current_value == value:
+                return True
+        except Exception:
+            pass
         return self._safe_setting_store(
             self._settings.setString,
             setting_id,

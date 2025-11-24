@@ -5,6 +5,7 @@ import xbmcgui
 import xbmcaddon
 import xbmcvfs
 from resources.lib.settings_manager import SettingsManager
+from resources.lib.logger import log
 
 
 class TestVideoManager:
@@ -58,7 +59,7 @@ class TestVideoManager:
             settings_manager = SettingsManager()
             settings_manager.reload_if_needed()
             
-            xbmc.log("AOM_TestVideoManager: Successfully bypassed test video requirement", xbmc.LOGINFO)
+            log("AOM_TestVideoManager: Successfully bypassed test video requirement", xbmc.LOGINFO)
             # Show success notification
             xbmcgui.Dialog().notification('Audio Offset Manager',
                                         '$ADDON[script.audiooffsetmanager 32098]',
@@ -70,7 +71,7 @@ class TestVideoManager:
             # Re-open addon settings to refresh them
             xbmc.executebuiltin('Addon.OpenSettings(script.audiooffsetmanager)')
         except Exception as e:
-            xbmc.log(f"AOM_TestVideoManager: Failed to bypass test video requirement: {str(e)}", xbmc.LOGWARNING)
+            log(f"AOM_TestVideoManager: Failed to bypass test video requirement: {str(e)}", xbmc.LOGWARNING)
             # Show error notification
             xbmcgui.Dialog().notification('Error',
                                         '$ADDON[script.audiooffsetmanager 32099]',

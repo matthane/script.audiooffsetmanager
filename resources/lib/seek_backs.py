@@ -1,9 +1,11 @@
 """Seek backs module submits player seek commands based on playback events."""
 
 import xbmc
-import json
 import time
 from resources.lib.settings_manager import SettingsManager
+from resources.lib.settings_facade import SettingsFacade
+from resources.lib import rpc_client
+from resources.lib.logger import log
 
 
 class SeekBacks:
@@ -15,12 +17,16 @@ class SeekBacks:
         'change': 'change'  # Keep 'change' separate from 'adjust'
     }
 
-    def __init__(self, event_manager):
+    def __init__(self, event_manager, settings_manager=None, settings_facade=None):
         self.event_manager = event_manager
-        self.settings_manager = SettingsManager()
+        self.settings_manager = settings_manager or SettingsManager()
+        self.settings_facade = settings_facade or SettingsFacade(self.settings_manager)
         self.playback_state = {
             'paused': False,
-            'last_seek_time': 0  # Track the last time we performed a seek
+            'last_seek_time': 0,  # Track the last time we performed a seek
+            'initial_av_change_seen': False,
+            'seek_in_progress': False,
+            'last_seek_by_event': {}
         }
 
     def start(self):
@@ -55,10 +61,16 @@ class SeekBacks:
         """Handle AV started event."""
         # Reset playback state when new playback starts
         self.playback_state['paused'] = False
+        self.playback_state['initial_av_change_seen'] = False
         self.perform_seek_back('resume')
 
     def on_av_change(self):
         """Handle AV change event."""
+        if not self.playback_state.get('initial_av_change_seen'):
+            self.playback_state['initial_av_change_seen'] = True
+            log("AOM_SeekBacks: Skipping initial AV change (startup)", xbmc.LOGDEBUG)
+            return
+
         self.perform_seek_back('adjust')
 
     def on_av_unpause(self):
@@ -73,18 +85,21 @@ class SeekBacks:
 
     def on_playback_stopped(self):
         """Handle playback stopped/ended event."""
-        xbmc.log("AOM_SeekBacks: Playback stopped/ended, resetting playback state", xbmc.LOGDEBUG)
+        log("AOM_SeekBacks: Playback stopped/ended, resetting playback state", xbmc.LOGDEBUG)
         self.playback_state['paused'] = False
         self.playback_state['last_seek_time'] = 0
+        self.playback_state['initial_av_change_seen'] = False
+        self.playback_state['seek_in_progress'] = False
 
     def on_user_adjustment(self):
         """Handle user adjustment event."""
-        xbmc.log("AOM_SeekBacks: Processing user adjustment event", xbmc.LOGDEBUG)
+        log("AOM_SeekBacks: Processing user adjustment event", xbmc.LOGDEBUG)
         # Check if seek back is enabled for changes (user adjustments)
-        if self.settings_manager.get_setting_boolean('enable_seek_back_change'):
+        enabled, _ = self.settings_facade.seek_back_config('change')
+        if enabled:
             self.perform_seek_back('change')
         else:
-            xbmc.log("AOM_SeekBacks: Seek back for user adjustments is disabled", xbmc.LOGDEBUG)
+            log("AOM_SeekBacks: Seek back for user adjustments is disabled", xbmc.LOGDEBUG)
 
     def _get_setting_type(self, event_type):
         """Get the correct setting type based on event type.
@@ -106,38 +121,38 @@ class SeekBacks:
         Returns:
             tuple: (should_seek, seek_seconds) or (False, None) if seek is not needed
         """
-        # Check if we've performed a seek back recently (within 2 seconds)
+        # Check if we've performed a seek back recently (within 2 seconds, per event type)
         current_time = time.time()
-        if current_time - self.playback_state['last_seek_time'] < 2:
-            xbmc.log(f"AOM_SeekBacks: Skipping seek back on {event_type} - too soon after last seek",
-                     xbmc.LOGDEBUG)
+        last_by_type = self.playback_state['last_seek_by_event'].get(event_type, 0)
+        if current_time - last_by_type < 2:
+            log(f"AOM_SeekBacks: Skipping seek back on {event_type} - too soon after last seek of this type",
+                xbmc.LOGDEBUG)
+            return False, None
+
+        if self.playback_state.get('seek_in_progress'):
+            log(f"AOM_SeekBacks: Seek back already in progress; skipping {event_type}",
+                xbmc.LOGDEBUG)
             return False, None
 
         if self.playback_state['paused']:
-            xbmc.log(f"AOM_SeekBacks: Playback is paused, skipping seek back "
-                     f"on {event_type}", xbmc.LOGDEBUG)
+            log(f"AOM_SeekBacks: Playback is paused, skipping seek back "
+                f"on {event_type}", xbmc.LOGDEBUG)
             return False, None
 
         setting_type = self._get_setting_type(event_type)
-        setting_base = f'seek_back_{setting_type}'
-        
-        # Check if seek back is enabled for this type
-        enable_setting = f'enable_{setting_base}'
-        if not self.settings_manager.get_setting_boolean(enable_setting):
-            xbmc.log(f"AOM_SeekBacks: Seek back on {event_type} (setting: {enable_setting}) "
-                     f"is not enabled", xbmc.LOGDEBUG)
+        enabled, seek_seconds = self.settings_facade.seek_back_config(setting_type)
+        if not enabled:
+            log(f"AOM_SeekBacks: Seek back on {event_type} (setting: enable_seek_back_{setting_type}) "
+                f"is not enabled", xbmc.LOGDEBUG)
             return False, None
 
-        # Get seek back seconds
-        seconds_setting = f'{setting_base}_seconds'
-        seek_seconds = self.settings_manager.get_setting_integer(seconds_setting)
         if seek_seconds <= 0:
-            xbmc.log(f"AOM_SeekBacks: Invalid seek back seconds ({seek_seconds}) "
-                     f"for {event_type}", xbmc.LOGWARNING)
+            log(f"AOM_SeekBacks: Invalid seek back seconds ({seek_seconds}) "
+                f"for {event_type}", xbmc.LOGWARNING)
             return False, None
 
-        xbmc.log(f"AOM_SeekBacks: Will seek back {seek_seconds} seconds on {event_type} "
-                 f"(setting: {setting_type})", xbmc.LOGDEBUG)
+        log(f"AOM_SeekBacks: Will seek back {seek_seconds} seconds on {event_type} "
+            f"(setting: {setting_type})", xbmc.LOGDEBUG)
         return True, seek_seconds
 
     def _execute_seek_command(self, seconds, event_type):
@@ -150,37 +165,16 @@ class SeekBacks:
         Returns:
             bool: True if seek was successful, False otherwise
         """
-        request = {
-            "jsonrpc": "2.0",
-            "method": "Player.Seek",
-            "params": {
-                "playerid": 1,
-                "value": {"seconds": -seconds}
-            },
-            "id": 1
-        }
+        log(f"AOM_SeekBacks: Attempting to seek back {seconds} seconds "
+            f"on {event_type}", xbmc.LOGDEBUG)
 
-        try:
-            xbmc.log(f"AOM_SeekBacks: Attempting to seek back {seconds} seconds "
-                     f"on {event_type}", xbmc.LOGDEBUG)
-            response = xbmc.executeJSONRPC(json.dumps(request))
-            response_json = json.loads(response)
-            
-            if "error" in response_json:
-                xbmc.log(f"AOM_SeekBacks: Failed to perform seek back: "
-                         f"{response_json['error']}", xbmc.LOGWARNING)
-                return False
-                
-            # Update last seek time only on successful seek
+        # Use active player id if available
+        player_id = rpc_client.get_active_player_id()
+        success = rpc_client.seek_back(seconds, player_id=player_id if player_id != -1 else None)
+        if success:
             self.playback_state['last_seek_time'] = time.time()
-            xbmc.log(f"AOM_SeekBacks: Successfully seeked back by {seconds} seconds "
-                     f"on {event_type}", xbmc.LOGDEBUG)
-            return True
-            
-        except Exception as e:
-            xbmc.log(f"AOM_SeekBacks: Error executing seek command: {str(e)}",
-                     xbmc.LOGERROR)
-            return False
+            self.playback_state['last_seek_by_event'][event_type] = time.time()
+        return success
 
     def perform_seek_back(self, event_type):
         """Perform seek back operation based on event type and current conditions.
@@ -193,14 +187,20 @@ class SeekBacks:
             
             if not should_seek:
                 return
+
+            self.playback_state['seek_in_progress'] = True
                 
-            # Required delay for stream settling
-            xbmc.sleep(2000)
+            # Required delay for stream settling; abort-aware
+            monitor = xbmc.Monitor()
+            if monitor.waitForAbort(2.0):
+                return
             
             if not self._execute_seek_command(seek_seconds, event_type):
-                xbmc.log(f"AOM_SeekBacks: Seek back operation failed for {event_type}",
-                         xbmc.LOGWARNING)
+                log(f"AOM_SeekBacks: Seek back operation failed for {event_type}",
+                    xbmc.LOGWARNING)
                 
         except Exception as e:
-            xbmc.log(f"AOM_SeekBacks: Error in perform_seek_back: {str(e)}",
-                     xbmc.LOGERROR)
+            log(f"AOM_SeekBacks: Error in perform_seek_back: {str(e)}",
+                xbmc.LOGERROR)
+        finally:
+            self.playback_state['seek_in_progress'] = False
