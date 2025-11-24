@@ -98,7 +98,7 @@ msgid "Seek back amount (seconds)"
 msgstr ""
 
 msgctxt "#32022"
-msgid "Control the amount of time that the player seeks back after adjusting audio offset"
+msgid "Control the amount of time that the player seeks back after changing audio format"
 msgstr ""
 
 msgctxt "#32023"
@@ -407,4 +407,24 @@ msgstr ""
 
 msgctxt "#32099"
 msgid "Fail to bypass test video"
+msgstr ""
+
+msgctxt "#32100"
+msgid "Advanced"
+msgstr ""
+
+msgctxt "#32101"
+msgid "Advanced settings"
+msgstr ""
+
+msgctxt "#32102"
+msgid "Debug"
+msgstr ""
+
+msgctxt "#32103"
+msgid "Enable debug logging"
+msgstr ""
+
+msgctxt "#32104"
+msgid "Show log items and debug snapshots within Kodi's standard log level"
 msgstr ""
