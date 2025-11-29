@@ -26,7 +26,9 @@ class SeekBacks:
             'last_seek_time': 0,  # Track the last time we performed a seek
             'initial_av_change_seen': False,
             'seek_in_progress': False,
-            'last_seek_by_event': {}
+            'last_seek_by_event': {},
+            'last_pm4k_busy': 0,
+            'last_kodi_seek': 0
         }
 
     def start(self):
@@ -38,7 +40,8 @@ class SeekBacks:
             'PLAYBACK_PAUSED': self.on_playback_paused,
             'USER_ADJUSTMENT': self.on_user_adjustment,
             'PLAYBACK_STOPPED': self.on_playback_stopped,
-            'PLAYBACK_ENDED': self.on_playback_stopped  # Use same handler for both stop and end
+            'PLAYBACK_ENDED': self.on_playback_stopped,  # Use same handler for both stop and end
+            'PLAYBACK_SEEK': self.on_playback_seek
         }
         for event, callback in events.items():
             self.event_manager.subscribe(event, callback)
@@ -52,7 +55,8 @@ class SeekBacks:
             'PLAYBACK_PAUSED': self.on_playback_paused,
             'USER_ADJUSTMENT': self.on_user_adjustment,
             'PLAYBACK_STOPPED': self.on_playback_stopped,
-            'PLAYBACK_ENDED': self.on_playback_stopped
+            'PLAYBACK_ENDED': self.on_playback_stopped,
+            'PLAYBACK_SEEK': self.on_playback_seek
         }
         for event, callback in events.items():
             self.event_manager.unsubscribe(event, callback)
@@ -75,7 +79,6 @@ class SeekBacks:
 
     def on_av_unpause(self):
         """Handle playback resume event."""
-        xbmc.sleep(500)  # Small delay to avoid race condition on flag
         self.playback_state['paused'] = False
         self.perform_seek_back('unpause')
 
@@ -88,8 +91,13 @@ class SeekBacks:
         log("AOM_SeekBacks: Playback stopped/ended, resetting playback state", xbmc.LOGDEBUG)
         self.playback_state['paused'] = False
         self.playback_state['last_seek_time'] = 0
+        self.playback_state['last_kodi_seek'] = 0
         self.playback_state['initial_av_change_seen'] = False
         self.playback_state['seek_in_progress'] = False
+
+    def on_playback_seek(self, *args, **kwargs):
+        """Handle any Kodi seek (regardless of source)."""
+        self.playback_state['last_kodi_seek'] = time.time()
 
     def on_user_adjustment(self):
         """Handle user adjustment event."""
@@ -111,6 +119,31 @@ class SeekBacks:
             str: The corresponding setting type
         """
         return self.SETTING_TYPE_MAP.get(event_type, event_type)
+
+    def _pm4k_playback_busy(self, log_if_busy=True):
+        """Check Plex Mod 4 Kodi flags to avoid overlapping seeks.
+
+        PM4K sets properties to '1' while it is running its own seeks. If PM4K
+        is not installed, getInfoLabel returns the label string or empty, so we
+        only treat an exact '1' as active.
+        """
+        plex_props = {
+            'playback_seeking': xbmc.getInfoLabel('Window(10000).Property(script.plex.playback_seeking)'),
+            'playback_initializing': xbmc.getInfoLabel('Window(10000).Property(script.plex.playback_initializing)')
+        }
+
+        for name, value in plex_props.items():
+            if value == '1':
+                self.playback_state['last_pm4k_busy'] = time.time()
+                if log_if_busy:
+                    log(f"AOM_SeekBacks: PM4K indicates {name}; skipping seek back", xbmc.LOGDEBUG)
+                return True
+        return False
+
+    def _pm4k_recently_busy(self, grace_seconds=2.5):
+        """Check if PM4K was busy recently to avoid back-to-back seeks."""
+        last_busy = self.playback_state.get('last_pm4k_busy', 0)
+        return (time.time() - last_busy) < grace_seconds
 
     def _should_perform_seek_back(self, event_type):
         """Check if seek back should be performed based on current conditions.
@@ -139,6 +172,20 @@ class SeekBacks:
                 f"on {event_type}", xbmc.LOGDEBUG)
             return False, None
 
+        if self._pm4k_playback_busy():
+            return False, None
+
+        if self._pm4k_recently_busy():
+            log(f"AOM_SeekBacks: PM4K was busy moments ago; skipping seek back on {event_type}",
+                xbmc.LOGDEBUG)
+            return False, None
+
+        last_kodi_seek = self.playback_state.get('last_kodi_seek', 0)
+        if event_type in ('unpause', 'resume') and (time.time() - last_kodi_seek) < 2.5:
+            log(f"AOM_SeekBacks: Recent Kodi seek detected; skipping {event_type} seek back to avoid double-seek",
+                xbmc.LOGDEBUG)
+            return False, None
+
         setting_type = self._get_setting_type(event_type)
         enabled, seek_seconds = self.settings_facade.seek_back_config(setting_type)
         if not enabled:
@@ -151,8 +198,6 @@ class SeekBacks:
                 f"for {event_type}", xbmc.LOGWARNING)
             return False, None
 
-        log(f"AOM_SeekBacks: Will seek back {seek_seconds} seconds on {event_type} "
-            f"(setting: {setting_type})", xbmc.LOGDEBUG)
         return True, seek_seconds
 
     def _execute_seek_command(self, seconds, event_type):
@@ -174,6 +219,7 @@ class SeekBacks:
         if success:
             self.playback_state['last_seek_time'] = time.time()
             self.playback_state['last_seek_by_event'][event_type] = time.time()
+            self.playback_state['last_kodi_seek'] = time.time()
         return success
 
     def perform_seek_back(self, event_type):
@@ -190,10 +236,26 @@ class SeekBacks:
 
             self.playback_state['seek_in_progress'] = True
                 
-            # Required delay for stream settling; abort-aware
+            # Required delay for stream settling; abort-aware. Poll PM4K during this window
+            # so we can skip if it was active shortly before we issue our seek.
             monitor = xbmc.Monitor()
-            if monitor.waitForAbort(2.0):
+            end_time = time.time() + 2.0
+            while time.time() < end_time:
+                # Capture brief PM4K activity without spamming logs
+                self._pm4k_playback_busy(log_if_busy=False)
+                if monitor.waitForAbort(0.1):
+                    return
+
+            # Re-check PM4K after settling to avoid double-seeks if it just ran
+            if self._pm4k_playback_busy():
                 return
+            if self._pm4k_recently_busy():
+                log(f"AOM_SeekBacks: Skipping {event_type} seek back after settle due to recent PM4K activity",
+                    xbmc.LOGDEBUG)
+                return
+
+            log(f"AOM_SeekBacks: Will seek back {seek_seconds} seconds on {event_type} "
+                f"(setting: {self._get_setting_type(event_type)})", xbmc.LOGDEBUG)
             
             if not self._execute_seek_command(seek_seconds, event_type):
                 log(f"AOM_SeekBacks: Seek back operation failed for {event_type}",
