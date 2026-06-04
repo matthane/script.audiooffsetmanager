@@ -1,0 +1,8 @@
+# Files excluded from the Kodi addon submission package.
+# `git archive` (used by kodi-addon-submitter) drops every path marked
+# export-ignore, so these stay in the repo but never reach repo-scripts.
+CLAUDE.md       export-ignore
+.gitattributes  export-ignore
+.gitignore      export-ignore
+.github/        export-ignore
+.claude/        export-ignore

@@ -1,0 +1,32 @@
+name: Submit to Kodi repo-scripts
+
+# Triggers ONLY when you publish a *stable* GitHub Release.
+#   - Beta:   create the Release and tick "Set as a pre-release". That fires
+#             the `prereleased`/`published` events, NOT `released`, so nothing
+#             is submitted to Kodi — your betas stay as pre-release tags only.
+#   - Stable: publish a normal (non-prerelease) Release. `released` fires and
+#             the addon is submitted.
+# The package version comes from addon.xml, not the release/tag name.
+on:
+  release:
+    types: [released]
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install addon submitter
+        run: pip install git+https://github.com/xbmc/kodi-addon-submitter.git
+
+      - name: Submit to repo-scripts (nexus)
+        env:
+          GH_USERNAME: ${{ secrets.GH_USERNAME }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          EMAIL: ${{ secrets.EMAIL }}
+        run: submit-addon -r repo-scripts -b nexus --pull-request script.audiooffsetmanager
