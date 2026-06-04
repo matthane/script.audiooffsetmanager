@@ -21,10 +21,6 @@ class SettingsManager:
         self.addon = xbmcaddon.Addon('script.audiooffsetmanager')
         self._settings = self.addon.getSettings()
 
-    def reload_if_needed(self):
-        """Public method to reload settings when explicitly needed."""
-        self._settings = self.addon.getSettings()
-
     def _safe_setting_operation(self, operation, setting_id, default_value, value_type):
         """Safely execute a settings operation with proper error handling.
         

@@ -4,7 +4,6 @@ import xbmc
 import xbmcgui
 import xbmcaddon
 import xbmcvfs
-from resources.lib.settings_manager import SettingsManager
 from resources.lib.logger import log
 
 
@@ -47,27 +46,29 @@ class TestVideoManager:
         xbmc.executebuiltin('Addon.OpenSettings(script.audiooffsetmanager)')
         
     def bypass_test_video(self):
-        """Bypass the test video by setting new_install to false and refreshing settings."""
+        """Bypass the test video by setting new_install to false.
+
+        This runs from the bypass action button, which uses <close>true</close>
+        so the settings dialog is already closed by the time we write. That
+        ordering matters: writing new_install while the dialog is open would let
+        the dialog's save-on-close overwrite us, so the change wouldn't stick.
+        Kodi's settings object is a live proxy (no manual reload is possible or
+        needed); the only requirement is to write while the dialog is closed.
+        """
         try:
-            # Get the settings
+            # Dialog is already closed (button close=true), so this write sticks.
             settings = self.addon.getSettings()
-            
-            # Use direct setting function to avoid cache issues
             settings.setBool('new_install', False)
-            
-            # Force reload of the settings manager singleton to ensure synchronization
-            settings_manager = SettingsManager()
-            settings_manager.reload_if_needed()
-            
+
             log("AOM_TestVideoManager: Successfully bypassed test video requirement", xbmc.LOGINFO)
             # Show success notification
             xbmcgui.Dialog().notification('Audio Offset Manager',
                                         '$ADDON[script.audiooffsetmanager 32098]',
                                         self.addon_icon, 3000)
-            
-            # Add a small delay to ensure settings are saved before reopening
+
+            # Let the write settle to disk before the dialog reopens and reads it.
             xbmc.sleep(500)
-            
+
             # Re-open addon settings to refresh them
             xbmc.executebuiltin('Addon.OpenSettings(script.audiooffsetmanager)')
         except Exception as e:
