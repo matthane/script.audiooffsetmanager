@@ -22,9 +22,14 @@ part of the shipped addon unless `export-ignore`'d.
   `.claude/`) must be listed in `.gitattributes` as `export-ignore`.
 - Requires `xbmc.python` **3.0.1**; submitted to the **`nexus`** branch of
   `xbmc/repo-scripts`.
-- Submission is automated: push a git tag → `.github/workflows/submit.yml`
-  runs `kodi-addon-submitter`, which packages via `git archive` and opens the
-  PR. Do not hand-copy files into repo-scripts.
+- Submission is automated by `.github/workflows/submit.yml`, which runs
+  `kodi-addon-submitter` (packages via `git archive` and opens the PR). It
+  triggers **only on `release: [released]`** — i.e. publishing a *stable*
+  (non-prerelease) GitHub Release. Pushing a tag alone does nothing; a
+  pre-release (beta) fires `prereleased`/`published`, not `released`, so betas
+  stay as pre-release tags and are never submitted. The package version comes
+  from `addon.xml`, not the release/tag name. Do not hand-copy files into
+  repo-scripts.
 - Verify what will ship at any time:
   `git archive --format=zip -o /tmp/pkg.zip HEAD` and inspect the zip.
 
