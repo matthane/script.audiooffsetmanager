@@ -47,6 +47,7 @@ class OffsetManager:
     def on_av_started(self):
         """Handle AV started event."""
         self._pending_notification = None
+        self._last_applied = None  # new playback: force offset re-apply
         self._handle_av_event()
 
     def on_av_change(self):
