@@ -4,6 +4,7 @@ import xbmc
 import xbmcgui
 import threading
 from resources.lib.settings_manager import SettingsManager
+from resources.lib.aom.domain.policies import parse_delay_ms
 from resources.lib.logger import log
 
 
@@ -116,21 +117,16 @@ class ActiveMonitor:
 
     def convert_delay_to_ms(self, delay_str):
         """Convert delay string to milliseconds integer.
-        
+
+        Delegates to aom.domain.policies.parse_delay_ms (Phase 1 move).
+
         Args:
             delay_str: Delay string in format '-0.075 s'
-            
+
         Returns:
             int: Delay in milliseconds or None if conversion fails
         """
-        try:
-            normalized = delay_str.replace(' s', '').replace('\u202f', '').replace(' ', '').replace(',', '.')
-            delay_seconds = float(normalized)
-            # Clamp to reasonable bounds (-10s to +10s) to avoid junk values
-            delay_seconds = max(-10.0, min(delay_seconds, 10.0))
-            return int(delay_seconds * 1000)
-        except (ValueError, AttributeError):
-            return None
+        return parse_delay_ms(delay_str)
 
     def _handle_dialog_state(self, current_dialog_id, monitor):
         """Handle dialog state changes and audio delay processing.
