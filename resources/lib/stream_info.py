@@ -4,6 +4,7 @@ import xbmc
 from resources.lib.settings_manager import SettingsManager
 from resources.lib.settings_facade import SettingsFacade
 from resources.lib.stream_profile import StreamProfile
+from resources.lib.aom.domain import formats
 from resources.lib import rpc_client
 from resources.lib.logger import log
 
@@ -15,9 +16,10 @@ class StreamInfo:
         self.settings_manager = settings_manager or SettingsManager()
         self.settings_facade = settings_facade or SettingsFacade(self.settings_manager)
         self.new_install = self.settings_manager.get_setting_boolean('new_install')
-        self.valid_audio_formats = ['truehd', 'eac3', 'ac3', 'dtshd_ma', 'dtshd_hra', 'dca', 'pcm']
-        self.valid_hdr_types = ['dolbyvision', 'hdr10', 'hdr10plus', 'hlg', 'sdr']
-        self.valid_fps_types = [23, 24, 25, 29, 30, 50, 59, 60]
+        # Vocabulary lives in aom.domain.formats (single source of truth).
+        self.valid_audio_formats = list(formats.AUDIO_FORMATS)
+        self.valid_hdr_types = list(formats.HDR_TYPES)
+        self.valid_fps_types = list(formats.FPS_BUCKETS)
 
     def update_stream_info(self):
         # Gather updated playback details
