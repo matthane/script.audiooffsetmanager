@@ -1,0 +1,66 @@
+name: CI
+
+# Runs on every push and PR. Two independent gates:
+#   * tests   — pytest against the source tree on the supported Python range.
+#   * package — kodi-addon-checker against a `git archive` extraction, i.e. the
+#               exact bytes that ship (export-ignore'd dev files excluded), so
+#               tests/, requirements-dev.txt, pytest.ini, etc. can never trip it.
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    name: pytest (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Floor = Kodi Nexus's xbmc.python 3.0.1 (CPython 3.8); ceiling = a
+        # current interpreter, to catch forward-compat breakage early.
+        python-version: ['3.8', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dev dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Run tests
+        run: python -m pytest
+
+  package:
+    name: addon-checker (git archive)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Build addon package from git archive
+        run: |
+          # Package exactly what ships. `git archive` honors .gitattributes
+          # export-ignore, so dev-only paths are absent. The extracted folder
+          # MUST be named for the addon id — kodi-addon-checker keys its id
+          # checks off the directory name.
+          mkdir -p build/script.audiooffsetmanager
+          git archive --format=tar HEAD | tar -x -C build/script.audiooffsetmanager
+          echo "Extracted package contents:"
+          ls -la build/script.audiooffsetmanager
+
+      - name: Install kodi-addon-checker
+        run: |
+          python -m pip install --upgrade pip
+          pip install kodi-addon-checker
+
+      - name: Run kodi-addon-checker (nexus)
+        run: kodi-addon-checker --branch=nexus build/script.audiooffsetmanager
