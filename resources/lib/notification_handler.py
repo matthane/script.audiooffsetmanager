@@ -6,7 +6,6 @@ import time
 import xbmc
 import xbmcaddon
 import xbmcgui
-from resources.lib.settings_facade import SettingsFacade
 from resources.lib.logger import log
 
 
@@ -14,17 +13,16 @@ class NotificationHandler:
     """
     Class for handling Kodi GUI notifications.
     """
-    def __init__(self, settings_manager=None, settings_facade=None):
+    def __init__(self, settings_manager, settings_facade):
         """
         Initialize the notification handler.
-        
-        Args:
-            settings_manager: The settings manager instance to check notification settings
-        """
-        from resources.lib.settings_manager import SettingsManager  # Local import to avoid circular
 
-        self.settings_manager = settings_manager or SettingsManager()
-        self.settings_facade = settings_facade or SettingsFacade(self.settings_manager)
+        Args:
+            settings_manager: Settings manager (required, injected).
+            settings_facade: Settings facade (required, injected).
+        """
+        self.settings_manager = settings_manager
+        self.settings_facade = settings_facade
         self.addon = xbmcaddon.Addon('script.audiooffsetmanager')
         self.addon_name = self.addon.getAddonInfo('name')
         self.addon_icon = self.addon.getAddonInfo('icon')

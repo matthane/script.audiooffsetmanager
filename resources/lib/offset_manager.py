@@ -4,11 +4,7 @@ This module also controls the deployment of the Active Monitor when it's enabled
 
 import time
 import xbmc
-from resources.lib.settings_manager import SettingsManager
-from resources.lib.settings_facade import SettingsFacade
-from resources.lib.stream_info import StreamInfo
 from resources.lib.active_monitor import ActiveMonitor
-from resources.lib.notification_handler import NotificationHandler
 from resources.lib.aom.domain import policies
 from resources.lib import rpc_client
 from resources.lib.logger import log
@@ -16,12 +12,13 @@ from resources.lib.debug_snapshot import log_snapshot
 
 
 class OffsetManager:
-    def __init__(self, event_manager, settings_manager=None, stream_info=None, notification_handler=None, settings_facade=None):
+    def __init__(self, event_manager, settings_manager, stream_info,
+                 notification_handler, settings_facade):
         self.event_manager = event_manager
-        self.settings_manager = settings_manager or SettingsManager()
-        self.settings_facade = settings_facade or SettingsFacade(self.settings_manager)
-        self.stream_info = stream_info or StreamInfo(self.settings_manager, self.settings_facade)
-        self.notification_handler = notification_handler or NotificationHandler(self.settings_manager, self.settings_facade)
+        self.settings_manager = settings_manager
+        self.settings_facade = settings_facade
+        self.stream_info = stream_info
+        self.notification_handler = notification_handler
         self.active_monitor = None
         self._last_applied = None
         self._pending_notification = None  # (setting_id, delay_ms)

@@ -4,9 +4,9 @@ Pins the CURRENT locale-safe parsing of Kodi's `Player.AudioDelay` infolabel
 string before Phase 1 relocates it to aom.domain.policies.parse_delay_ms.
 
 ActiveMonitor.__init__(event_manager, stream_info, offset_manager,
-settings_manager=None): convert_delay_to_ms touches none of these, so dummy
-Nones suffice. The default settings_manager=None path builds the SettingsManager
-singleton, which imports and constructs cleanly under Kodistubs.
+settings_manager): convert_delay_to_ms touches none of these, so dummy Nones
+suffice for the first three; the required settings_manager is the singleton,
+which imports and constructs cleanly under Kodistubs.
 
 Current implementation (verbatim):
     normalized = delay_str.replace(' s', '').replace('\\u202f', '') \\
@@ -18,13 +18,14 @@ Current implementation (verbatim):
 import pytest
 
 from resources.lib.active_monitor import ActiveMonitor
+from resources.lib.settings_manager import SettingsManager
 
 NNBSP = " "  # narrow no-break space (U+202F)
 
 
 @pytest.fixture
 def convert():
-    monitor = ActiveMonitor(None, None, None)
+    monitor = ActiveMonitor(None, None, None, SettingsManager())
     return monitor.convert_delay_to_ms
 
 

@@ -64,8 +64,11 @@ def test_all_setting_keys_unique_and_ordered_by_hdr():
 
 def test_stream_info_consumes_this_vocabulary():
     # Legacy StreamInfo must stay wired to formats (imports under Kodistubs).
+    from resources.lib.settings_facade import SettingsFacade
+    from resources.lib.settings_manager import SettingsManager
     from resources.lib.stream_info import StreamInfo
-    info = StreamInfo()
+    manager = SettingsManager()
+    info = StreamInfo(manager, SettingsFacade(manager))
     assert tuple(info.valid_audio_formats) == formats.AUDIO_FORMATS
     assert tuple(info.valid_hdr_types) == formats.HDR_TYPES
     assert tuple(info.valid_fps_types) == formats.FPS_BUCKETS

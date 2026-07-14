@@ -3,7 +3,6 @@
 import xbmc
 import xbmcgui
 import threading
-from resources.lib.settings_manager import SettingsManager
 from resources.lib.aom.domain.policies import parse_delay_ms
 from resources.lib.logger import log
 
@@ -13,11 +12,11 @@ class ActiveMonitor:
     AUDIO_SETTINGS_DIALOG = 10124
     AUDIO_SLIDER_DIALOG = 10145
     
-    def __init__(self, event_manager, stream_info, offset_manager, settings_manager=None):
+    def __init__(self, event_manager, stream_info, offset_manager, settings_manager):
         self.event_manager = event_manager
         self.stream_info = stream_info
         self.offset_manager = offset_manager
-        self.settings_manager = settings_manager or SettingsManager()
+        self.settings_manager = settings_manager
         self.monitor_thread = None
         
         # Consolidated state management

@@ -2,8 +2,6 @@
 
 import xbmc
 import time
-from resources.lib.settings_manager import SettingsManager
-from resources.lib.settings_facade import SettingsFacade
 from resources.lib import rpc_client
 from resources.lib.logger import log
 
@@ -17,10 +15,10 @@ class SeekBacks:
         'change': 'change'  # Keep 'change' separate from 'adjust'
     }
 
-    def __init__(self, event_manager, settings_manager=None, settings_facade=None):
+    def __init__(self, event_manager, settings_manager, settings_facade):
         self.event_manager = event_manager
-        self.settings_manager = settings_manager or SettingsManager()
-        self.settings_facade = settings_facade or SettingsFacade(self.settings_manager)
+        self.settings_manager = settings_manager
+        self.settings_facade = settings_facade
         self.playback_state = {
             'paused': False,
             'last_seek_time': 0,  # Track the last time we performed a seek

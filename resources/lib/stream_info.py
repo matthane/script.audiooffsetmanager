@@ -1,8 +1,6 @@
 """Stream Info module used to gather stream HDR and audio format information."""
 
 import xbmc
-from resources.lib.settings_manager import SettingsManager
-from resources.lib.settings_facade import SettingsFacade
 from resources.lib.aom.domain.profile import StreamProfile
 from resources.lib.aom.domain import formats
 from resources.lib import rpc_client
@@ -10,11 +8,11 @@ from resources.lib.logger import log
 
 
 class StreamInfo:
-    def __init__(self, settings_manager=None, settings_facade=None):
+    def __init__(self, settings_manager, settings_facade):
         self.profile = None
         self.metadata = {}
-        self.settings_manager = settings_manager or SettingsManager()
-        self.settings_facade = settings_facade or SettingsFacade(self.settings_manager)
+        self.settings_manager = settings_manager
+        self.settings_facade = settings_facade
         self.new_install = self.settings_manager.get_setting_boolean('new_install')
         # Vocabulary lives in aom.domain.formats (single source of truth).
         self.valid_audio_formats = list(formats.AUDIO_FORMATS)

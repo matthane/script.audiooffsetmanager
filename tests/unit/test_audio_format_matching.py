@@ -20,12 +20,15 @@ import json
 import pytest
 
 from resources.lib import rpc_client
+from resources.lib.settings_facade import SettingsFacade
+from resources.lib.settings_manager import SettingsManager
 from resources.lib.stream_info import StreamInfo
 
 
 @pytest.fixture
 def stream_info():
-    return StreamInfo()
+    manager = SettingsManager()
+    return StreamInfo(manager, SettingsFacade(manager))
 
 
 def _patch_rpc(monkeypatch, codec, channels=6):

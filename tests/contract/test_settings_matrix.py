@@ -59,8 +59,11 @@ def test_expected_matrix_is_315_unique_ids():
 
 def test_vocabulary_matches_stream_info_valid_lists():
     # StreamInfo imports cleanly under Kodistubs; read its live vocabulary.
+    from resources.lib.settings_facade import SettingsFacade
+    from resources.lib.settings_manager import SettingsManager
     from resources.lib.stream_info import StreamInfo
-    stream_info = StreamInfo()
+    manager = SettingsManager()
+    stream_info = StreamInfo(manager, SettingsFacade(manager))
     assert tuple(stream_info.valid_hdr_types) == HDR_TYPES
     assert tuple(stream_info.valid_audio_formats) == AUDIO_FORMATS
     assert tuple(str(f) for f in stream_info.valid_fps_types) == FPS_SPECIFIC
