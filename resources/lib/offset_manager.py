@@ -9,6 +9,7 @@ from resources.lib.settings_facade import SettingsFacade
 from resources.lib.stream_info import StreamInfo
 from resources.lib.active_monitor import ActiveMonitor
 from resources.lib.notification_handler import NotificationHandler
+from resources.lib.aom.domain import policies
 from resources.lib import rpc_client
 from resources.lib.logger import log
 from resources.lib.debug_snapshot import log_snapshot
@@ -83,31 +84,34 @@ class OffsetManager:
         self.manage_active_monitor()
 
     def _should_apply_offset(self):
-        """Check if audio offset should be applied based on current conditions."""
-        if self.settings_facade.is_new_install():
+        """Check if audio offset should be applied based on current conditions.
+
+        The decision itself lives in aom.domain.policies.should_apply (single
+        source of truth); this method resolves the inputs and logs the reason.
+        """
+        profile = self.stream_info.profile
+        hdr_enabled = (profile is not None and
+                       self.settings_facade.is_hdr_enabled(profile.hdr_type))
+        allowed, reason = policies.should_apply(
+            profile,
+            new_install=self.settings_facade.is_new_install(),
+            hdr_enabled=hdr_enabled)
+        if allowed:
+            return True
+
+        if reason == 'new_install':
             log("AOM_OffsetManager: New install detected. Skipping "
                 "audio offset application.", xbmc.LOGDEBUG)
-            return False
-
-        profile = self.stream_info.profile
-        if profile is None:
+        elif reason == 'no_profile':
             log("AOM_OffsetManager: No stream profile available; skipping offset", xbmc.LOGDEBUG)
-            return False
-
-        # Check for unknown formats
-        if any(value == 'unknown' for value in [profile.hdr_type, profile.audio_format, str(profile.fps_type)]):
+        elif reason == 'unknown_format':
             log(f"AOM_OffsetManager: Skipping audio offset - Unknown format detected "
                 f"(HDR: {profile.hdr_type}, Audio: {profile.audio_format}, "
                 f"FPS: {profile.fps_type})", xbmc.LOGDEBUG)
-            return False
-
-        # Check if HDR type is enabled
-        if not self.settings_facade.is_hdr_enabled(profile.hdr_type):
+        elif reason == 'hdr_disabled':
             log(f"AOM_OffsetManager: HDR type {profile.hdr_type} is not "
                 f"enabled in settings", xbmc.LOGDEBUG)
-            return False
-
-        return True
+        return False
 
     def apply_audio_offset(self):
         """Apply audio offset based on current stream information and settings."""

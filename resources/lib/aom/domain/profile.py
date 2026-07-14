@@ -46,8 +46,8 @@ class StreamProfile:
 
         if include_fps and str(fps_key).lower() != formats.FPS_ALL:
             fps_label = self.display_fps()
-            return "{0} | {1} FPS | {2}".format(hdr_label, fps_label, audio_label)
-        return "{0} | {1}".format(hdr_label, audio_label)
+            return f"{hdr_label} | {fps_label} FPS | {audio_label}"
+        return f"{hdr_label} | {audio_label}"
 
     def _fps_key(self):
         return str(self.fps_type)

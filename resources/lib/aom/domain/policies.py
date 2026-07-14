@@ -17,8 +17,8 @@ def parse_delay_ms(delay_str):
     zero behavior change). Known limitation, pinned in
     tests/unit/test_delay_parsing.py: a narrow no-break space as the SOLE
     separator before the unit ('-0.075<U+202F>s') fails to parse and returns
-    None — scheduled to be fixed in Phase 6 when the AdjustmentWatcher takes
-    ownership (DESIGN.md calls for full locale-variant coverage there).
+    None — scheduled to be fixed when the watcher rework takes ownership of
+    this parser and adds full locale-variant coverage.
     """
     try:
         normalized = (delay_str.replace(' s', '')

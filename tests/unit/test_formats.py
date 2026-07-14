@@ -34,6 +34,22 @@ def test_string_id_tables_cover_vocabulary():
         assert label.startswith('32') and help_id.startswith('32')
 
 
+def test_per_hdr_ui_tables_cover_vocabulary():
+    # The settings generator indexes these by every HDR type; a missing key is
+    # a KeyError at generation time. Guard growth of HDR_TYPES here.
+    assert set(formats.HDR_ENABLE_STRING_IDS) == set(formats.HDR_TYPES)
+    assert set(formats.HDR_CATEGORY_LABELS) == set(formats.HDR_TYPES)
+    assert set(formats.HDR_GROUP_IDS) == set(formats.HDR_TYPES)
+
+
+def test_fps_buckets_are_ints():
+    # stream_info.py membership-tests the player's INTEGER fps value against
+    # FPS_BUCKETS; redefining the buckets as strings would silently collapse
+    # every stream to fps 'unknown'. Pin the element type.
+    assert all(isinstance(b, int) and not isinstance(b, bool)
+               for b in formats.FPS_BUCKETS)
+
+
 def test_setting_key_format_is_frozen():
     assert formats.setting_key('dolbyvision', 'all', 'truehd') == 'dolbyvision_all_truehd'
     assert formats.setting_key('hdr10', 23, 'eac3') == 'hdr10_23_eac3'

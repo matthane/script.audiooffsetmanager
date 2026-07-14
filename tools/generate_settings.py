@@ -49,36 +49,16 @@ INDENT_UNIT = "    "  # 4 spaces
 # Template data (non-vocabulary structure).                                   #
 # --------------------------------------------------------------------------- #
 
-# Per-HDR enable-toggle label/help string ids.
-HDR_ENABLE_STRING_IDS = {
-    "dolbyvision": ("32026", "32027"),
-    "hdr10": ("32028", "32029"),
-    "hdr10plus": ("32042", "32043"),
-    "hlg": ("32030", "32031"),
-    "sdr": ("32032", "32033"),
-}
+# Vocabulary-paired per-HDR string ids and group ids live in formats.py (the
+# single source of truth), so adding an HDR type is a one-file edit + regen.
+HDR_ENABLE_STRING_IDS = formats.HDR_ENABLE_STRING_IDS
+HDR_CATEGORY_LABELS = formats.HDR_CATEGORY_LABELS
+HDR_GROUP_IDS = formats.HDR_GROUP_IDS
 
 # HDR10+ enable is gated on the detected platform capability instead of the
-# usual "not a new install" visibility rule (see _enable_hdr_setting).
+# usual "not a new install" visibility rule (see _enable_hdr_setting). This is
+# dependency SHAPE (generator structure), not vocabulary data, so it stays here.
 HDR_ENABLE_PLATFORM_GATED = {"hdr10plus"}
-
-# Per-HDR category (label, help) string ids, in document order.
-HDR_CATEGORY_LABELS = {
-    "dolbyvision": ("32076", "32088"),
-    "hdr10": ("32023", "32084"),
-    "hdr10plus": ("32044", "32085"),
-    "hlg": ("32025", "32086"),
-    "sdr": ("32024", "32087"),
-}
-
-# Per-HDR group id (settings.xml numbers groups 1..10,12 — there is no group 11).
-HDR_GROUP_IDS = {
-    "dolbyvision": "2",
-    "hdr10": "3",
-    "hdr10plus": "4",
-    "hlg": "5",
-    "sdr": "6",
-}
 
 # --- Navigation comments (decorative; free to diverge from the vocabulary). --
 # A comment printed just before a category (only the categories that carry one).
@@ -609,22 +589,25 @@ def _write(path, text):
 
 
 def _check(path, text):
-    """Return (ok, message). Compares line-by-line, ignoring line-ending style."""
+    """Return (ok, message). Ignores CRLF-vs-LF but is otherwise exact,
+    including the trailing newline."""
     if not os.path.exists(path):
         return False, "{0} does not exist".format(path)
     with open(path, "r", encoding="utf-8") as handle:
-        on_disk = handle.read()
+        on_disk = handle.read().replace("\r\n", "\n")
+    if on_disk == text:
+        return True, "{0} is up to date ({1} lines)".format(path, text.count("\n"))
     expected_lines = text.splitlines()
     actual_lines = on_disk.splitlines()
-    if expected_lines == actual_lines:
-        return True, "{0} is up to date ({1} lines)".format(path, len(actual_lines))
     for number, (want, got) in enumerate(zip(expected_lines, actual_lines), 1):
         if want != got:
             return False, (
                 "mismatch at line {0}:\n  generated: {1!r}\n  on disk:   {2!r}"
                 .format(number, want, got))
-    return False, "line count differs: generated {0}, on disk {1}".format(
-        len(expected_lines), len(actual_lines))
+    if len(expected_lines) != len(actual_lines):
+        return False, "line count differs: generated {0}, on disk {1}".format(
+            len(expected_lines), len(actual_lines))
+    return False, "content differs only in trailing newline"
 
 
 def main(argv=None):

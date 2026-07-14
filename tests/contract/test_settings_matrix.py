@@ -17,8 +17,12 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SETTINGS_XML = REPO_ROOT / "resources" / "settings.xml"
 
-# The frozen vocabulary. Mirrors resources/lib/stream_info.py valid_* lists;
-# `test_vocabulary_matches_stream_info` guards that mirror.
+# The frozen vocabulary — INTENTIONALLY hardcoded, independent of
+# aom.domain.formats. This test is the drift ORACLE: if it derived its
+# expectations from formats.py, a bad vocabulary edit would update the
+# expectations in lockstep and the test would prove nothing. Growing the
+# vocabulary means updating BOTH formats.py and this copy, deliberately.
+# `test_formats_enumeration_matches_independent_oracle` bridges the two.
 HDR_TYPES = ("dolbyvision", "hdr10", "hdr10plus", "hlg", "sdr")
 FPS_SPECIFIC = ("23", "24", "25", "29", "30", "50", "59", "60")
 FPS_BUCKETS = ("all",) + FPS_SPECIFIC        # 'all' = per-HDR FPS override off
@@ -74,6 +78,14 @@ def test_offset_setting_present_typed_and_constrained(setting_id):
         "{0}: maximum must be 1000".format(setting_id)
     assert setting.findtext("constraints/step") == "25", \
         "{0}: step must be 25".format(setting_id)
+
+
+def test_formats_enumeration_matches_independent_oracle():
+    # Bridge: the SSOT's own enumeration must equal this test's independent
+    # hardcoded product (same ids, same canonical order). Catches three-way
+    # drift between formats.py, the generator, and this oracle.
+    from resources.lib.aom.domain import formats
+    assert tuple(formats.all_setting_keys()) == EXPECTED_IDS
 
 
 def test_no_unexpected_offset_pattern_ids():

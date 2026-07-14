@@ -4,7 +4,9 @@ Everything that enumerates HDR types, audio formats, or FPS buckets derives
 from this module: `StreamInfo` validation, `StreamProfile` display names and
 setting keys, the settings.xml generator (tools/generate_settings.py), and the
 contract tests. Changing the vocabulary here is how a format is added or
-removed; nothing else may hardcode these lists.
+removed; nothing else may hardcode these lists. (Sole exception:
+tests/contract/test_settings_matrix.py keeps an intentionally independent
+hardcoded copy as a drift oracle — see the comment there.)
 
 Pure Python: no Kodi imports.
 """
@@ -19,6 +21,9 @@ AUDIO_FORMATS = ('truehd', 'eac3', 'ac3', 'dtshd_ma', 'dtshd_hra', 'dca', 'pcm')
 
 # Specific FPS buckets (integer values as detected from the player), plus the
 # 'all' pseudo-bucket used when the per-HDR FPS override is disabled.
+# Elements are ints ON PURPOSE: StreamInfo membership-tests the player's
+# integer fps against this tuple. Setting keys and display lookups use
+# str(bucket). test_formats pins the int-ness.
 FPS_BUCKETS = (23, 24, 25, 29, 30, 50, 59, 60)
 FPS_ALL = 'all'
 
@@ -72,6 +77,33 @@ AUDIO_STRING_IDS = {
     'pcm': ('32061', '32062'),
 }
 
+# Per-HDR enable-toggle (label_id, help_id).
+HDR_ENABLE_STRING_IDS = {
+    'dolbyvision': ('32026', '32027'),
+    'hdr10': ('32028', '32029'),
+    'hdr10plus': ('32042', '32043'),
+    'hlg': ('32030', '32031'),
+    'sdr': ('32032', '32033'),
+}
+
+# Per-HDR settings category (label_id, help_id).
+HDR_CATEGORY_LABELS = {
+    'dolbyvision': ('32076', '32088'),
+    'hdr10': ('32023', '32084'),
+    'hdr10plus': ('32044', '32085'),
+    'hlg': ('32025', '32086'),
+    'sdr': ('32024', '32087'),
+}
+
+# Per-HDR settings group id (the hand-written file numbers groups 1..10,12).
+HDR_GROUP_IDS = {
+    'dolbyvision': '2',
+    'hdr10': '3',
+    'hdr10plus': '4',
+    'hlg': '5',
+    'sdr': '6',
+}
+
 # The per-HDR FPS spinner: shared label/help, one option label per bucket.
 FPS_SPINNER_STRING_IDS = ('32065', '32078')
 FPS_OPTION_LABEL_IDS = {
@@ -91,7 +123,7 @@ def setting_key(hdr_type, fps_key, audio_format):
 
     This format is FROZEN: existing users' stored offsets are keyed by it.
     """
-    return "{0}_{1}_{2}".format(hdr_type, fps_key, audio_format)
+    return f"{hdr_type}_{fps_key}_{audio_format}"
 
 
 def all_setting_keys():

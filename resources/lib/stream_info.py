@@ -3,7 +3,7 @@
 import xbmc
 from resources.lib.settings_manager import SettingsManager
 from resources.lib.settings_facade import SettingsFacade
-from resources.lib.stream_profile import StreamProfile
+from resources.lib.aom.domain.profile import StreamProfile
 from resources.lib.aom.domain import formats
 from resources.lib import rpc_client
 from resources.lib.logger import log

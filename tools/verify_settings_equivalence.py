@@ -4,8 +4,9 @@
 Phase 1 replaces the hand-maintained ``resources/settings.xml`` with the output
 of ``tools/generate_settings.py``. Before adopting that normalization we must
 prove it changes nothing that Kodi cares about. This script compares the
-committed baseline (``git show HEAD:resources/settings.xml``) against the
-regenerated file now on disk and asserts they are *semantically* identical:
+last hand-written baseline blob (pinned: ``BASELINE_REV`` below, the final
+commit before "Normalize settings.xml to generator output") against the
+file now on disk and asserts they are *semantically* identical:
 
 - **Skeleton** (ordered, because it is the on-screen layout):
   section -> categories (id/label/help) -> groups (id/label/help) ->
@@ -23,6 +24,13 @@ the normalization is allowed to change.
 
 Exit code 0 and "PASS" on equivalence; 1 and a precise first-mismatch report
 otherwise. Stdlib only; Python 3.8 compatible.
+
+NOTE: this is a ONE-SHOT transition proof, already spent — the permanent
+lockstep guard is tests/contract/test_settings_generated.py. The baseline
+defaults to the pinned pre-normalization commit so re-runs still compare
+against the true hand-written file (comparing against HEAD would be vacuous
+now that HEAD's settings.xml *is* generator output). Pass an explicit rev as
+argv[1] to compare against a different baseline.
 """
 from __future__ import print_function
 
@@ -35,12 +43,23 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SETTINGS_REL = os.path.join("resources", "settings.xml")
 SETTINGS_PATH = os.path.join(REPO_ROOT, SETTINGS_REL)
 
+# Last commit whose resources/settings.xml is the hand-written original
+# ("Add settings.xml generator with equivalence proof tool"). The very next
+# commit normalized the file to generator output.
+BASELINE_REV = "ed0b2a1"
 
-def _load_baseline():
-    """The committed hand-written file, as text (HEAD:resources/settings.xml)."""
+
+def _load_baseline(rev):
+    """The committed hand-written file, as text (<rev>:resources/settings.xml).
+
+    encoding='utf-8' explicitly: universal_newlines/text mode would decode with
+    the locale codec (cp1252 on Windows) while the regenerated file is read as
+    UTF-8 — an asymmetry that would misfire the moment a non-ASCII character
+    enters the file.
+    """
     return subprocess.check_output(
-        ["git", "-C", REPO_ROOT, "show", "HEAD:" + SETTINGS_REL.replace(os.sep, "/")],
-        universal_newlines=True,
+        ["git", "-C", REPO_ROOT, "show", rev + ":" + SETTINGS_REL.replace(os.sep, "/")],
+        encoding="utf-8",
     )
 
 
@@ -179,9 +198,9 @@ def _compare_settings(base, regen, failures):
     return len(base_settings), len(regen_settings)
 
 
-def verify():
+def verify(rev=BASELINE_REV):
     """Return (ok, report_lines)."""
-    base = _section(_load_baseline())
+    base = _section(_load_baseline(rev))
     regen = _section(_load_regenerated())
 
     failures = []
@@ -200,7 +219,7 @@ def verify():
         return False, report
 
     report.append("PASS: regenerated settings.xml is semantically identical to the "
-                  "hand-written baseline (HEAD:resources/settings.xml)")
+                  "hand-written baseline ({0}:resources/settings.xml)".format(rev))
     report.append("  compared: {0} settings, {1} categories, {2} groups"
                   .format(base_count, categories, groups))
     report.append("  method:   ordered skeleton (section/category/group/setting-id "
@@ -214,7 +233,8 @@ def verify():
 
 
 def main():
-    ok, report = verify()
+    rev = sys.argv[1] if len(sys.argv) > 1 else BASELINE_REV
+    ok, report = verify(rev)
     print("\n".join(report))
     return 0 if ok else 1
 
