@@ -17,6 +17,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Hard backstop: never submit a pre-release version, even if a Release
+      # is accidentally published as (or promoted to) a full release. Kodi
+      # pre-release versions carry '~' (e.g. 2.0.0~beta1); stable versions
+      # never do. Bumping addon.xml to a final version is thus a deliberate
+      # prerequisite of any submission.
+      - name: Abort if addon.xml version is a pre-release
+        run: |
+          version=$(sed -n 's/.*<addon [^>]*version="\([^"]*\)".*/\1/p' addon.xml | head -n1)
+          if [ -z "$version" ]; then
+            echo "::error::Could not parse version from addon.xml; refusing to submit."
+            exit 1
+          fi
+          echo "addon.xml version: $version"
+          case "$version" in
+            *~*)
+              echo "::error::Version '$version' is a pre-release (contains '~'); refusing to submit to repo-scripts."
+              exit 1
+              ;;
+          esac
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
