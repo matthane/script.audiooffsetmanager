@@ -3,32 +3,32 @@
     <section id="script.audiooffsetmanager">
         <category id="onboarding" label="32057" help="">
             <group id="1" label="32055" help="">
-            <!-- Addon onboarding -->
+                <!-- Addon onboarding -->
                 <setting id="new_install" type="boolean">
                     <level>4</level>
                     <default>true</default>
                     <control type="toggle"/>
                 </setting>
                 <setting id="play_test_video" type="action" label="32059" help="32060">
-                    <level>0</level>                 
+                    <level>0</level>
                     <data>RunScript(script.audiooffsetmanager,play_test_video)</data>
                     <control type="button" format="action">
                         <close>true</close>
                     </control>
                     <dependencies>
                         <dependency type="visible" setting="new_install">true</dependency>
-                    </dependencies> 
+                    </dependencies>
                 </setting>
                 <setting id="bypass_test_video" type="action" label="32082" help="32083">
-                    <level>0</level>                 
+                    <level>0</level>
                     <data>RunScript(script.audiooffsetmanager,bypass_test_video)</data>
                     <control type="button" format="action">
                         <close>true</close>
                     </control>
                     <dependencies>
                         <dependency type="visible" setting="new_install">true</dependency>
-                    </dependencies> 
-                </setting>                              
+                    </dependencies>
+                </setting>
             </group>
         </category>
         <!-- Category for Dolby Vision -->
@@ -59,7 +59,7 @@
                                 <condition setting="enable_fps_dolbyvision">true</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>23</default>
                     <constraints>
@@ -87,7 +87,7 @@
                                 <condition setting="enable_fps_dolbyvision">false</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -109,7 +109,7 @@
                                 <condition setting="enable_fps_dolbyvision">false</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -131,7 +131,7 @@
                                 <condition setting="enable_fps_dolbyvision">false</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -153,7 +153,7 @@
                                 <condition setting="enable_fps_dolbyvision">false</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -175,7 +175,7 @@
                                 <condition setting="enable_fps_dolbyvision">false</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -197,7 +197,7 @@
                                 <condition setting="enable_fps_dolbyvision">false</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -219,7 +219,7 @@
                                 <condition setting="enable_fps_dolbyvision">false</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -230,7 +230,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- 23.98 FPS -->
                 <!-- Dolby TrueHD (ms) Delay Setting -->
@@ -243,7 +243,7 @@
                                 <condition setting="dolbyvision_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -289,7 +289,7 @@
                                 <condition setting="dolbyvision_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -312,7 +312,7 @@
                                 <condition setting="dolbyvision_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -335,7 +335,7 @@
                                 <condition setting="dolbyvision_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -358,7 +358,7 @@
                                 <condition setting="dolbyvision_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -369,7 +369,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="dolbyvision_23_pcm" type="integer" label="32061" help="32062" parent="enable_dolbyvision">
@@ -381,7 +381,7 @@
                                 <condition setting="dolbyvision_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -405,7 +405,7 @@
                                 <condition setting="dolbyvision_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -451,7 +451,7 @@
                                 <condition setting="dolbyvision_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -474,7 +474,7 @@
                                 <condition setting="dolbyvision_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -497,7 +497,7 @@
                                 <condition setting="dolbyvision_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -520,7 +520,7 @@
                                 <condition setting="dolbyvision_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -531,7 +531,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="dolbyvision_24_pcm" type="integer" label="32061" help="32062" parent="enable_dolbyvision">
@@ -543,7 +543,7 @@
                                 <condition setting="dolbyvision_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -554,7 +554,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>  
+                </setting>
 
                 <!-- 25.00 FPS -->
                 <!-- Dolby TrueHD (ms) Delay Setting -->
@@ -567,7 +567,7 @@
                                 <condition setting="dolbyvision_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -613,7 +613,7 @@
                                 <condition setting="dolbyvision_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -636,7 +636,7 @@
                                 <condition setting="dolbyvision_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -648,7 +648,7 @@
                         <popup>false</popup>
                     </control>
                 </setting>
-                
+
                 <!-- DTS-HD HRA (ms) Delay Setting -->
                 <setting id="dolbyvision_25_dtshd_hra" type="integer" label="32010" help="32011" parent="enable_dolbyvision">
                     <dependencies>
@@ -659,7 +659,7 @@
                                 <condition setting="dolbyvision_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -682,7 +682,7 @@
                                 <condition setting="dolbyvision_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -693,7 +693,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="dolbyvision_25_pcm" type="integer" label="32061" help="32062" parent="enable_dolbyvision">
@@ -705,7 +705,7 @@
                                 <condition setting="dolbyvision_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -729,7 +729,7 @@
                                 <condition setting="dolbyvision_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -775,7 +775,7 @@
                                 <condition setting="dolbyvision_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -798,7 +798,7 @@
                                 <condition setting="dolbyvision_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -810,7 +810,7 @@
                         <popup>false</popup>
                     </control>
                 </setting>
-                
+
                 <!-- DTS-HD HRA (ms) Delay Setting -->
                 <setting id="dolbyvision_29_dtshd_hra" type="integer" label="32010" help="32011" parent="enable_dolbyvision">
                     <dependencies>
@@ -821,7 +821,7 @@
                                 <condition setting="dolbyvision_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -844,7 +844,7 @@
                                 <condition setting="dolbyvision_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -855,7 +855,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="dolbyvision_29_pcm" type="integer" label="32061" help="32062" parent="enable_dolbyvision">
@@ -867,7 +867,7 @@
                                 <condition setting="dolbyvision_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -891,7 +891,7 @@
                                 <condition setting="dolbyvision_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -937,7 +937,7 @@
                                 <condition setting="dolbyvision_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -960,7 +960,7 @@
                                 <condition setting="dolbyvision_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -972,7 +972,7 @@
                         <popup>false</popup>
                     </control>
                 </setting>
-                
+
                 <!-- DTS-HD HRA (ms) Delay Setting -->
                 <setting id="dolbyvision_30_dtshd_hra" type="integer" label="32010" help="32011" parent="enable_dolbyvision">
                     <dependencies>
@@ -983,7 +983,7 @@
                                 <condition setting="dolbyvision_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1006,7 +1006,7 @@
                                 <condition setting="dolbyvision_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1017,7 +1017,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="dolbyvision_30_pcm" type="integer" label="32061" help="32062" parent="enable_dolbyvision">
@@ -1029,7 +1029,7 @@
                                 <condition setting="dolbyvision_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1053,7 +1053,7 @@
                                 <condition setting="dolbyvision_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1099,7 +1099,7 @@
                                 <condition setting="dolbyvision_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1122,7 +1122,7 @@
                                 <condition setting="dolbyvision_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1134,7 +1134,7 @@
                         <popup>false</popup>
                     </control>
                 </setting>
-                
+
                 <!-- DTS-HD HRA (ms) Delay Setting -->
                 <setting id="dolbyvision_50_dtshd_hra" type="integer" label="32010" help="32011" parent="enable_dolbyvision">
                     <dependencies>
@@ -1145,7 +1145,7 @@
                                 <condition setting="dolbyvision_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1168,7 +1168,7 @@
                                 <condition setting="dolbyvision_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1179,7 +1179,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="dolbyvision_50_pcm" type="integer" label="32061" help="32062" parent="enable_dolbyvision">
@@ -1191,7 +1191,7 @@
                                 <condition setting="dolbyvision_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1215,7 +1215,7 @@
                                 <condition setting="dolbyvision_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1261,7 +1261,7 @@
                                 <condition setting="dolbyvision_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1284,7 +1284,7 @@
                                 <condition setting="dolbyvision_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1296,7 +1296,7 @@
                         <popup>false</popup>
                     </control>
                 </setting>
-                
+
                 <!-- DTS-HD HRA (ms) Delay Setting -->
                 <setting id="dolbyvision_59_dtshd_hra" type="integer" label="32010" help="32011" parent="enable_dolbyvision">
                     <dependencies>
@@ -1307,7 +1307,7 @@
                                 <condition setting="dolbyvision_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1330,7 +1330,7 @@
                                 <condition setting="dolbyvision_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1341,7 +1341,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="dolbyvision_59_pcm" type="integer" label="32061" help="32062" parent="enable_dolbyvision">
@@ -1353,7 +1353,7 @@
                                 <condition setting="dolbyvision_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1377,7 +1377,7 @@
                                 <condition setting="dolbyvision_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1423,7 +1423,7 @@
                                 <condition setting="dolbyvision_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1446,7 +1446,7 @@
                                 <condition setting="dolbyvision_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1458,7 +1458,7 @@
                         <popup>false</popup>
                     </control>
                 </setting>
-                
+
                 <!-- DTS-HD HRA (ms) Delay Setting -->
                 <setting id="dolbyvision_60_dtshd_hra" type="integer" label="32010" help="32011" parent="enable_dolbyvision">
                     <dependencies>
@@ -1469,7 +1469,7 @@
                                 <condition setting="dolbyvision_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1492,7 +1492,7 @@
                                 <condition setting="dolbyvision_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1503,7 +1503,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="dolbyvision_60_pcm" type="integer" label="32061" help="32062" parent="enable_dolbyvision">
@@ -1515,7 +1515,7 @@
                                 <condition setting="dolbyvision_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1526,7 +1526,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting> 
+                </setting>
             </group>
         </category>
 
@@ -1540,7 +1540,7 @@
                     <level>0</level>
                     <default>false</default>
                     <control type="toggle"/>
-                </setting>            
+                </setting>
                 <setting id="enable_fps_hdr10" type="boolean" label="32074" help="32075">
                     <dependencies>
                         <dependency type="visible" setting="enable_hdr10">true</dependency>
@@ -1557,7 +1557,7 @@
                                 <condition setting="enable_fps_hdr10">true</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>23</default>
                     <constraints>
@@ -1585,7 +1585,7 @@
                                 <condition setting="enable_fps_hdr10">false</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1607,7 +1607,7 @@
                                 <condition setting="enable_fps_hdr10">false</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1629,7 +1629,7 @@
                                 <condition setting="enable_fps_hdr10">false</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1651,7 +1651,7 @@
                                 <condition setting="enable_fps_hdr10">false</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1663,7 +1663,7 @@
                         <popup>false</popup>
                     </control>
                 </setting>
-                
+
                 <!-- DTS-HD HRA (ms) Delay Setting -->
                 <setting id="hdr10_all_dtshd_hra" type="integer" label="32010" help="32011" parent="enable_hdr10">
                     <dependencies>
@@ -1673,7 +1673,7 @@
                                 <condition setting="enable_fps_hdr10">false</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1695,7 +1695,7 @@
                                 <condition setting="enable_fps_hdr10">false</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1717,7 +1717,7 @@
                                 <condition setting="enable_fps_hdr10">false</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1728,7 +1728,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- 23.98 FPS -->
                 <!-- Dolby TrueHD (ms) Delay Setting -->
@@ -1741,7 +1741,7 @@
                                 <condition setting="hdr10_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1787,7 +1787,7 @@
                                 <condition setting="hdr10_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1810,7 +1810,7 @@
                                 <condition setting="hdr10_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1822,7 +1822,7 @@
                         <popup>false</popup>
                     </control>
                 </setting>
-                
+
                 <!-- DTS-HD HRA (ms) Delay Setting -->
                 <setting id="hdr10_23_dtshd_hra" type="integer" label="32010" help="32011" parent="enable_hdr10">
                     <dependencies>
@@ -1833,7 +1833,7 @@
                                 <condition setting="hdr10_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1856,7 +1856,7 @@
                                 <condition setting="hdr10_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1867,7 +1867,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="hdr10_23_pcm" type="integer" label="32061" help="32062" parent="enable_hdr10">
@@ -1879,7 +1879,7 @@
                                 <condition setting="hdr10_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1903,7 +1903,7 @@
                                 <condition setting="hdr10_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1949,7 +1949,7 @@
                                 <condition setting="hdr10_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1972,7 +1972,7 @@
                                 <condition setting="hdr10_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -1995,7 +1995,7 @@
                                 <condition setting="hdr10_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2018,7 +2018,7 @@
                                 <condition setting="hdr10_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2029,7 +2029,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="hdr10_24_pcm" type="integer" label="32061" help="32062" parent="enable_hdr10">
@@ -2041,7 +2041,7 @@
                                 <condition setting="hdr10_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2052,7 +2052,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>  
+                </setting>
 
                 <!-- 25.00 FPS -->
                 <!-- Dolby TrueHD (ms) Delay Setting -->
@@ -2065,7 +2065,7 @@
                                 <condition setting="hdr10_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2111,7 +2111,7 @@
                                 <condition setting="hdr10_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2134,7 +2134,7 @@
                                 <condition setting="hdr10_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2157,7 +2157,7 @@
                                 <condition setting="hdr10_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2180,7 +2180,7 @@
                                 <condition setting="hdr10_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2191,7 +2191,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="hdr10_25_pcm" type="integer" label="32061" help="32062" parent="enable_hdr10">
@@ -2203,7 +2203,7 @@
                                 <condition setting="hdr10_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2227,7 +2227,7 @@
                                 <condition setting="hdr10_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2273,7 +2273,7 @@
                                 <condition setting="hdr10_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2296,7 +2296,7 @@
                                 <condition setting="hdr10_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2319,7 +2319,7 @@
                                 <condition setting="hdr10_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2342,7 +2342,7 @@
                                 <condition setting="hdr10_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2353,7 +2353,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="hdr10_29_pcm" type="integer" label="32061" help="32062" parent="enable_hdr10">
@@ -2365,7 +2365,7 @@
                                 <condition setting="hdr10_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2389,7 +2389,7 @@
                                 <condition setting="hdr10_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2435,7 +2435,7 @@
                                 <condition setting="hdr10_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2458,7 +2458,7 @@
                                 <condition setting="hdr10_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2481,7 +2481,7 @@
                                 <condition setting="hdr10_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2504,7 +2504,7 @@
                                 <condition setting="hdr10_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2515,7 +2515,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="hdr10_30_pcm" type="integer" label="32061" help="32062" parent="enable_hdr10">
@@ -2527,7 +2527,7 @@
                                 <condition setting="hdr10_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2551,7 +2551,7 @@
                                 <condition setting="hdr10_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2597,7 +2597,7 @@
                                 <condition setting="hdr10_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2620,7 +2620,7 @@
                                 <condition setting="hdr10_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2643,7 +2643,7 @@
                                 <condition setting="hdr10_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2666,7 +2666,7 @@
                                 <condition setting="hdr10_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2677,7 +2677,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="hdr10_50_pcm" type="integer" label="32061" help="32062" parent="enable_hdr10">
@@ -2689,7 +2689,7 @@
                                 <condition setting="hdr10_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2713,7 +2713,7 @@
                                 <condition setting="hdr10_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2759,7 +2759,7 @@
                                 <condition setting="hdr10_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2782,7 +2782,7 @@
                                 <condition setting="hdr10_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2805,7 +2805,7 @@
                                 <condition setting="hdr10_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2828,7 +2828,7 @@
                                 <condition setting="hdr10_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2839,7 +2839,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="hdr10_59_pcm" type="integer" label="32061" help="32062" parent="enable_hdr10">
@@ -2851,7 +2851,7 @@
                                 <condition setting="hdr10_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2875,7 +2875,7 @@
                                 <condition setting="hdr10_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2921,7 +2921,7 @@
                                 <condition setting="hdr10_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2944,7 +2944,7 @@
                                 <condition setting="hdr10_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2967,7 +2967,7 @@
                                 <condition setting="hdr10_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -2990,7 +2990,7 @@
                                 <condition setting="hdr10_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3001,7 +3001,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="hdr10_60_pcm" type="integer" label="32061" help="32062" parent="enable_hdr10">
@@ -3013,7 +3013,7 @@
                                 <condition setting="hdr10_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3024,7 +3024,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting> 
+                </setting>
             </group>
         </category>
 
@@ -3035,11 +3035,11 @@
                     <dependencies>
                         <dependency type="enable" setting="platform_hdr_full">true</dependency>
                         <dependency type="visible" setting="platform_hdr_full">true</dependency>
-                    </dependencies>                
+                    </dependencies>
                     <level>0</level>
                     <default>false</default>
                     <control type="toggle"/>
-                </setting>            
+                </setting>
                 <setting id="enable_fps_hdr10plus" type="boolean" label="32074" help="32075">
                     <dependencies>
                         <dependency type="visible" setting="enable_hdr10plus">true</dependency>
@@ -3056,7 +3056,7 @@
                                 <condition setting="enable_fps_hdr10plus">true</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>23</default>
                     <constraints>
@@ -3084,7 +3084,7 @@
                                 <condition setting="enable_fps_hdr10plus">false</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3106,7 +3106,7 @@
                                 <condition setting="enable_fps_hdr10plus">false</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3128,7 +3128,7 @@
                                 <condition setting="enable_fps_hdr10plus">false</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3150,7 +3150,7 @@
                                 <condition setting="enable_fps_hdr10plus">false</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3172,7 +3172,7 @@
                                 <condition setting="enable_fps_hdr10plus">false</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3194,7 +3194,7 @@
                                 <condition setting="enable_fps_hdr10plus">false</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3216,7 +3216,7 @@
                                 <condition setting="enable_fps_hdr10plus">false</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3227,7 +3227,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- 23.98 FPS -->
                 <!-- Dolby TrueHD (ms) Delay Setting -->
@@ -3240,7 +3240,7 @@
                                 <condition setting="hdr10plus_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3286,7 +3286,7 @@
                                 <condition setting="hdr10plus_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3309,7 +3309,7 @@
                                 <condition setting="hdr10plus_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3332,7 +3332,7 @@
                                 <condition setting="hdr10plus_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3355,7 +3355,7 @@
                                 <condition setting="hdr10plus_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3366,7 +3366,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="hdr10plus_23_pcm" type="integer" label="32061" help="32062" parent="enable_hdr10plus">
@@ -3378,7 +3378,7 @@
                                 <condition setting="hdr10plus_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3402,7 +3402,7 @@
                                 <condition setting="hdr10plus_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3448,7 +3448,7 @@
                                 <condition setting="hdr10plus_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3471,7 +3471,7 @@
                                 <condition setting="hdr10plus_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3494,7 +3494,7 @@
                                 <condition setting="hdr10plus_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3517,7 +3517,7 @@
                                 <condition setting="hdr10plus_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3528,7 +3528,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="hdr10plus_24_pcm" type="integer" label="32061" help="32062" parent="enable_hdr10plus">
@@ -3540,7 +3540,7 @@
                                 <condition setting="hdr10plus_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3551,7 +3551,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>  
+                </setting>
 
                 <!-- 25.00 FPS -->
                 <!-- Dolby TrueHD (ms) Delay Setting -->
@@ -3564,7 +3564,7 @@
                                 <condition setting="hdr10plus_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3610,7 +3610,7 @@
                                 <condition setting="hdr10plus_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3633,7 +3633,7 @@
                                 <condition setting="hdr10plus_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3656,7 +3656,7 @@
                                 <condition setting="hdr10plus_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3679,7 +3679,7 @@
                                 <condition setting="hdr10plus_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3690,7 +3690,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="hdr10plus_25_pcm" type="integer" label="32061" help="32062" parent="enable_hdr10plus">
@@ -3702,7 +3702,7 @@
                                 <condition setting="hdr10plus_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3726,7 +3726,7 @@
                                 <condition setting="hdr10plus_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3772,7 +3772,7 @@
                                 <condition setting="hdr10plus_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3795,7 +3795,7 @@
                                 <condition setting="hdr10plus_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3818,7 +3818,7 @@
                                 <condition setting="hdr10plus_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3841,7 +3841,7 @@
                                 <condition setting="hdr10plus_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3852,7 +3852,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="hdr10plus_29_pcm" type="integer" label="32061" help="32062" parent="enable_hdr10plus">
@@ -3864,7 +3864,7 @@
                                 <condition setting="hdr10plus_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3888,7 +3888,7 @@
                                 <condition setting="hdr10plus_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3934,7 +3934,7 @@
                                 <condition setting="hdr10plus_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3957,7 +3957,7 @@
                                 <condition setting="hdr10plus_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -3980,7 +3980,7 @@
                                 <condition setting="hdr10plus_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4003,7 +4003,7 @@
                                 <condition setting="hdr10plus_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4014,7 +4014,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="hdr10plus_30_pcm" type="integer" label="32061" help="32062" parent="enable_hdr10plus">
@@ -4026,7 +4026,7 @@
                                 <condition setting="hdr10plus_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4050,7 +4050,7 @@
                                 <condition setting="hdr10plus_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4096,7 +4096,7 @@
                                 <condition setting="hdr10plus_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4119,7 +4119,7 @@
                                 <condition setting="hdr10plus_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4142,7 +4142,7 @@
                                 <condition setting="hdr10plus_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4165,7 +4165,7 @@
                                 <condition setting="hdr10plus_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4176,7 +4176,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="hdr10plus_50_pcm" type="integer" label="32061" help="32062" parent="enable_hdr10plus">
@@ -4188,7 +4188,7 @@
                                 <condition setting="hdr10plus_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4212,7 +4212,7 @@
                                 <condition setting="hdr10plus_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4258,7 +4258,7 @@
                                 <condition setting="hdr10plus_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4281,7 +4281,7 @@
                                 <condition setting="hdr10plus_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4304,7 +4304,7 @@
                                 <condition setting="hdr10plus_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4327,7 +4327,7 @@
                                 <condition setting="hdr10plus_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4338,7 +4338,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="hdr10plus_59_pcm" type="integer" label="32061" help="32062" parent="enable_hdr10plus">
@@ -4350,7 +4350,7 @@
                                 <condition setting="hdr10plus_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4374,7 +4374,7 @@
                                 <condition setting="hdr10plus_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4420,7 +4420,7 @@
                                 <condition setting="hdr10plus_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4443,7 +4443,7 @@
                                 <condition setting="hdr10plus_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4466,7 +4466,7 @@
                                 <condition setting="hdr10plus_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4489,7 +4489,7 @@
                                 <condition setting="hdr10plus_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4500,7 +4500,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="hdr10plus_60_pcm" type="integer" label="32061" help="32062" parent="enable_hdr10plus">
@@ -4512,7 +4512,7 @@
                                 <condition setting="hdr10plus_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4523,7 +4523,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting> 
+                </setting>
             </group>
         </category>
 
@@ -4533,11 +4533,11 @@
                 <setting id="enable_hlg" type="boolean" label="32030" help="32031">
                     <dependencies>
                         <dependency type="visible" setting="new_install">false</dependency>
-                    </dependencies>                
+                    </dependencies>
                     <level>0</level>
                     <default>false</default>
                     <control type="toggle"/>
-                </setting>               
+                </setting>
                 <setting id="enable_fps_hlg" type="boolean" label="32074" help="32075">
                     <dependencies>
                         <dependency type="visible" setting="enable_hlg">true</dependency>
@@ -4554,7 +4554,7 @@
                                 <condition setting="enable_fps_hlg">true</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>23</default>
                     <constraints>
@@ -4582,7 +4582,7 @@
                                 <condition setting="enable_fps_hlg">false</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4604,7 +4604,7 @@
                                 <condition setting="enable_fps_hlg">false</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4626,7 +4626,7 @@
                                 <condition setting="enable_fps_hlg">false</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4648,7 +4648,7 @@
                                 <condition setting="enable_fps_hlg">false</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4670,7 +4670,7 @@
                                 <condition setting="enable_fps_hlg">false</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4692,7 +4692,7 @@
                                 <condition setting="enable_fps_hlg">false</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4714,7 +4714,7 @@
                                 <condition setting="enable_fps_hlg">false</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4738,7 +4738,7 @@
                                 <condition setting="hlg_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4784,7 +4784,7 @@
                                 <condition setting="hlg_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4807,7 +4807,7 @@
                                 <condition setting="hlg_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4830,7 +4830,7 @@
                                 <condition setting="hlg_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4853,7 +4853,7 @@
                                 <condition setting="hlg_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4864,7 +4864,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="hlg_23_pcm" type="integer" label="32061" help="32062" parent="enable_hlg">
@@ -4876,7 +4876,7 @@
                                 <condition setting="hlg_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4900,7 +4900,7 @@
                                 <condition setting="hlg_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4946,7 +4946,7 @@
                                 <condition setting="hlg_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4969,7 +4969,7 @@
                                 <condition setting="hlg_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -4992,7 +4992,7 @@
                                 <condition setting="hlg_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5015,7 +5015,7 @@
                                 <condition setting="hlg_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5026,7 +5026,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="hlg_24_pcm" type="integer" label="32061" help="32062" parent="enable_hlg">
@@ -5038,7 +5038,7 @@
                                 <condition setting="hlg_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5049,7 +5049,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>  
+                </setting>
 
                 <!-- 25.00 FPS -->
                 <!-- Dolby TrueHD (ms) Delay Setting -->
@@ -5062,7 +5062,7 @@
                                 <condition setting="hlg_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5108,7 +5108,7 @@
                                 <condition setting="hlg_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5131,7 +5131,7 @@
                                 <condition setting="hlg_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5154,7 +5154,7 @@
                                 <condition setting="hlg_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5177,7 +5177,7 @@
                                 <condition setting="hlg_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5188,7 +5188,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="hlg_25_pcm" type="integer" label="32061" help="32062" parent="enable_hlg">
@@ -5200,7 +5200,7 @@
                                 <condition setting="hlg_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5224,7 +5224,7 @@
                                 <condition setting="hlg_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5270,7 +5270,7 @@
                                 <condition setting="hlg_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5293,7 +5293,7 @@
                                 <condition setting="hlg_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5316,7 +5316,7 @@
                                 <condition setting="hlg_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5339,7 +5339,7 @@
                                 <condition setting="hlg_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5350,7 +5350,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="hlg_29_pcm" type="integer" label="32061" help="32062" parent="enable_hlg">
@@ -5362,7 +5362,7 @@
                                 <condition setting="hlg_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5386,7 +5386,7 @@
                                 <condition setting="hlg_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5432,7 +5432,7 @@
                                 <condition setting="hlg_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5455,7 +5455,7 @@
                                 <condition setting="hlg_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5478,7 +5478,7 @@
                                 <condition setting="hlg_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5501,7 +5501,7 @@
                                 <condition setting="hlg_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5512,7 +5512,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="hlg_30_pcm" type="integer" label="32061" help="32062" parent="enable_hlg">
@@ -5524,7 +5524,7 @@
                                 <condition setting="hlg_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5548,7 +5548,7 @@
                                 <condition setting="hlg_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5594,7 +5594,7 @@
                                 <condition setting="hlg_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5617,7 +5617,7 @@
                                 <condition setting="hlg_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5640,7 +5640,7 @@
                                 <condition setting="hlg_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5663,7 +5663,7 @@
                                 <condition setting="hlg_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5674,7 +5674,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="hlg_50_pcm" type="integer" label="32061" help="32062" parent="enable_hlg">
@@ -5686,7 +5686,7 @@
                                 <condition setting="hlg_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5710,7 +5710,7 @@
                                 <condition setting="hlg_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5756,7 +5756,7 @@
                                 <condition setting="hlg_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5779,7 +5779,7 @@
                                 <condition setting="hlg_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5802,7 +5802,7 @@
                                 <condition setting="hlg_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5825,7 +5825,7 @@
                                 <condition setting="hlg_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5836,7 +5836,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="hlg_59_pcm" type="integer" label="32061" help="32062" parent="enable_hlg">
@@ -5848,7 +5848,7 @@
                                 <condition setting="hlg_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5872,7 +5872,7 @@
                                 <condition setting="hlg_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5918,7 +5918,7 @@
                                 <condition setting="hlg_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5941,7 +5941,7 @@
                                 <condition setting="hlg_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5964,7 +5964,7 @@
                                 <condition setting="hlg_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5987,7 +5987,7 @@
                                 <condition setting="hlg_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -5998,7 +5998,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="hlg_60_pcm" type="integer" label="32061" help="32062" parent="enable_hlg">
@@ -6010,7 +6010,7 @@
                                 <condition setting="hlg_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6021,12 +6021,12 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting> 
+                </setting>
             </group>
         </category>
 
         <category id="sdr" label="32024" help="32087">
-            <!-- SDR -->            
+            <!-- SDR -->
             <group id="6" label="32077">
                 <setting id="enable_sdr" type="boolean" label="32032" help="32033">
                     <dependencies>
@@ -6035,7 +6035,7 @@
                     <level>0</level>
                     <default>false</default>
                     <control type="toggle"/>
-                </setting>              
+                </setting>
                 <setting id="enable_fps_sdr" type="boolean" label="32074" help="32075">
                     <dependencies>
                         <dependency type="visible" setting="enable_sdr">true</dependency>
@@ -6052,7 +6052,7 @@
                                 <condition setting="enable_fps_sdr">true</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>23</default>
                     <constraints>
@@ -6080,7 +6080,7 @@
                                 <condition setting="enable_fps_sdr">false</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6102,7 +6102,7 @@
                                 <condition setting="enable_fps_sdr">false</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6124,7 +6124,7 @@
                                 <condition setting="enable_fps_sdr">false</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6146,7 +6146,7 @@
                                 <condition setting="enable_fps_sdr">false</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6168,7 +6168,7 @@
                                 <condition setting="enable_fps_sdr">false</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6190,7 +6190,7 @@
                                 <condition setting="enable_fps_sdr">false</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6212,7 +6212,7 @@
                                 <condition setting="enable_fps_sdr">false</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6223,7 +6223,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- 23.98 FPS -->
                 <!-- Dolby TrueHD (ms) Delay Setting -->
@@ -6236,7 +6236,7 @@
                                 <condition setting="sdr_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6282,7 +6282,7 @@
                                 <condition setting="sdr_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6305,7 +6305,7 @@
                                 <condition setting="sdr_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6328,7 +6328,7 @@
                                 <condition setting="sdr_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6351,7 +6351,7 @@
                                 <condition setting="sdr_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6362,7 +6362,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="sdr_23_pcm" type="integer" label="32061" help="32062" parent="enable_sdr">
@@ -6374,7 +6374,7 @@
                                 <condition setting="sdr_fps">23</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6398,7 +6398,7 @@
                                 <condition setting="sdr_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6444,7 +6444,7 @@
                                 <condition setting="sdr_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6467,7 +6467,7 @@
                                 <condition setting="sdr_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6490,7 +6490,7 @@
                                 <condition setting="sdr_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6513,7 +6513,7 @@
                                 <condition setting="sdr_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6524,7 +6524,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="sdr_24_pcm" type="integer" label="32061" help="32062" parent="enable_sdr">
@@ -6536,7 +6536,7 @@
                                 <condition setting="sdr_fps">24</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6547,7 +6547,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>  
+                </setting>
 
                 <!-- 25.00 FPS -->
                 <!-- Dolby TrueHD (ms) Delay Setting -->
@@ -6560,7 +6560,7 @@
                                 <condition setting="sdr_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6606,7 +6606,7 @@
                                 <condition setting="sdr_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6629,7 +6629,7 @@
                                 <condition setting="sdr_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6652,7 +6652,7 @@
                                 <condition setting="sdr_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6675,7 +6675,7 @@
                                 <condition setting="sdr_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6686,7 +6686,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="sdr_25_pcm" type="integer" label="32061" help="32062" parent="enable_sdr">
@@ -6698,7 +6698,7 @@
                                 <condition setting="sdr_fps">25</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6722,7 +6722,7 @@
                                 <condition setting="sdr_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6768,7 +6768,7 @@
                                 <condition setting="sdr_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6791,7 +6791,7 @@
                                 <condition setting="sdr_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6814,7 +6814,7 @@
                                 <condition setting="sdr_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6837,7 +6837,7 @@
                                 <condition setting="sdr_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6848,7 +6848,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="sdr_29_pcm" type="integer" label="32061" help="32062" parent="enable_sdr">
@@ -6860,7 +6860,7 @@
                                 <condition setting="sdr_fps">29</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6884,7 +6884,7 @@
                                 <condition setting="sdr_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6930,7 +6930,7 @@
                                 <condition setting="sdr_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6953,7 +6953,7 @@
                                 <condition setting="sdr_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6976,7 +6976,7 @@
                                 <condition setting="sdr_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -6999,7 +6999,7 @@
                                 <condition setting="sdr_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -7010,7 +7010,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="sdr_30_pcm" type="integer" label="32061" help="32062" parent="enable_sdr">
@@ -7022,7 +7022,7 @@
                                 <condition setting="sdr_fps">30</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -7046,7 +7046,7 @@
                                 <condition setting="sdr_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -7092,7 +7092,7 @@
                                 <condition setting="sdr_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -7115,7 +7115,7 @@
                                 <condition setting="sdr_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -7138,7 +7138,7 @@
                                 <condition setting="sdr_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -7161,7 +7161,7 @@
                                 <condition setting="sdr_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -7172,7 +7172,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="sdr_50_pcm" type="integer" label="32061" help="32062" parent="enable_sdr">
@@ -7184,7 +7184,7 @@
                                 <condition setting="sdr_fps">50</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -7208,7 +7208,7 @@
                                 <condition setting="sdr_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -7254,7 +7254,7 @@
                                 <condition setting="sdr_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -7277,7 +7277,7 @@
                                 <condition setting="sdr_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -7300,7 +7300,7 @@
                                 <condition setting="sdr_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -7323,7 +7323,7 @@
                                 <condition setting="sdr_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -7334,7 +7334,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="sdr_59_pcm" type="integer" label="32061" help="32062" parent="enable_sdr">
@@ -7346,7 +7346,7 @@
                                 <condition setting="sdr_fps">59</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -7370,7 +7370,7 @@
                                 <condition setting="sdr_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -7416,7 +7416,7 @@
                                 <condition setting="sdr_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies>              
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -7439,7 +7439,7 @@
                                 <condition setting="sdr_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -7462,7 +7462,7 @@
                                 <condition setting="sdr_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -7485,7 +7485,7 @@
                                 <condition setting="sdr_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -7496,7 +7496,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>                
+                </setting>
 
                 <!-- Other/PCM (ms) Delay Setting -->
                 <setting id="sdr_60_pcm" type="integer" label="32061" help="32062" parent="enable_sdr">
@@ -7508,7 +7508,7 @@
                                 <condition setting="sdr_fps">60</condition>
                             </and>
                         </dependency>
-                    </dependencies>               
+                    </dependencies>
                     <level>0</level>
                     <default>0</default>
                     <constraints>
@@ -7519,13 +7519,13 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting> 
+                </setting>
             </group>
         </category>
 
         <!-- Category for Playback Behavior -->
         <category id="seek_back_settings" label="32016" help="32017">
-            <group id="7" label="32081">                
+            <group id="7" label="32081">
                 <!-- Enable Notifications Toggle -->
                 <setting id="enable_notifications" type="boolean" label="32079" help="32080">
                     <dependencies>
@@ -7535,7 +7535,7 @@
                     <default>true</default>
                     <control type="toggle"/>
                 </setting>
-                
+
                 <!-- Notification Duration (seconds) Slider -->
                 <setting id="notification_seconds" parent="enable_notifications" type="integer" label="32090" help="32091">
                     <level>0</level>
@@ -7556,8 +7556,7 @@
                     <control type="slider" format="integer">
                         <popup>false</popup>
                     </control>
-                </setting>    
-
+                </setting>
             </group>
             <group id="8" label="32047">
                 <!-- Enable Active Monitoring Toggle -->
@@ -7575,7 +7574,7 @@
                 <setting id="enable_seek_back_adjust" type="boolean" label="32019" help="32020">
                     <dependencies>
                         <dependency type="visible" setting="new_install">false</dependency>
-                    </dependencies> 
+                    </dependencies>
                     <level>0</level>
                     <default>true</default>
                     <control type="toggle"/>
@@ -7613,7 +7612,7 @@
                                 <condition setting="new_install">false</condition>
                             </and>
                         </dependency>
-                    </dependencies>                    
+                    </dependencies>
                     <default>false</default>
                     <control type="toggle"/>
                 </setting>
@@ -7645,7 +7644,7 @@
                     <level>0</level>
                     <dependencies>
                         <dependency type="visible" setting="new_install">false</dependency>
-                    </dependencies> 
+                    </dependencies>
                     <default>false</default>
                     <control type="toggle"/>
                 </setting>
@@ -7672,7 +7671,7 @@
                     <level>0</level>
                     <dependencies>
                         <dependency type="visible" setting="new_install">false</dependency>
-                    </dependencies>                     
+                    </dependencies>
                     <default>false</default>
                     <control type="toggle"/>
                 </setting>
@@ -7699,26 +7698,26 @@
         <!-- Category for information -->
         <category id="platform_info" label="32053" help="32089">
             <group id="10" label="32051">
-                <setting id="platform_hdr_full" type="boolean" label="32052"> 
+                <setting id="platform_hdr_full" type="boolean" label="32052">
                     <dependencies>
                         <dependency type="visible" setting="new_install">false</dependency>
-                    </dependencies>                             
+                    </dependencies>
                     <level>0</level>
                     <enable>false</enable>
                     <default>false</default>
                     <control type="toggle"/>
-                </setting>  
-                <setting id="advanced_hlg" type="boolean" label="32054">   
+                </setting>
+                <setting id="advanced_hlg" type="boolean" label="32054">
                     <dependencies>
                         <dependency type="visible" setting="new_install">false</dependency>
-                    </dependencies>                           
+                    </dependencies>
                     <level>0</level>
                     <enable>false</enable>
                     <default>false</default>
                     <control type="toggle"/>
                 </setting>
                 <setting id="re-validate" type="action" label="32063" help="32064">
-                    <level>0</level>                 
+                    <level>0</level>
                     <data>RunScript(script.audiooffsetmanager,play_test_video)</data>
                     <control type="button" format="action">
                         <close>true</close>
@@ -7731,19 +7730,19 @@
                                 <condition setting="advanced_hlg">false</condition>
                             </or>
                         </dependency>
-                    </dependencies> 
-                </setting>   
+                    </dependencies>
+                </setting>
             </group>
         </category>
 
         <!-- Category for advanced -->
         <category id="advanced" label="32100" help="32101">
             <group id="12" label="32102">
-                <setting id="enable_debug_logging" type="boolean" label="32103" help="32104">                           
+                <setting id="enable_debug_logging" type="boolean" label="32103" help="32104">
                     <level>0</level>
                     <default>false</default>
                     <control type="toggle"/>
-                </setting>    
+                </setting>
             </group>
         </category>
 
