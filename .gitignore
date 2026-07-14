@@ -1,3 +1,8 @@
 # Local-only planning docs
 DESIGN.md
 IMPLEMENTATION.md
+
+# Python / test tooling (dev-only)
+.venv/
+__pycache__/
+.pytest_cache/

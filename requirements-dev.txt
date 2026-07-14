@@ -1,0 +1,10 @@
+# Dev-only dependencies (export-ignore'd; never shipped in the addon package).
+# The addon itself has NO runtime pip dependencies — Kodi supplies xbmc* at
+# runtime. These are only for the local/CI test suite.
+
+# Test runner. pytest 7+ supports the `pythonpath` ini option used in pytest.ini.
+pytest>=7.4,<9
+
+# Importable stubs for the xbmc/xbmcaddon/xbmcgui/xbmcvfs modules, pinned to the
+# Kodi Nexus (v20) API line — the version this addon targets (xbmc.python 3.0.1).
+Kodistubs~=20.0
