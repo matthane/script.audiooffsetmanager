@@ -1,21 +1,19 @@
 """Behavioral tests for the legacy event router (MIGRATION shim) + runtime wiring.
 
 The router must reproduce the deleted EventManager's component-facing surface
-(event names/args on the legacy bus, publish marshaling) while detection and
-stream-state transitions belong to the StreamDetector. These tests pin the
-translation contract (ProfileChanged -> PROFILE_CHANGED, StreamStabilized ->
-ON_AV_CHANGE), the session-stamped staleness drops, and the load-bearing
-subscription order in the runtime graph.
+(event names on the legacy bus) while detection and stream-state transitions
+belong to the StreamDetector. These tests pin the translation contract
+(ProfileChanged -> PROFILE_CHANGED, StreamStabilized -> ON_AV_CHANGE), the
+session-stamped staleness drops, and the load-bearing subscription order in
+the runtime graph. (The cross-thread publish marshaling died with
+ActiveMonitor, its last producer.)
 """
-
-import threading
 
 import pytest
 
 from resources.lib.aom.app import events
 from resources.lib.aom.app.dispatcher import Dispatcher
-from resources.lib.aom.app.legacy_router import (LegacyEventRouter,
-                                                 _LegacyPublish)
+from resources.lib.aom.app.legacy_router import LegacyEventRouter
 from resources.lib.aom.app.session import SessionTracker
 from resources.lib.aom.domain.stream_state import StreamState
 from resources.lib.settings_facade import SettingsFacade
@@ -135,19 +133,6 @@ def test_events_queued_before_subscribe_are_not_lost(rig):
     assert seen == ['AV_STARTED']
 
 
-def test_cross_thread_publish_marshals_to_pump(rig):
-    dispatcher, _tracker, router, _errors = rig
-    seen = []
-    router.subscribe('USER_ADJUSTMENT', lambda: seen.append('USER_ADJ'))
-
-    worker = threading.Thread(target=lambda: router.publish('USER_ADJUSTMENT'))
-    worker.start()
-    worker.join()
-    assert seen == []                  # only queued so far
-    dispatcher.run_pending()
-    assert seen == ['USER_ADJ']        # delivered on the pump
-
-
 def test_profile_changed_translates_for_live_session(rig):
     dispatcher, tracker, router, _errors = rig
     session = _start_playback(dispatcher, tracker)
@@ -235,11 +220,8 @@ def test_stale_detector_events_after_stop_are_dropped(rig):
     assert seen == []
 
 
-def test_legacy_publish_forwards_args_and_kwargs(rig):
-    dispatcher, _tracker, router, _errors = rig
-    seen = []
-    router.subscribe('PLAYBACK_SEEK', lambda t, o: seen.append((t, o)))
-    router.publish('PLAYBACK_SEEK', 100, o=-5)
-    dispatcher.run_pending()
-    assert seen == [(100, -5)]
-    assert isinstance(_LegacyPublish('X'), _LegacyPublish)  # shape stays importable
+def test_router_has_no_publish_surface():
+    # The marshaling surface died with its last producer (ActiveMonitor):
+    # a component reaching for the old publish() must fail loudly rather
+    # than silently queue into nothing.
+    assert not hasattr(LegacyEventRouter, 'publish')

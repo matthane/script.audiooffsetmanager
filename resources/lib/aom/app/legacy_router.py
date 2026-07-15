@@ -1,13 +1,15 @@
 """Routing shim: typed dispatcher events -> the legacy string EventBus.
 
 MIGRATION(p7): this module replaces the legacy EventManager and dies with the
-legacy components. It exists so OffsetManager and ActiveMonitor run their
-legacy logic — same subscribe/unsubscribe/publish surface, same event names,
-same log lines — while every handler executes on the dispatcher thread
-instead of Kodi's callback pump. Only the event names with a live legacy
-subscriber are still published (AV_STARTED, PROFILE_CHANGED, ON_AV_CHANGE,
-PLAYBACK_STOPPED/ENDED, and the marshaled USER_ADJUSTMENT); the rest of the
-old surface survives as verbatim log lines only.
+legacy components. It exists so OffsetManager runs its legacy logic — same
+subscribe/unsubscribe surface, same event names, same log lines — while
+every handler executes on the dispatcher thread instead of Kodi's callback
+pump. Only the event names with a live legacy subscriber are still published
+(AV_STARTED, PROFILE_CHANGED, ON_AV_CHANGE, PLAYBACK_STOPPED/ENDED); the
+rest of the old surface survives as verbatim log lines only. (The publish()
+marshaling for cross-thread legacy publishers died with ActiveMonitor, its
+last producer — every publish is now this router's own, already on the
+dispatcher thread.)
 
 Per-playback state lives on the PlaybackSession (owned by SessionTracker,
 which subscribes to the lifecycle events BEFORE this router — dispatch order
@@ -17,13 +19,9 @@ router's handlers run). Detection is the StreamDetector's job: it owns
 TRANSLATES its typed events for the legacy consumers — ``ProfileChanged``
 becomes ``PROFILE_CHANGED`` (the offset-apply trigger) and
 ``StreamStabilized`` becomes ``ON_AV_CHANGE`` (the legacy "stream settled"
-signal: notification release, change seek-backs). Events stamped with a
-superseded session_id are dropped: an in-place reopen makes the old
-session's in-flight work inert by construction.
-
-Thread model: typed Kodi events arrive on the dispatcher thread; legacy
-components publish (ActiveMonitor's USER_ADJUSTMENT) from their own threads
-via publish(), which marshals through post().
+signal: notification release). Events stamped with a superseded session_id
+are dropped: an in-place reopen makes the old session's in-flight work inert
+by construction.
 
 This is legacy-bridging code, so unlike the rest of aom.app it may import
 legacy modules (and, through them, Kodi APIs). Log lines are kept verbatim
@@ -35,24 +33,11 @@ resume-ordering inversion (seek before offset) are gone — every remaining
 bus subscriber returns quickly.
 """
 
-from dataclasses import dataclass, field
-
 import xbmc
 
 from resources.lib.event_bus import EventBus
 from resources.lib.logger import log
 from resources.lib.aom.app import events
-
-
-# eq=False: keeps object-identity hashing — frozen+eq would auto-generate a
-# __hash__ over the fields and the mutable kwargs dict would make instances
-# unhashable the moment anything hashes one.
-@dataclass(frozen=True, eq=False)
-class _LegacyPublish:
-    """Marshal a legacy publish from any thread onto the dispatcher thread."""
-    name: str
-    args: tuple = ()
-    kwargs: dict = field(default_factory=dict)
 
 
 class LegacyEventRouter:
@@ -74,7 +59,6 @@ class LegacyEventRouter:
         dispatcher.subscribe(events.SpeedChanged, self._on_speed_changed)
         dispatcher.subscribe(events.ProfileChanged, self._on_profile_changed)
         dispatcher.subscribe(events.StreamStabilized, self._on_stream_stabilized)
-        dispatcher.subscribe(_LegacyPublish, self._on_legacy_publish)
 
     # -- legacy component surface (unchanged from EventManager) ---------------
 
@@ -83,10 +67,6 @@ class LegacyEventRouter:
 
     def unsubscribe(self, event_name, callback):
         self.event_bus.unsubscribe(event_name, callback)
-
-    def publish(self, event_name, *args, **kwargs):
-        """Thread-safe: marshals the publish onto the dispatcher thread."""
-        self._dispatcher.post(_LegacyPublish(event_name, args, kwargs))
 
     def set_log_runtimes(self, enabled):
         """Refresh the legacy bus's per-subscriber runtime logging flag."""
@@ -161,9 +141,6 @@ class LegacyEventRouter:
     def _on_speed_changed(self, event):
         log(f"AOM_EventManager: Playback speed changed to {event.speed}",
             xbmc.LOGDEBUG)
-
-    def _on_legacy_publish(self, event):
-        self._publish_here(event.name, *event.args, **event.kwargs)
 
     # -- internals ---------------------------------------------------------------
 

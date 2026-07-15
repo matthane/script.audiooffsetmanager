@@ -371,10 +371,12 @@ def test_av_event_after_stop_is_ignored(rig):
     assert runtime.session_tracker.current is None
     applied_count = len(applied)
 
-    # No session: neither the detector nor the offset manager react.
+    # No session: neither the detector nor the offset manager react. (Bus
+    # publish direct — the router's own translations are session-gated, and
+    # this drives the legacy consumer's no-session guard specifically.)
     runtime.dispatcher.post(events.AvChanged())
-    runtime.router.publish('ON_AV_CHANGE')
     runtime.dispatcher.run_pending()
+    runtime.router.event_bus.publish('ON_AV_CHANGE')
     assert len(applied) == applied_count
 
 
