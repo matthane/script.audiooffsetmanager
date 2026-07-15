@@ -13,12 +13,6 @@ class SettingsFacade:
     def fps_override_enabled(self, hdr_type):
         return self.settings_manager.get_setting_boolean(f"enable_fps_{hdr_type}")
 
-    def effective_fps_bucket(self, profile):
-        """Return fps bucket honoring override flag."""
-        if profile.hdr_type == 'unknown':
-            return profile.fps_type
-        return profile.fps_type if self.fps_override_enabled(profile.hdr_type) else 'all'
-
     def get_offset_ms(self, profile):
         return self.settings_manager.get_setting_integer(profile.setting_id())
 

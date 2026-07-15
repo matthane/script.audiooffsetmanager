@@ -245,15 +245,35 @@ class TestInfolabel:
         assert gw.infolabel("Player.Process(video.width)") == "3840x2160"
         assert captured["label"] == "Player.Process(video.width)"
 
+    def test_exception_yields_unresolved_sentinel_and_logs(self, monkeypatch):
+        # A raising InfoLabel read must not unwind the caller (it would kill
+        # the detector's self-scheduling probe/verify chain); '' is the
+        # standard "unresolved" sentinel the echo guard already handles.
+        def raising(label):
+            raise RuntimeError("backend gone")
+
+        monkeypatch.setattr(xbmc, "getInfoLabel", raising)
+        logs = []
+        gw = KodiGateway(log=lambda message, level=None: logs.append(message))
+        assert gw.infolabel("Player.Process(videofps)") == ""
+        assert any("Error reading infolabel" in m for m in logs)
+
 
 # --- window properties -------------------------------------------------------
 
 class TestWindowProperties:
-    def test_caches_home_window_10000(self, monkeypatch):
+    def test_home_window_lazy_then_cached(self, monkeypatch):
+        # No GUI I/O at construction (legacy shim imports build a gateway);
+        # the handle is created on first property use and then reused.
         monkeypatch.setattr(xbmcgui, "Window", _FakeWindow)
         gw = KodiGateway(log=_noop_log)
-        assert isinstance(gw._home_window, _FakeWindow)
-        assert gw._home_window.window_id == 10000
+        assert gw._home_window is None
+        gw.window_property("anything")
+        first = gw._home_window
+        assert isinstance(first, _FakeWindow)
+        assert first.window_id == 10000
+        gw.set_window_property("k", "v")
+        assert gw._home_window is first          # cached, not rebuilt
 
     def test_set_then_get_round_trips(self, monkeypatch):
         monkeypatch.setattr(xbmcgui, "Window", _FakeWindow)

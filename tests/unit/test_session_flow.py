@@ -14,13 +14,16 @@ import pytest
 
 from resources.lib import rpc_client
 from resources.lib.aom.app import events
+from resources.lib.aom.app.stream_detector import INFOLABEL_FPS, INFOLABEL_HDR
 from resources.lib.aom.domain.stream_state import StreamState
 from tests.fakes import FakeClock, FakeGateway
 
 
+# Keyed by the production constants so a renamed infolabel cannot silently
+# degrade the scripted stream while these tests stay green.
 INFOLABELS = {
-    'Player.Process(videofps)': '23.976',
-    'Player.Process(video.source.hdr.type)': 'dolbyvision',
+    INFOLABEL_FPS: '23.976',
+    INFOLABEL_HDR: 'dolbyvision',
 }
 
 
@@ -188,6 +191,63 @@ def test_mid_play_change_applies_immediately_and_notifies_on_stable(rig):
     assert session.stream_state is StreamState.STABLE
     assert notified[-1] == (-125, 'dolbyvision_all_eac3')
     assert session.pending_notification is None
+
+
+def test_blip_and_revert_fires_no_legacy_change_event(rig):
+    # A codec blip that reverts (no net change) re-earns STABLE but must NOT
+    # reach the legacy bus: legacy's filter never fired ON_AV_CHANGE for it,
+    # and SeekBacks would answer one with a spurious 'adjust' seek-back.
+    runtime, clock, gateway, applied, notified = rig
+
+    runtime.dispatcher.post(events.PlaybackStarted())
+    runtime.dispatcher.run_pending()
+    _settle(runtime, clock)
+    session = runtime.session_tracker.current
+    assert session.stream_state is StreamState.STABLE
+
+    changes = []
+    runtime.router.subscribe('ON_AV_CHANGE', lambda: changes.append(1))
+    baseline_applied, baseline_notified = len(applied), len(notified)
+
+    gateway.codec = 'none'                   # blip: profile goes incomplete
+    runtime.dispatcher.post(events.AvChanged())
+    runtime.dispatcher.run_pending()
+    assert session.stream_state is StreamState.STABILIZING
+
+    gateway.codec = 'truehd'                 # reverts inside the window
+    _settle(runtime, clock)
+    assert session.stream_state is StreamState.STABLE
+    assert changes == []                     # suppressed: nothing announced
+    assert len(applied) == baseline_applied
+    assert len(notified) == baseline_notified
+
+
+def test_failed_apply_rpc_is_retried_on_next_event(rig, monkeypatch):
+    # A failed Player.SetAudioDelay must not be recorded as applied — the
+    # dedupe guard would block every retry for the rest of the session.
+    runtime, clock, _gateway, applied, notified = rig
+
+    calls = {'n': 0}
+
+    def flaky_set_audio_delay(player_id, seconds):
+        calls['n'] += 1
+        if calls['n'] == 1:
+            return False                     # first apply attempt fails
+        applied.append((player_id, round(seconds * 1000)))
+        return True
+
+    monkeypatch.setattr(rpc_client, 'set_audio_delay', flaky_set_audio_delay)
+
+    runtime.dispatcher.post(events.PlaybackStarted())
+    runtime.dispatcher.run_pending()
+    session = runtime.session_tracker.current
+    assert applied == []                     # RPC failed
+    assert session.applied is None           # NOT recorded as applied
+
+    _settle(runtime, clock)                  # STABLE -> ON_AV_CHANGE retries
+    assert applied == [(1, -125)]
+    assert session.applied == ('dolbyvision_all_truehd', -125)
+    assert notified == [(-125, 'dolbyvision_all_truehd')]
 
 
 def test_av_change_storm_collapses_to_one_apply(rig):

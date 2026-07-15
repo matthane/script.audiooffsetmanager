@@ -33,8 +33,10 @@ class KodiGateway:
         logger applies when the debug toggle is on.
         """
         self._log = log
-        # Cache one home-window handle; window-property reads/writes reuse it.
-        self._home_window = xbmcgui.Window(_HOME_WINDOW_ID)
+        # Home-window handle, created LAZILY on first window-property use:
+        # constructing a gateway (including at legacy shim import time) must
+        # perform no Kodi GUI I/O.
+        self._home_window = None
 
     def _execute_rpc(self, request):
         """Execute one JSON-RPC request and return the decoded response."""
@@ -97,12 +99,20 @@ class KodiGateway:
             return "unknown", "unknown"
 
     def infolabel(self, label):
-        """Return ``xbmc.getInfoLabel(label)`` verbatim.
+        """Return ``xbmc.getInfoLabel(label)``, or '' if the read raises.
 
         The gateway does not interpret the value; callers apply the echo guard
-        (dropping a label that just repeats the query) themselves.
+        (dropping a label that just repeats the query) themselves. The
+        exception guard matches the sibling methods: a transient read failure
+        must yield the "unresolved" sentinel, not unwind the caller's
+        probe/verify chain before its next attempt is scheduled.
         """
-        return xbmc.getInfoLabel(label)
+        try:
+            return xbmc.getInfoLabel(label)
+        except Exception as e:
+            self._log(f"AOM_Gateway: Error reading infolabel {label}: {str(e)}",
+                      xbmc.LOGERROR)
+            return ''
 
     def set_audio_delay(self, player_id, delay_seconds):
         """Set the audio delay via ``Player.SetAudioDelay``; return success.
@@ -171,14 +181,20 @@ class KodiGateway:
             self._log(f"AOM_Gateway: Error executing seek command: {str(e)}", xbmc.LOGERROR)
             return False
 
+    def _window(self):
+        """The cached home-window handle, created on first use."""
+        if self._home_window is None:
+            self._home_window = xbmcgui.Window(_HOME_WINDOW_ID)
+        return self._home_window
+
     def window_property(self, name):
         """Return the home-window property ``name`` (empty string if unset)."""
-        return self._home_window.getProperty(name)
+        return self._window().getProperty(name)
 
     def set_window_property(self, name, value):
         """Set the home-window property ``name`` to ``value``."""
-        self._home_window.setProperty(name, value)
+        self._window().setProperty(name, value)
 
     def clear_window_property(self, name):
         """Clear the home-window property ``name``."""
-        self._home_window.clearProperty(name)
+        self._window().clearProperty(name)

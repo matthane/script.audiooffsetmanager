@@ -26,6 +26,20 @@ from resources.lib.aom.kodi.monitor_bridge import MonitorBridge
 from resources.lib.aom.kodi.player_bridge import PlayerBridge
 
 
+# The injected log sinks, bound once (named functions also read better than
+# lambdas in the dispatcher's per-handler runtime logging).
+def _log_debug(message):
+    log(message, xbmc.LOGDEBUG)
+
+
+def _log_warning(message):
+    log(message, xbmc.LOGWARNING)
+
+
+def _log_error(message):
+    log(message, xbmc.LOGERROR)
+
+
 class ServiceRuntime:
     def __init__(self):
         settings_manager = SettingsManager()
@@ -36,8 +50,8 @@ class ServiceRuntime:
 
         self._settings_facade = settings_facade
         self.dispatcher = Dispatcher(
-            log_debug=lambda message: log(message, xbmc.LOGDEBUG),
-            log_error=lambda message: log(message, xbmc.LOGERROR),
+            log_debug=_log_debug,
+            log_error=_log_error,
             log_runtimes=settings_facade.debug_logging_enabled())
 
         # Subscription order is load-bearing (dispatch follows it):
@@ -48,19 +62,16 @@ class ServiceRuntime:
         # 3. detector — owns session.profile and the stream-state machine;
         # 4. recorder — consumes the detector's StreamProbed facts.
         self.session_tracker = SessionTracker(
-            self.dispatcher,
-            log_debug=lambda message: log(message, xbmc.LOGDEBUG))
+            self.dispatcher, log_debug=_log_debug)
 
         # MIGRATION(p7): the router carries the legacy EventBus surface.
         self.router = LegacyEventRouter(self.dispatcher, self.session_tracker,
                                         settings_facade)
         self.detector = StreamDetector(
             self.dispatcher, self.session_tracker, gateway, settings_facade,
-            log_debug=lambda message: log(message, xbmc.LOGDEBUG),
-            log_warning=lambda message: log(message, xbmc.LOGWARNING))
+            log_debug=_log_debug, log_warning=_log_warning)
         self.platform_recorder = PlatformRecorder(
-            self.dispatcher, settings_facade,
-            log_debug=lambda message: log(message, xbmc.LOGDEBUG))
+            self.dispatcher, settings_facade, log_debug=_log_debug)
 
         # MIGRATION(p6): session-backed StreamInfo shim, read by ActiveMonitor
         # and the debug snapshot only.

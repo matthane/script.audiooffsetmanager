@@ -3,10 +3,12 @@
 Events are frozen dataclasses dispatched by type (subscribe registers against
 the class). Payloads are explicit fields — never positional *args.
 
-The catalog below is the full target set. The "player/monitor" group is live
-now (posted by the Kodi bridges); the later groups are defined ahead of the
-components that will post/consume them, so the contract is reviewable in one
-place. Pure Python: no Kodi imports.
+The catalog below is the full target set. The "player/monitor" group (Kodi
+bridges) and the detection group (posted by StreamDetector; consumed by the
+router, PlatformRecorder, and the detector itself) are live. The
+offset/adjustment and seek/watcher groups are still defined ahead of the
+components that will post them (Phases 5-7), so the contract stays
+reviewable in one place. Pure Python: no Kodi imports.
 """
 
 from dataclasses import dataclass
@@ -99,8 +101,18 @@ class StreamProbed:
 
 @dataclass(frozen=True)
 class StreamStabilized:
-    """The session's profile held for the verification window."""
+    """The session's profile held for the verification window.
+
+    ``profile_changed`` is False for a pure re-confirmation (a blip that
+    reverted with no adoption in between): the state machine re-earned
+    STABLE, but no stream change is being announced. The router uses it to
+    suppress the legacy ON_AV_CHANGE translation for those — legacy's
+    duplicate-codec filter never fired an event for a reverting blip. The
+    default is True (announce) so hand-posted events keep the announcing
+    behavior.
+    """
     session_id: int
+    profile_changed: bool = True
 
 
 @dataclass(frozen=True)

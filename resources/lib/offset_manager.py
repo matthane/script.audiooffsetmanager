@@ -53,6 +53,8 @@ class OffsetManager:
 
         The profile is still None here — the detector's first probe hasn't
         run — so this is a skip pass; kept for legacy log/flow parity.
+        MIGRATION(p7): the real apply trigger is PROFILE_CHANGED; the typed
+        rebuild must NOT wire PlaybackStarted -> apply.
         """
         self._handle_av_event()
 
@@ -161,11 +163,18 @@ class OffsetManager:
                 else:
                     session.pending_notification = None
 
-                self.set_audio_delay(profile.player_id, delay_ms / 1000.0,
-                                     profile, notify=not suppress_notification)
-                session.applied = (setting_id, delay_ms)
-                if not suppress_notification:
-                    self._maybe_send_pending_notification(session, profile)
+                success = self.set_audio_delay(
+                    profile.player_id, delay_ms / 1000.0, profile,
+                    notify=not suppress_notification)
+                if success:
+                    # Only a successful RPC counts as applied: recording a
+                    # failure here would let the dedupe guard block every
+                    # retry for the rest of the session.
+                    session.applied = (setting_id, delay_ms)
+                else:
+                    log(f"AOM_OffsetManager: audio delay RPC failed for "
+                        f"{setting_id}; will retry on the next AV event",
+                        xbmc.LOGWARNING)
             else:
                 log("AOM_OffsetManager: No valid player ID found to set "
                     "audio delay", xbmc.LOGDEBUG)
@@ -175,15 +184,16 @@ class OffsetManager:
                 xbmc.LOGERROR)
 
     def set_audio_delay(self, player_id, delay_seconds, profile, notify=True):
-        """Set the audio delay using JSON-RPC.
+        """Set the audio delay using JSON-RPC; returns True on success.
 
         `profile` is the caller's freshly-read session profile — passed in so
         the notification is keyed to the exact profile the apply decision used.
         """
         success = rpc_client.set_audio_delay(player_id, delay_seconds)
         if success:
-            # Convert seconds to milliseconds for notification
-            delay_ms = int(delay_seconds * 1000)
+            # round(), not int(): the seconds value is a float round-trip of
+            # an integer ms offset, and truncation would display 29ms as 28.
+            delay_ms = int(round(delay_seconds * 1000))
 
             # Send notification for automatic offset application
             # This is only called for automatic offset application (not manual adjustments)
@@ -191,6 +201,7 @@ class OffsetManager:
                 self.notification_handler.notify_audio_offset_applied(delay_ms, profile)
             log_snapshot("APPLY_OFFSET", self.stream_info, self.settings_facade,
                          extra={"delay_ms": delay_ms, "notified": notify})
+        return success
 
     def _should_start_active_monitor(self, profile):
         """Determine if active monitor should be started based on current conditions.

@@ -46,6 +46,12 @@ class PlaybackSession:
     # through the StreamInfo shim (an atomic reference read of a frozen
     # dataclass — no partial states are observable).
     profile: object = None
+    # True while a profile (re)adoption has happened since the last
+    # StreamStabilized post. The detector consumes it to stamp
+    # StreamStabilized.profile_changed, which the router uses to suppress
+    # the legacy ON_AV_CHANGE for pure re-confirmations (a codec blip that
+    # reverted) — legacy's duplicate-codec filter never fired for those.
+    profile_changed_since_stabilized: bool = False
     applied: tuple = None                   # (setting_key, delay_ms) dedupe guard
     pending_notification: tuple = None      # (setting_key, delay_ms) awaiting STABLE
     paused: bool = False
@@ -104,9 +110,12 @@ class SessionTracker:
     def is_alive(self, session_id):
         """True while the given session is still the live one.
 
-        Called from the AvChangeFilter verify thread as well as the
-        dispatcher thread: read self.current exactly ONCE so a concurrent
-        teardown can never null it between a check and a dereference.
+        All remaining callers run on the dispatcher thread (the deleted
+        AvChangeFilter verify thread was the cross-thread caller; today the
+        only cross-thread READER of session state is the StreamInfo shim's
+        profile property). The single read of self.current is kept: it is
+        free, and it makes the method safe for any future off-thread caller
+        without a change here.
         """
         current = self.current
         return current is not None and current.session_id == session_id

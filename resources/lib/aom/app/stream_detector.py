@@ -26,10 +26,23 @@ scheduled events — never as sleeps:
 Every gather posts ``StreamProbed`` platform facts for the PlatformRecorder
 (legacy parity: StreamInfo stored capabilities on every gather).
 
+"Same stream" is judged on the OFFSET-RELEVANT identity — the setting_id()
+axes (hdr/fps-bucket/audio) — not raw dataclass equality: incidental fields
+(player_id, audio_channels, video_fps) can wiggle between gathers
+(channel-count flicker during passthrough sync, VFR fps re-reads) without
+the stream changing for offset purposes. An identity-equal gather silently
+refreshes ``session.profile`` (so downstream readers see fresh incidental
+fields) with no events and no state change; comparing raw equality instead
+would strand verification in a perpetual re-adopt loop.
+
 Intentional divergences from legacy (reviewed):
 - Offsets now re-apply ~1s EARLIER on mid-play changes: adoption posts
   ``ProfileChanged`` immediately (the apply is provisional; notifications
   still wait for STABLE), where legacy applied only after its 1s debounce.
+- HDR/FPS-bucket-only mid-play changes are full change episodes now (offset
+  re-apply, notification, and the legacy ON_AV_CHANGE that drives change
+  seek-backs); legacy's codec-only filter ignored them entirely, silently
+  keeping a stale offset.
 - A stream whose profile never completes (budget exhausted) fires no legacy
   AV events at all, so the active monitor is not started for it; legacy
   started the monitor on hdr+fps-only profiles, but its write path
@@ -55,17 +68,33 @@ INFOLABEL_GAMUT = 'Player.Process(amlogic.eoft_gamut)'
 
 @dataclass(frozen=True)
 class StreamFacts:
-    """One detection pass: the derived profile plus platform observations."""
+    """One detection pass: the derived profile plus platform observations.
+
+    ``hdr_source`` records which branch of the chain-of-evidence produced
+    the HDR type ('primary', 'fallback', 'default-sdr', or 'gamut-hlg') —
+    surfaced in the probe log line so field logs show WHICH detection path
+    fired, replacing legacy StreamInfo's per-branch debug lines.
+    """
     profile: StreamProfile
     platform_hdr_full: bool
     advanced_hlg: bool
     gamut_info: str
+    hdr_source: str
 
 
 def _is_valid_infolabel(label, value):
     """Echo guard: xbmc.getInfoLabel returns the literal label text when it
     cannot resolve a label, so value==label means "no data", not data."""
     return bool(value and value.strip() and value.lower() != label.lower())
+
+
+def _same_stream(profile, adopted):
+    """Offset-relevant identity: True when both map to the same setting key.
+
+    See the module docstring — raw dataclass equality would also compare
+    player_id/audio_channels/video_fps, which may wiggle between gathers.
+    """
+    return adopted is not None and profile.setting_id() == adopted.setting_id()
 
 
 def _derive_audio_format(raw_codec):
@@ -111,13 +140,16 @@ def derive_stream_facts(player_id, raw_codec, raw_channels, raw_fps, raw_hdr,
     if _is_valid_infolabel(INFOLABEL_HDR, raw_hdr):
         platform_hdr_full = True
         hdr_type = raw_hdr
+        hdr_source = 'primary'
     else:
         platform_hdr_full = False
         hdr_type = raw_hdr_fallback
+        hdr_source = 'fallback'
 
     hdr_type = hdr_type.replace('+', 'plus').replace(' ', '').lower()
     if not hdr_type or hdr_type == INFOLABEL_HDR.lower():
         hdr_type = 'sdr'
+        hdr_source = 'default-sdr'
     elif hdr_type == 'hlghdr':
         hdr_type = 'hlg'
     if hdr_type not in formats.HDR_TYPES:
@@ -127,6 +159,7 @@ def derive_stream_facts(player_id, raw_codec, raw_channels, raw_fps, raw_hdr,
     gamut_info = raw_gamut if gamut_valid else 'not available'
     if hdr_type == 'sdr' and gamut_valid and 'hlg' in raw_gamut.lower():
         hdr_type = 'hlg'
+        hdr_source = 'gamut-hlg'
 
     if hdr_type != formats.UNKNOWN and not fps_override_enabled(hdr_type):
         fps_type = formats.FPS_ALL
@@ -144,6 +177,7 @@ def derive_stream_facts(player_id, raw_codec, raw_channels, raw_fps, raw_hdr,
         platform_hdr_full=platform_hdr_full,
         advanced_hlg=gamut_valid,
         gamut_info=gamut_info,
+        hdr_source=hdr_source,
     )
 
 
@@ -239,7 +273,10 @@ class StreamDetector:
                       "probes will observe it")
             return
         facts = self._gather(session.session_id)
-        if facts.profile == session.profile:
+        if _same_stream(facts.profile, session.profile):
+            # Same offset-relevant stream: refresh incidental fields
+            # (player_id/channels/raw fps) silently — no events, no state.
+            session.profile = facts.profile
             self._log("AOM_StreamDetector: AV change with unchanged profile; "
                       "ignoring")
             return
@@ -277,13 +314,17 @@ class StreamDetector:
             return
         session = self._sessions.current
         facts = self._gather(event.session_id)
-        if facts.profile == session.profile:
+        if _same_stream(facts.profile, session.profile):
+            session.profile = facts.profile   # silent incidental-field refresh
             session.mark_stable()
+            announce = session.profile_changed_since_stabilized
+            session.profile_changed_since_stabilized = False
             self._log(f"AOM_StreamDetector: profile held for "
                       f"{self.VERIFY_WINDOW_SECONDS}s; session "
-                      f"#{event.session_id} stable")
-            self._dispatcher.post(
-                events.StreamStabilized(session_id=event.session_id))
+                      f"#{event.session_id} stable "
+                      f"(profile_changed={announce})")
+            self._dispatcher.post(events.StreamStabilized(
+                session_id=event.session_id, profile_changed=announce))
         elif policies.is_complete(facts.profile):
             self._log(f"AOM_StreamDetector: profile changed during "
                       f"verification: {session.profile} -> {facts.profile}; "
@@ -301,6 +342,7 @@ class StreamDetector:
     def _adopt(self, session, profile):
         """Write the session's profile and (re-)earn stability for it."""
         session.profile = profile
+        session.profile_changed_since_stabilized = True
         if not session.mark_profile_built():
             session.mark_verifying()
         self._dispatcher.post(
@@ -332,7 +374,8 @@ class StreamDetector:
             fps_override_enabled=self._settings.fps_override_enabled,
         )
         self._log(f"AOM_StreamDetector: probed {facts.profile} "
-                  f"(platform_hdr_full={facts.platform_hdr_full}, "
+                  f"(hdr_source={facts.hdr_source}, "
+                  f"platform_hdr_full={facts.platform_hdr_full}, "
                   f"gamut={facts.gamut_info})")
         self._dispatcher.post(events.StreamProbed(
             session_id=session_id,

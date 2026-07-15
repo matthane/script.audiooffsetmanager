@@ -170,6 +170,28 @@ def test_stream_stabilized_translates_without_touching_state(rig):
     assert state_at_delivery == [StreamState.STABLE]
 
 
+def test_reconfirmation_stabilization_is_not_translated(rig):
+    # profile_changed=False marks a pure re-confirmation (blip that reverted,
+    # no adoption): legacy's duplicate-codec filter never fired ON_AV_CHANGE
+    # there, and translating it would run a spurious 'adjust' seek-back.
+    dispatcher, tracker, router, _errors = rig
+    session = _start_playback(dispatcher, tracker)
+    session.mark_verifying()
+    session.mark_stable()
+
+    seen = []
+    router.subscribe('ON_AV_CHANGE', lambda: seen.append('ON_AV_CHANGE'))
+    dispatcher.post(events.StreamStabilized(session_id=session.session_id,
+                                            profile_changed=False))
+    dispatcher.run_pending()
+    assert seen == []
+
+    dispatcher.post(events.StreamStabilized(session_id=session.session_id,
+                                            profile_changed=True))
+    dispatcher.run_pending()
+    assert seen == ['ON_AV_CHANGE']
+
+
 def test_stale_detector_events_for_superseded_session_are_dropped(rig):
     dispatcher, tracker, router, _errors = rig
     first = _start_playback(dispatcher, tracker)

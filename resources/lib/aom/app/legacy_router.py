@@ -26,11 +26,17 @@ This is legacy-bridging code, so unlike the rest of aom.app it may import
 legacy modules (and, through them, Kodi APIs). Log lines are kept verbatim
 from EventManager for field-log comparability during the migration.
 
-Known interim cost (removed by the seek phase): SeekBacks' blocking
+Known interim costs (removed by the seek phase): SeekBacks' blocking
 settle/PM4K waits still stall the single dispatcher thread, serializing
 paths legacy ran concurrently (ActiveMonitor's USER_ADJUSTMENT fired inline
-on the monitor thread and now queues behind a stall). Accepted for the
-construction phases; eliminated when the seek scheduler lands.
+on the monitor thread and now queues behind a stall). New consequence since
+detection moved to queued events: the 'resume' seek-back's 2s settle runs
+inside the AV_STARTED publish, BEFORE the detector's first probe can
+dispatch — so on resume-with-seek-back the offset lands ~2s later than
+legacy and the replay seek precedes it (the re-watched seconds then play
+with the correct offset, so the UX cost is ~2s of visible lip-sync error
+that gets replayed anyway). Accepted for the construction phases;
+eliminated when the seek scheduler lands.
 """
 
 from dataclasses import dataclass, field
@@ -111,6 +117,11 @@ class LegacyEventRouter:
         """Detector confirmed stability (session already marked STABLE):
         publish the legacy "stream settled" signal.
 
+        Re-confirmations (profile_changed=False: a blip that reverted with
+        no adoption) are NOT translated — legacy's duplicate-codec filter
+        never fired ON_AV_CHANGE for those, and translating them would run
+        a spurious 'adjust' seek-back.
+
         MIGRATION(p7): ON_AV_CHANGE survives only as this translation; the
         name disappears with the legacy bus once OffsetManager and SeekBacks
         are rebuilt on typed events.
@@ -118,6 +129,10 @@ class LegacyEventRouter:
         if not self._sessions.is_alive(event.session_id):
             log(f"AOM_EventManager: dropping stale stabilization for session "
                 f"#{event.session_id}", xbmc.LOGDEBUG)
+            return
+        if not event.profile_changed:
+            log("AOM_EventManager: stream re-stabilized without a profile "
+                "change; suppressing legacy ON_AV_CHANGE", xbmc.LOGDEBUG)
             return
         self._publish_here('ON_AV_CHANGE')
 

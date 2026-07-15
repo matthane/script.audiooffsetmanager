@@ -454,6 +454,36 @@ class TestVerificationRecovery:
         assert rig.session.profile.setting_id() == original_setting
         assert len(rig.profiles) == 1        # never re-adopted -> no stranding
         assert len(rig.stabilized) == 2
+        # The re-confirmation announces NO change (no adoption in between):
+        # the router suppresses the legacy ON_AV_CHANGE for it, so a pure
+        # blip can never fire a spurious 'adjust' seek-back.
+        assert rig.stabilized[0].profile_changed is True    # startup settle
+        assert rig.stabilized[1].profile_changed is False   # blip re-confirm
+        assert rig.errors == []
+
+    def test_incidental_field_wiggle_still_stabilizes(self, rig):
+        # Stability is judged on the OFFSET-RELEVANT identity (setting_id
+        # axes), not raw dataclass equality: a channel count that flickers
+        # between gathers (passthrough sync) must not strand the session in
+        # a perpetual re-adopt loop — it stabilizes, and the fresher
+        # incidental fields are refreshed silently (no extra ProfileChanged).
+        rig.start()
+        assert rig.session.profile.audio_channels == 8
+
+        rig.gateway.channels = 6             # wiggles before the verify fires
+        rig.advance(1.0)
+        assert rig.session.stream_state is StreamState.STABLE
+        assert len(rig.stabilized) == 1
+        assert rig.stabilized[0].profile_changed is True
+        assert len(rig.profiles) == 1        # no re-adoption for the wiggle
+        assert rig.session.profile.audio_channels == 6   # silently refreshed
+
+        # Same for a mid-play AvChanged that only wiggles incidental fields.
+        rig.gateway.channels = 8
+        rig.av_changed()
+        assert rig.session.stream_state is StreamState.STABLE  # not regressed
+        assert len(rig.profiles) == 1
+        assert rig.session.profile.audio_channels == 8
         assert rig.errors == []
 
     def test_change_during_verification_readopts(self, rig):

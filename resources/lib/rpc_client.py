@@ -15,25 +15,37 @@ Only the functions legacy modules still call are re-exported:
 - ``get_audio_info`` had no remaining callers (StreamInfo's gather became
   the stream detector) and is gone.
 
-This shim dies with the legacy modules in Phase 7.
+The gateway instance is a lazily-memoized module singleton — a deliberate,
+shim-scoped exception to the no-global-state convention (module functions
+cannot take constructor injection); it is created on first call, never at
+import, so importing this module performs no Kodi I/O. This shim dies with
+the legacy modules in Phase 7, leaving the runtime's injected gateway as
+the single instance.
 """
 
 from resources.lib.aom.kodi.gateway import KodiGateway
 from resources.lib.logger import log
 
-_gateway = KodiGateway(log=log)
+_gateway = None
+
+
+def _get_gateway():
+    global _gateway
+    if _gateway is None:
+        _gateway = KodiGateway(log=log)
+    return _gateway
 
 
 def get_active_player_id():
     """Return the active player id or -1 (single shot; see module docstring)."""
-    return _gateway.active_player_id()
+    return _get_gateway().active_player_id()
 
 
 def set_audio_delay(player_id, delay_seconds):
     """Set audio delay; logs errors but does not raise."""
-    return _gateway.set_audio_delay(player_id, delay_seconds)
+    return _get_gateway().set_audio_delay(player_id, delay_seconds)
 
 
 def seek_back(seconds, player_id=None):
     """Seek backward by seconds; returns True on success."""
-    return _gateway.seek_back(seconds, player_id=player_id)
+    return _get_gateway().seek_back(seconds, player_id=player_id)
