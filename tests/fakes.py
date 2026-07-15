@@ -17,6 +17,10 @@ methods app components read (detector: fps_override_enabled; scheduler:
 seek_back_config) — one fake, so the facade contract cannot drift between
 suites.
 
+``FakeGui`` (Phase 7) is the stand-in for ``aom.kodi.gui.Gui``: it records
+toasts and returns a deterministic ``localized()`` marker so the Notifier's
+message assembly is asserted without a real string table.
+
 Keep this module tiny and dependency-free (no Kodi imports, no pytest) so
 every test tier can share it.
 """
@@ -156,3 +160,17 @@ class FakeFacade:
         self.stored.append((setting_id, value))
         self.offsets[setting_id] = value
         return True
+
+
+class FakeGui:
+    """Records toasts; localized() returns a deterministic marker."""
+
+    def __init__(self):
+        self.notifications = []          # (message, duration_ms)
+        self.localized_strings = {}      # optional overrides: id -> str
+
+    def localized(self, string_id):
+        return self.localized_strings.get(string_id, f"#{string_id}")
+
+    def notification(self, message, duration_ms):
+        self.notifications.append((message, duration_ms))
