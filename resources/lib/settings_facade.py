@@ -10,6 +10,9 @@ class SettingsFacade:
     def is_hdr_enabled(self, hdr_type):
         return self.settings_manager.get_setting_boolean(f"enable_{hdr_type}")
 
+    def active_monitoring_enabled(self):
+        return self.settings_manager.get_setting_boolean('enable_active_monitoring')
+
     def fps_override_enabled(self, hdr_type):
         return self.settings_manager.get_setting_boolean(f"enable_fps_{hdr_type}")
 

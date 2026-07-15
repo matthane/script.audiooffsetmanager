@@ -65,6 +65,14 @@ class PlaybackSession:
     # monotonic clocks, whose epoch is arbitrary).
     last_seek_activity: Optional[float] = None
     seek_history: dict = field(default_factory=dict)  # reason -> monotonic ts
+    # AdjustmentWatcher observation state. The baseline is the last delay
+    # value accounted for (ours, or already stored): only a CHANGE away from
+    # it can become a user adjustment, so a pre-existing delay the watcher
+    # first observes (e.g. left behind by a failed apply RPC) is adopted
+    # silently, never stored. watch_pending is the quiescence candidate:
+    # (observed_ms, first_seen_monotonic).
+    watch_baseline_ms: Optional[int] = None
+    watch_pending: tuple = None
 
     # -- stream-state transitions (the only sanctioned writers) ---------------
 

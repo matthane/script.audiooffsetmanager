@@ -141,7 +141,16 @@ class OffsetApplied:
 
 @dataclass(frozen=True)
 class UserOffsetSaved:
-    """The adjustment watcher stored a user's manual offset change."""
+    """The adjustment watcher stored a user's manual offset change.
+
+    Session-stamped, and the profile/ms ride on the event as captured AT
+    STORE TIME on the dispatcher thread: consumers (notification, 'change'
+    seek-back) act on exactly what was stored, and an in-place reopen
+    between post and dispatch makes the event inert instead of targeting
+    the new session — the legacy USER_ADJUSTMENT bus wire carried no
+    payload and no stamp, leaving both races open (P5 review finding).
+    """
+    session_id: int
     profile: object  # StreamProfile
     ms: int
 
