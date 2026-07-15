@@ -18,6 +18,7 @@ from resources.lib.stream_info import StreamInfo
 from resources.lib.aom.app import events
 from resources.lib.aom.app.dispatcher import Dispatcher
 from resources.lib.aom.app.legacy_router import LegacyEventRouter
+from resources.lib.aom.app.session import SessionTracker
 from resources.lib.aom.kodi.monitor_bridge import MonitorBridge
 from resources.lib.aom.kodi.player_bridge import PlayerBridge
 
@@ -36,14 +37,22 @@ class ServiceRuntime:
             log_error=lambda message: log(message, xbmc.LOGERROR),
             log_runtimes=settings_facade.debug_logging_enabled())
 
+        # The tracker subscribes FIRST: dispatch follows subscription order,
+        # so the session exists (or is torn down) before any other handler of
+        # the same lifecycle event runs.
+        self.session_tracker = SessionTracker(
+            self.dispatcher,
+            log_debug=lambda message: log(message, xbmc.LOGDEBUG))
+
         # MIGRATION(p7): the router carries the legacy EventBus surface.
-        self.router = LegacyEventRouter(self.dispatcher, stream_info,
-                                        settings_facade)
+        self.router = LegacyEventRouter(self.dispatcher, self.session_tracker,
+                                        stream_info, settings_facade)
         self.offset_manager = OffsetManager(self.router, settings_manager,
                                             stream_info, notification_handler,
-                                            settings_facade)
+                                            settings_facade,
+                                            self.session_tracker)
         self.seek_backs = SeekBacks(self.router, settings_manager,
-                                    settings_facade)
+                                    settings_facade, self.session_tracker)
 
         self.player_bridge = PlayerBridge(self.dispatcher)
         self.monitor = MonitorBridge(self.dispatcher)

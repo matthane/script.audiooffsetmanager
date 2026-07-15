@@ -21,24 +21,30 @@ class AvChangeFilter:
         self.last_audio_codec = None
 
     def handle_av_change(self, is_playback_active, on_stable_callback, set_last_codec=None):
-        """Debounce AV changes until codec stabilizes for 1s."""
+        """Debounce AV changes until codec stabilizes for 1s.
+
+        Returns True when a stability verification was scheduled (a genuine
+        codec change), False when the event was ignored — callers use this to
+        regress the session's stream state only for real changes.
+        """
         if not is_playback_active():
-            return
+            return False
 
         current_codec = self._get_current_audio_codec()
         if current_codec is None:
             log(f"{self.log_prefix}: Codec not available yet, skipping event",
                 xbmc.LOGDEBUG)
-            return
+            return False
 
         if current_codec == self.last_audio_codec:
             log(f"{self.log_prefix}: Duplicate AV change event for codec '{current_codec}', ignoring",
                 xbmc.LOGDEBUG)
-            return
+            return False
 
         log(f"{self.log_prefix}: Codec change detected: '{self.last_audio_codec}' -> '{current_codec}', "
             f"scheduling stability verification", xbmc.LOGDEBUG)
         self._schedule_codec_verification(current_codec, is_playback_active, on_stable_callback, set_last_codec)
+        return True
 
     def _get_current_audio_codec(self):
         """Get current audio codec using StreamInfo module."""

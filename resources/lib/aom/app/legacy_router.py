@@ -2,17 +2,24 @@
 
 MIGRATION(p7): this module replaces the legacy EventManager and dies with the
 legacy components. It exists so OffsetManager, SeekBacks, and ActiveMonitor
-run UNCHANGED — same subscribe/unsubscribe/publish surface, same
-playback_state dict, same event names, same log lines — while every handler
-now executes on the dispatcher thread instead of Kodi's callback pump.
+run their legacy logic — same subscribe/unsubscribe/publish surface, same
+event names, same log lines — while every handler executes on the dispatcher
+thread instead of Kodi's callback pump.
 
-Thread model:
-- Typed Kodi events arrive via the dispatcher (already on its thread) and are
-  translated here into legacy state updates + EventBus publishes.
-- Legacy components publish (ActiveMonitor's USER_ADJUSTMENT) and
-  AvChangeFilter's verify thread confirms codecs from OTHER threads; both are
-  marshaled back by posting internal events, so the EventBus only ever fires
-  on the dispatcher thread.
+Per-playback state lives on the PlaybackSession (owned by SessionTracker,
+which subscribes to the lifecycle events BEFORE this router — dispatch order
+follows subscription order — so the session already exists/died when this
+router's handlers run). The AvChangeFilter's verify thread marshals its
+confirmation back as two session-stamped posts in FIFO order:
+StreamStabilized (marks the session STABLE) then _AvChangeStable (publishes
+the legacy ON_AV_CHANGE) — so subscribers observe STABLE state, exactly like
+the legacy set-then-publish. Confirmations stamped with a superseded
+session_id are dropped: an in-place reopen makes the old session's in-flight
+verifications inert by construction.
+
+Thread model: typed Kodi events arrive on the dispatcher thread; legacy
+components publish (ActiveMonitor's USER_ADJUSTMENT) from their own threads
+via publish(), which marshals through post().
 
 This is legacy-bridging code, so unlike the rest of aom.app it may import
 legacy modules (and, through them, Kodi APIs). Log lines are kept verbatim
@@ -29,7 +36,6 @@ phases and eliminated when the blocking handlers are rebuilt as scheduled,
 non-blocking components.
 """
 
-import time
 from dataclasses import dataclass, field
 
 import xbmc
@@ -38,6 +44,7 @@ from resources.lib.av_change_filter import AvChangeFilter
 from resources.lib.event_bus import EventBus
 from resources.lib.logger import log
 from resources.lib.aom.app import events
+from resources.lib.aom.domain.stream_state import StreamState
 
 
 # eq=False: keeps object-identity hashing — frozen+eq would auto-generate a
@@ -52,25 +59,20 @@ class _LegacyPublish:
 
 
 @dataclass(frozen=True)
-class _CodecObserved:
-    """AvChangeFilter's verify thread confirmed a stable codec."""
-    codec: str
+class _AvChangeStable:
+    """Verify thread confirmed the codec: publish legacy ON_AV_CHANGE."""
+    session_id: int
 
 
 class LegacyEventRouter:
     """Drop-in replacement for EventManager's component-facing surface."""
 
-    def __init__(self, dispatcher, stream_info, settings_facade):
+    def __init__(self, dispatcher, session_tracker, stream_info, settings_facade):
         self._dispatcher = dispatcher
+        self._sessions = session_tracker
         self.event_bus = EventBus(
             log_runtimes=settings_facade.debug_logging_enabled())
         self.av_change_filter = AvChangeFilter(stream_info)
-        self.playback_state = {
-            'start_time': None,
-            'av_started': False,
-            'last_event': None,
-            'last_audio_codec': None,
-        }
 
         dispatcher.subscribe(events.PlaybackStarted, self._on_playback_started)
         dispatcher.subscribe(events.AvChanged, self._on_av_changed)
@@ -81,8 +83,9 @@ class LegacyEventRouter:
         dispatcher.subscribe(events.SeekOccurred, self._on_seek)
         dispatcher.subscribe(events.SeekChapter, self._on_seek_chapter)
         dispatcher.subscribe(events.SpeedChanged, self._on_speed_changed)
+        dispatcher.subscribe(events.StreamStabilized, self._on_stream_stabilized)
+        dispatcher.subscribe(_AvChangeStable, self._on_av_change_stable)
         dispatcher.subscribe(_LegacyPublish, self._on_legacy_publish)
-        dispatcher.subscribe(_CodecObserved, self._on_codec_observed)
 
     # -- legacy component surface (unchanged from EventManager) ---------------
 
@@ -104,34 +107,59 @@ class LegacyEventRouter:
 
     def _on_playback_started(self, _event):
         log("AOM_EventManager: AV started", xbmc.LOGDEBUG)
-        # start_time deliberately stays wall-clock: the legacy grace-period
-        # check in OffsetManager compares it against time.time().
-        self.playback_state['start_time'] = time.time()
-        self.playback_state['av_started'] = True
-        self.playback_state['last_audio_codec'] = None
+        # The SessionTracker (subscribed before us) has already created the
+        # fresh session; there is no reset bookkeeping left to do here.
         self.av_change_filter.on_playback_start()
         self._publish_here('AV_STARTED')
 
     def _on_av_changed(self, _event):
         log("AOM_EventManager: AV change event received", xbmc.LOGDEBUG)
+        session = self._sessions.current
+        if session is None:
+            return
+        sid = session.session_id
         # The filter probes synchronously — this can block the dispatcher for
         # seconds on RPC retries (see the module docstring's interim note) —
-        # and confirms from its verify thread; both callbacks below marshal
-        # back via post().
-        self.av_change_filter.handle_av_change(
-            lambda: self.playback_state['av_started'],
-            lambda: self._dispatcher.post(_LegacyPublish('ON_AV_CHANGE')),
-            lambda codec: self._dispatcher.post(_CodecObserved(codec)),
+        # and confirms from its verify thread; the callbacks marshal back via
+        # session-stamped posts. The codec value itself has no consumer left
+        # (the state machine replaced codec mirroring), hence set_last_codec=None.
+        scheduled = self.av_change_filter.handle_av_change(
+            lambda: self._sessions.is_alive(sid),
+            lambda: self._on_verify_confirmed(sid),
+            None,
         )
+        if scheduled and session.stream_state is StreamState.STABLE:
+            # A genuine mid-play codec change: stability must be re-earned.
+            session.stream_state = StreamState.STABILIZING
+
+    def _on_verify_confirmed(self, session_id):
+        # VERIFY THREAD. FIFO order is load-bearing: the session is marked
+        # STABLE before ON_AV_CHANGE handlers run (legacy set-then-publish).
+        self._dispatcher.post(events.StreamStabilized(session_id=session_id))
+        self._dispatcher.post(_AvChangeStable(session_id=session_id))
+
+    def _on_stream_stabilized(self, event):
+        if not self._sessions.is_alive(event.session_id):
+            log(f"AOM_EventManager: dropping stale stabilization for session "
+                f"#{event.session_id}", xbmc.LOGDEBUG)
+            return
+        self._sessions.current.stream_state = StreamState.STABLE
+
+    def _on_av_change_stable(self, event):
+        if not self._sessions.is_alive(event.session_id):
+            log(f"AOM_EventManager: dropping stale AV change for session "
+                f"#{event.session_id}", xbmc.LOGDEBUG)
+            return
+        self._publish_here('ON_AV_CHANGE')
 
     def _on_playback_stopped(self, _event):
         log("AOM_EventManager: Playback stopped", xbmc.LOGDEBUG)
-        self._reset_playback_state()
+        self.av_change_filter.on_playback_stop()
         self._publish_here('PLAYBACK_STOPPED')
 
     def _on_playback_ended(self, _event):
         log("AOM_EventManager: Playback ended", xbmc.LOGDEBUG)
-        self._reset_playback_state()
+        self.av_change_filter.on_playback_stop()
         self._publish_here('PLAYBACK_ENDED')
 
     def _on_paused(self, _event):
@@ -160,18 +188,8 @@ class LegacyEventRouter:
     def _on_legacy_publish(self, event):
         self._publish_here(event.name, *event.args, **event.kwargs)
 
-    def _on_codec_observed(self, event):
-        self.playback_state['last_audio_codec'] = event.codec
-
     # -- internals ---------------------------------------------------------------
 
     def _publish_here(self, event_name, *args, **kwargs):
         """Publish on the EventBus (must already be on the dispatcher thread)."""
         self.event_bus.publish(event_name, *args, **kwargs)
-        self.playback_state['last_event'] = event_name
-
-    def _reset_playback_state(self):
-        self.playback_state['start_time'] = None
-        self.playback_state['av_started'] = False
-        self.playback_state['last_audio_codec'] = None
-        self.av_change_filter.on_playback_stop()

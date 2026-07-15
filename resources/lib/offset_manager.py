@@ -2,10 +2,10 @@
 This module also controls the deployment of the Active Monitor when it's enabled.
 """
 
-import time
 import xbmc
 from resources.lib.active_monitor import ActiveMonitor
 from resources.lib.aom.domain import policies
+from resources.lib.aom.domain.stream_state import StreamState
 from resources.lib import rpc_client
 from resources.lib.logger import log
 from resources.lib.debug_snapshot import log_snapshot
@@ -13,16 +13,15 @@ from resources.lib.debug_snapshot import log_snapshot
 
 class OffsetManager:
     def __init__(self, event_manager, settings_manager, stream_info,
-                 notification_handler, settings_facade):
+                 notification_handler, settings_facade, session_tracker):
         self.event_manager = event_manager
         self.settings_manager = settings_manager
         self.settings_facade = settings_facade
         self.stream_info = stream_info
         self.notification_handler = notification_handler
+        self.sessions = session_tracker
         self.active_monitor = None
-        self._last_applied = None
-        self._pending_notification = None  # (setting_id, delay_ms)
-        self._startup_grace_seconds = 2.0
+        self._monitor_session_id = None
         self._events = {
             'AV_STARTED': self.on_av_started,
             'ON_AV_CHANGE': self.on_av_change,
@@ -43,9 +42,7 @@ class OffsetManager:
         self.stop_active_monitor()
 
     def on_av_started(self):
-        """Handle AV started event."""
-        self._pending_notification = None
-        self._last_applied = None  # new playback: force offset re-apply
+        """Handle AV started event (per-playback resets are session-borne)."""
         self._handle_av_event()
 
     def on_av_change(self):
@@ -55,8 +52,6 @@ class OffsetManager:
     def on_playback_stopped(self):
         """Handle playback stopped event."""
         self.stream_info.clear_stream_info()
-        self._last_applied = None
-        self._pending_notification = None
         self.stop_active_monitor()
         
     def on_user_adjustment(self):
@@ -75,10 +70,19 @@ class OffsetManager:
 
     def _handle_av_event(self):
         """Common handler for AV-related events."""
+        session = self.sessions.current
+        if session is None:
+            log("AOM_OffsetManager: no active session; ignoring AV event",
+                xbmc.LOGDEBUG)
+            return
         self.stream_info.update_stream_info()
-        self.apply_audio_offset()
+        session.profile = self.stream_info.profile
+        if (session.stream_state is StreamState.STARTING
+                and session.profile is not None):
+            session.stream_state = StreamState.STABILIZING
+        self.apply_audio_offset(session)
         log_snapshot("AV_EVENT", self.stream_info, self.settings_facade)
-        self.manage_active_monitor()
+        self.manage_active_monitor(session)
 
     def _should_apply_offset(self):
         """Check if audio offset should be applied based on current conditions.
@@ -110,7 +114,7 @@ class OffsetManager:
                 f"enabled in settings", xbmc.LOGDEBUG)
         return False
 
-    def apply_audio_offset(self):
+    def apply_audio_offset(self, session):
         """Apply audio offset based on current stream information and settings."""
         try:
             if not self._should_apply_offset():
@@ -125,30 +129,31 @@ class OffsetManager:
                     xbmc.LOGDEBUG)
                 return
 
-            codec_stable = self._is_codec_stable(profile)
-            in_grace_period = self._is_within_startup_grace_period()
-            already_applied = self._last_applied == (setting_id, delay_ms)
+            already_applied = session.applied == (setting_id, delay_ms)
 
             if already_applied:
                 log(f"AOM_OffsetManager: Offset already applied for {setting_id} at {delay_ms}ms; skipping duplicate apply",
                     xbmc.LOGDEBUG)
-                self._maybe_send_pending_notification(profile)
+                self._maybe_send_pending_notification(session, profile)
                 return
 
             if profile.player_id != -1:
-                suppress_notification = (not codec_stable and in_grace_period)
+                # Provisional until the stream stabilizes: the notification is
+                # held on the session and released on the STABLE transition
+                # (which precedes ON_AV_CHANGE delivery by queue order).
+                suppress_notification = session.stream_state is not StreamState.STABLE
                 if suppress_notification:
-                    self._pending_notification = (setting_id, delay_ms)
-                    log("AOM_OffsetManager: Suppressing notification until codec stabilizes",
+                    session.pending_notification = (setting_id, delay_ms)
+                    log("AOM_OffsetManager: Suppressing notification until stream stabilizes",
                         xbmc.LOGDEBUG)
                 else:
-                    self._pending_notification = None
+                    session.pending_notification = None
 
                 self.set_audio_delay(profile.player_id, delay_ms / 1000.0,
                                      notify=not suppress_notification)
-                self._last_applied = (setting_id, delay_ms)
+                session.applied = (setting_id, delay_ms)
                 if not suppress_notification:
-                    self._maybe_send_pending_notification(profile)
+                    self._maybe_send_pending_notification(session, profile)
             else:
                 log("AOM_OffsetManager: No valid player ID found to set "
                     "audio delay", xbmc.LOGDEBUG)
@@ -188,55 +193,46 @@ class OffsetManager:
                 hdr_type != 'unknown' and 
                 fps_type != 'unknown')
 
-    def manage_active_monitor(self):
+    def manage_active_monitor(self, session):
         """Manage the active monitor state based on current conditions."""
         log(f"AOM_OffsetManager: Checking active monitor status - "
             f"HDR: {self.stream_info.profile.hdr_type if self.stream_info.profile else 'unknown'}, "
             f"FPS: {self.stream_info.profile.fps_type if self.stream_info.profile else 'unknown'}",
             xbmc.LOGDEBUG)
 
+        if (self.active_monitor is not None
+                and self._monitor_session_id != session.session_id):
+            # In-place reopen: the running monitor's tracked delays belong to
+            # a superseded session — never let them leak into this one.
+            log("AOM_OffsetManager: Active monitor belongs to superseded "
+                f"session #{self._monitor_session_id}; restarting", xbmc.LOGDEBUG)
+            self.stop_active_monitor()
+
         if self._should_start_active_monitor():
-            self.start_active_monitor()
+            self.start_active_monitor(session)
         else:
             self.stop_active_monitor()
 
-    def _is_codec_stable(self, profile):
-        """Check if the AV change filter has confirmed the codec."""
-        playback_state = getattr(self.event_manager, 'playback_state', {})
-        last_codec = playback_state.get('last_audio_codec')
-        return last_codec is not None and profile.audio_format == last_codec
-
-    def _is_within_startup_grace_period(self):
-        """Return True during the first few seconds of playback."""
-        playback_state = getattr(self.event_manager, 'playback_state', {})
-        start_time = playback_state.get('start_time')
-        if start_time is None:
-            return False
-        return (time.time() - start_time) < self._startup_grace_seconds
-
-    def _maybe_send_pending_notification(self, profile):
-        """Send any pending notification once codec is stable or grace has expired."""
-        if self._pending_notification is None:
+    def _maybe_send_pending_notification(self, session, profile):
+        """Send the session's pending notification once the stream is STABLE."""
+        if session.pending_notification is None:
             return
 
-        pending_setting_id, pending_delay_ms = self._pending_notification
-        codec_stable = self._is_codec_stable(profile)
-
-        # Still waiting for stability within the grace window
-        if not codec_stable and self._is_within_startup_grace_period():
+        if session.stream_state is not StreamState.STABLE:
             return
 
+        pending_setting_id, pending_delay_ms = session.pending_notification
         if pending_setting_id != profile.setting_id():
             # Profile changed; drop pending notification
-            self._pending_notification = None
+            session.pending_notification = None
             return
 
         self.notification_handler.notify_audio_offset_applied(pending_delay_ms, profile)
-        log("AOM_OffsetManager: Released pending offset notification after codec stabilization",
+        log("AOM_OffsetManager: Released pending offset notification after stream stabilization",
             xbmc.LOGDEBUG)
-        self._pending_notification = None
+        session.pending_notification = None
 
-    def start_active_monitor(self):
+    def start_active_monitor(self, session):
         """Start the active monitor if it's not already running."""
         if self.active_monitor is None:
             self.active_monitor = ActiveMonitor(
@@ -246,6 +242,7 @@ class OffsetManager:
                 self.settings_manager
             )
             self.active_monitor.start()
+            self._monitor_session_id = session.session_id
             log("AOM_OffsetManager: Active monitor started", xbmc.LOGDEBUG)
 
     def stop_active_monitor(self):
@@ -253,4 +250,5 @@ class OffsetManager:
         if self.active_monitor is not None:
             self.active_monitor.stop()
             self.active_monitor = None
+            self._monitor_session_id = None
             log("AOM_OffsetManager: Active monitor stopped", xbmc.LOGDEBUG)
