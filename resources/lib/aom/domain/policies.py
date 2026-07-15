@@ -1,4 +1,5 @@
-"""Pure decision functions: offset gating, profile completeness, delay parsing.
+"""Pure decision functions: offset gating, profile completeness, delay
+parsing, and the seek quiet-window policy.
 
 Pure Python: no Kodi imports, no I/O. Callers resolve settings/state and pass
 explicit values; these functions only decide.
@@ -42,6 +43,44 @@ def is_complete(profile):
         str(profile.fps_type),
         profile.audio_format,
     )
+
+
+def seek_decision(now, requested_at, last_activity, last_own_seek,
+                  quiet_window, deadline):
+    """The seek quiet-window policy — six legacy guards stated as one rule.
+
+    Do not seek until there has been no seek activity — ours, another
+    addon's, or the user's — for ``quiet_window`` seconds; defer otherwise;
+    give up ``deadline`` seconds after the request. A request that another
+    of our own seeks has already served (executed AFTER this request was
+    made) is abandoned: its purpose — replaying the glitched seconds — is
+    done, and a second rewind would double-seek (the legacy cross-type
+    cooldown's job).
+
+    Args (all timestamps monotonic; the caller resolves them):
+        now: current time.
+        requested_at: when this seek was requested.
+        last_activity: most recent seek-like activity — any SeekOccurred,
+            vendor busy signal, our own executed seek, or session start
+            (session start counting as activity is what reproduces the
+            legacy 2s post-start settle without a bespoke constant).
+        last_own_seek: when WE last executed a seek this session, or None.
+        quiet_window: required quiet seconds before seeking.
+        deadline: max seconds after requested_at before giving up.
+
+    Returns:
+        'seek' | 'defer' | 'abandon'. Deadline is checked before quietness:
+        a request that aged past the deadline is abandoned even if the
+        window happens to be quiet now (legacy parity: the PM4K idle wait
+        skipped after its timeout regardless).
+    """
+    if last_own_seek is not None and last_own_seek > requested_at:
+        return 'abandon'
+    if now - requested_at >= deadline:
+        return 'abandon'
+    if now - last_activity < quiet_window:
+        return 'defer'
+    return 'seek'
 
 
 def should_apply(profile, new_install, hdr_enabled):
