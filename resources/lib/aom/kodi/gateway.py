@@ -187,14 +187,31 @@ class KodiGateway:
             self._home_window = xbmcgui.Window(_HOME_WINDOW_ID)
         return self._home_window
 
+    # The window-property methods carry the same exception guards as the RPC
+    # methods: a transient GUI-layer failure must degrade to the unset
+    # sentinel / a no-op, never unwind a caller mid-handler.
+
     def window_property(self, name):
         """Return the home-window property ``name`` (empty string if unset)."""
-        return self._window().getProperty(name)
+        try:
+            return self._window().getProperty(name)
+        except Exception as e:
+            self._log(f"AOM_Gateway: Error reading window property {name}: "
+                      f"{str(e)}", xbmc.LOGERROR)
+            return ''
 
     def set_window_property(self, name, value):
         """Set the home-window property ``name`` to ``value``."""
-        self._window().setProperty(name, value)
+        try:
+            self._window().setProperty(name, value)
+        except Exception as e:
+            self._log(f"AOM_Gateway: Error setting window property {name}: "
+                      f"{str(e)}", xbmc.LOGERROR)
 
     def clear_window_property(self, name):
         """Clear the home-window property ``name``."""
-        self._window().clearProperty(name)
+        try:
+            self._window().clearProperty(name)
+        except Exception as e:
+            self._log(f"AOM_Gateway: Error clearing window property {name}: "
+                      f"{str(e)}", xbmc.LOGERROR)

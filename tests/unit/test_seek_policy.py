@@ -47,7 +47,9 @@ from resources.lib.aom.domain import policies
     # can't have replayed seconds that hadn't glitched yet -> proceeds to seek.
     ("own_seek_before_request_not_served", 10.0, 5.0, 3.0, 4.0, 'seek'),
     # Equal timestamps are NOT "after" (strict >): not served -> seek.
-    ("own_seek_equal_to_request_not_served", 10.0, 8.0, 1.0, 8.0, 'seek'),
+    # Same-instant execution counts as served (>= boundary): the safe
+    # side against a double rewind, matching the legacy cooldown's drop.
+    ("own_seek_equal_to_request_is_served", 10.0, 8.0, 1.0, 8.0, 'abandon'),
     # last_own_seek None (we have never seeked this session) is handled.
     ("no_prior_own_seek_handled", 10.0, 5.0, 3.0, None, 'seek'),
 

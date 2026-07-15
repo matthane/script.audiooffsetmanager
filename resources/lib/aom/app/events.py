@@ -4,11 +4,10 @@ Events are frozen dataclasses dispatched by type (subscribe registers against
 the class). Payloads are explicit fields — never positional *args.
 
 The catalog below is the full target set. The "player/monitor" group (Kodi
-bridges) and the detection group (posted by StreamDetector; consumed by the
-router, PlatformRecorder, and the detector itself) are live. The
-offset/adjustment and seek/watcher groups are still defined ahead of the
-components that will post them (Phases 5-7), so the contract stays
-reviewable in one place. Pure Python: no Kodi imports.
+bridges), the detection group (posted by StreamDetector), and ExecuteSeek
+(posted by SeekScheduler) are live. OffsetApplied/UserOffsetSaved/WatchTick
+are still defined ahead of the components that will post them (Phases 6-7),
+so the contract stays reviewable in one place. Pure Python: no Kodi imports.
 """
 
 from dataclasses import dataclass
@@ -143,10 +142,16 @@ class UserOffsetSaved:
 
 @dataclass(frozen=True)
 class ExecuteSeek:
-    """Self-scheduled seek execution attempt (re-validated at fire time)."""
+    """Self-scheduled seek execution attempt (re-validated at fire time).
+
+    ``requested_at`` (monotonic) rides on the event — the ProbeStream
+    pattern — so the deadline is measured from the request that scheduled
+    this attempt chain with no side bookkeeping; a re-request key-replaces
+    the chain with a fresh requested_at (deadline restart).
+    """
     session_id: int
     reason: str
-    attempt: int
+    requested_at: float
 
 
 # --- Watcher events -----------------------------------------------------------

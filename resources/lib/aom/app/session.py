@@ -106,6 +106,12 @@ class SessionTracker:
         dispatcher.subscribe(events.PlaybackStarted, self._on_started)
         dispatcher.subscribe(events.PlaybackStopped, self._on_ended)
         dispatcher.subscribe(events.PlaybackEnded, self._on_ended)
+        # The tracker owns generic session state, so the paused flag is
+        # written here (not by whichever consumer happens to need it) —
+        # subscription order guarantees it is current before any other
+        # handler of the same event reads it.
+        dispatcher.subscribe(events.Paused, self._on_paused)
+        dispatcher.subscribe(events.Resumed, self._on_resumed)
 
     def is_alive(self, session_id):
         """True while the given session is still the live one.
@@ -135,3 +141,11 @@ class SessionTracker:
         if self.current is not None:
             self._log(f"AOM_SessionTracker: session #{self.current.session_id} ended")
         self.current = None
+
+    def _on_paused(self, _event):
+        if self.current is not None:
+            self.current.paused = True
+
+    def _on_resumed(self, _event):
+        if self.current is not None:
+            self.current.paused = False

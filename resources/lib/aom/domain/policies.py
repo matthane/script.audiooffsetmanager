@@ -52,10 +52,10 @@ def seek_decision(now, requested_at, last_activity, last_own_seek,
     Do not seek until there has been no seek activity — ours, another
     addon's, or the user's — for ``quiet_window`` seconds; defer otherwise;
     give up ``deadline`` seconds after the request. A request that another
-    of our own seeks has already served (executed AFTER this request was
-    made) is abandoned: its purpose — replaying the glitched seconds — is
-    done, and a second rewind would double-seek (the legacy cross-type
-    cooldown's job).
+    of our own seeks has already served (executed AT or AFTER the moment
+    this request was made — same-instant counts as served, the safe side
+    against a double rewind) is abandoned: its purpose — replaying the
+    glitched seconds — is done (the legacy cross-type cooldown's job).
 
     Args (all timestamps monotonic; the caller resolves them):
         now: current time.
@@ -74,7 +74,7 @@ def seek_decision(now, requested_at, last_activity, last_own_seek,
         window happens to be quiet now (legacy parity: the PM4K idle wait
         skipped after its timeout regardless).
     """
-    if last_own_seek is not None and last_own_seek > requested_at:
+    if last_own_seek is not None and last_own_seek >= requested_at:
         return 'abandon'
     if now - requested_at >= deadline:
         return 'abandon'

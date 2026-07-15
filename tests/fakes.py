@@ -12,6 +12,11 @@ than real sleeps.
 to script what the "platform" reports, mirroring how the real single-shot
 gateway reads live Kodi state on every call.
 
+``FakeFacade`` (Phase 5) is the shared settings-facade double covering the
+methods app components read (detector: fps_override_enabled; scheduler:
+seek_back_config) — one fake, so the facade contract cannot drift between
+suites.
+
 Keep this module tiny and dependency-free (no Kodi imports, no pytest) so
 every test tier can share it.
 """
@@ -103,3 +108,22 @@ class FakeGateway:
 
     def clear_window_property(self, name):
         self.window_properties.pop(name, None)
+
+
+class FakeFacade:
+    """Scriptable settings facade covering the app components' read surface.
+
+    ``fps_override`` drives the detector's fps-bucket collapse;
+    ``seek_configs`` maps a seek reason to its (enabled, seconds) pair,
+    defaulting every reason to (True, 4).
+    """
+
+    def __init__(self, fps_override=False):
+        self.fps_override = fps_override
+        self.seek_configs = {}
+
+    def fps_override_enabled(self, hdr_type):
+        return self.fps_override
+
+    def seek_back_config(self, reason):
+        return self.seek_configs.get(reason, (True, 4))

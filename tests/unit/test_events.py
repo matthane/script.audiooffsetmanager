@@ -39,7 +39,7 @@ CATALOG = {
     events.OffsetApplied: {"session_id": 1, "profile": object(),
                            "ms": 75, "provisional": True},
     events.UserOffsetSaved: {"profile": object(), "ms": -25},
-    events.ExecuteSeek: {"session_id": 1, "reason": "resume", "attempt": 0},
+    events.ExecuteSeek: {"session_id": 1, "reason": "resume", "requested_at": 0.0},
     events.WatchTick: {"session_id": 1},
 }
 

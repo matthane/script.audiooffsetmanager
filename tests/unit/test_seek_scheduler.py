@@ -37,25 +37,20 @@ from resources.lib.aom.app.seek_scheduler import (
 from resources.lib.aom.app.session import SessionTracker
 from resources.lib.aom.domain.profile import StreamProfile
 from resources.lib.aom.domain.stream_state import StreamState
-from tests.fakes import FakeClock, FakeGateway
+from tests.fakes import FakeClock, FakeFacade, FakeGateway
 
 
 VENDOR_PROP = ExternalSeekCoordinator.VENDOR_BUSY_PROPERTIES[0]  # plex seeking
 RECIPROCAL = ExternalSeekCoordinator.RECIPROCAL_PROPERTY
 
-
-class FakeFacade:
-    """Minimal settings facade: seek_back_config(reason) -> (enabled, seconds).
-
-    Defaults every reason to (True, 4); a test overrides a single reason by
-    assigning into ``configs``.
-    """
-
-    def __init__(self):
-        self.configs = {}
-
-    def seek_back_config(self, reason):
-        return self.configs.get(reason, (True, 4))
+# Timing constants derive from the scheduler so retuning cannot leave these
+# tests green-but-wrong against a stale window.
+QUIET = SeekScheduler.QUIET_WINDOW_SECONDS
+DEADLINE = SeekScheduler.DEADLINE_SECONDS
+RECHECK = SeekScheduler.RECHECK_SECONDS
+DEBOUNCE = SeekScheduler.DEBOUNCE_SECONDS
+GRACE = SeekScheduler.STABILITY_GRACE_SECONDS
+DEADLINE_STEPS = int(DEADLINE / RECHECK)
 
 
 def make_profile(player_id=1):
@@ -74,6 +69,7 @@ class Rig:
         self.clock = FakeClock()
         self.errors = []
         self.debug = []
+        self.warnings = []
         self.dispatcher = Dispatcher(clock=self.clock,
                                      log_error=self.errors.append)
         # Tracker subscribes lifecycle FIRST so the scheduler always sees a
@@ -85,7 +81,8 @@ class Rig:
             self.gateway, clock=self.clock, log_debug=self.debug.append)
         self.scheduler = SeekScheduler(
             self.dispatcher, self.tracker, self.facade, self.coordinator,
-            clock=self.clock, log_debug=self.debug.append)
+            clock=self.clock, log_debug=self.debug.append,
+            log_warning=self.warnings.append)
 
     @property
     def session(self):
@@ -97,7 +94,19 @@ class Rig:
 
     @property
     def pending(self):
-        return self.scheduler._pending
+        """Reasons with a live scheduled attempt — the request state IS the
+        key-replaced timer, so pendingness is read off the dispatcher."""
+        return {reason for reason in SeekScheduler.REASONS
+                if f'aom.seek.{reason}' in self.dispatcher._active_keys}
+
+    def pending_request(self, reason):
+        """The live queued ExecuteSeek event for a reason (or None)."""
+        key = f'aom.seek.{reason}'
+        live_seq = self.dispatcher._active_keys.get(key)
+        for _fire_at, seq, timer_key, event in self.dispatcher._timers:
+            if timer_key == key and seq == live_seq:
+                return event
+        return None
 
     def post(self, event):
         self.dispatcher.post(event)
@@ -148,25 +157,29 @@ class TestTriggersAndDebounce:
     def test_per_reason_debounce_drops_then_allows(self, rig):
         # A second trigger for the same reason within DEBOUNCE of its EXECUTED
         # seek is dropped ("too soon"); after DEBOUNCE it goes through again.
+        # (Triggers land strictly AFTER the prior execution instant — a
+        # same-instant trigger is served-abandoned by the policy, like the
+        # legacy cooldown.)
         rig.start()
         rig.make_stable()
-        rig.advance(2.0)                  # resume seek at t=2.0
+        rig.advance(QUIET)                # resume seek at t=2.0
 
-        rig.post(events.Resumed())        # unpause requested at t=2.0
-        rig.advance(2.0)                  # -> unpause executes at t=4.0
+        rig.advance(RECHECK)              # t=2.5
+        rig.post(events.Resumed())        # unpause requested at t=2.5
+        rig.advance(QUIET - RECHECK)      # quiet from the resume seek -> t=4.0
         assert rig.seeks == [(4, 1), (4, 1)]
         assert rig.session.seek_history['unpause'] == 4.0
 
-        # Re-trigger unpause at t=4.0, only 0s after the executed one -> dropped
-        # before it is even scheduled (no new pending entry).
+        # Re-trigger unpause at t=4.0, 0s after the executed one -> dropped
+        # before it is even scheduled (no live attempt).
         rig.post(events.Resumed())
         assert rig.seeks == [(4, 1), (4, 1)]     # no new seek
         assert 'unpause' not in rig.pending      # dropped, not queued
         assert rig.logged('too soon')
 
-        # After DEBOUNCE (2.0s) and with the window quiet again, it fires.
-        rig.advance(2.0)                  # clock -> 6.0
-        rig.post(events.Resumed())        # 6.0 - 4.0 == 2.0, not < 2.0 -> allowed
+        # After DEBOUNCE and with the window quiet again, it fires.
+        rig.advance(DEBOUNCE)             # clock -> 6.0
+        rig.post(events.Resumed())        # 6.0 - 4.0 == DEBOUNCE, allowed
         assert rig.seeks == [(4, 1), (4, 1), (4, 1)]
 
     def test_retrigger_while_pending_key_replaces_to_one_seek(self, rig):
@@ -174,7 +187,8 @@ class TestTriggersAndDebounce:
         # the second _request key-replaces the first pending attempt.
         rig.start()
         rig.make_stable()
-        rig.advance(2.0)                  # resume seek executes at t=2.0
+        rig.advance(QUIET)                # resume seek executes at t=2.0
+        rig.advance(RECHECK)              # t=2.5 (strictly after the seek)
 
         rig.dispatcher.post(events.Resumed())
         rig.dispatcher.post(events.Resumed())
@@ -182,7 +196,7 @@ class TestTriggersAndDebounce:
         assert 'unpause' in rig.pending
         assert rig.seeks == [(4, 1)]      # still just the resume seek (deferred)
 
-        rig.advance(2.0)                  # unpause becomes quiet and fires ONCE
+        rig.advance(QUIET - RECHECK)      # quiet from the resume seek -> fires ONCE
         assert rig.seeks == [(4, 1), (4, 1)]
 
     def test_paused_and_resumed_toggle_session_flag_and_request_unpause(self, rig):
@@ -241,7 +255,7 @@ class TestTriggersAndDebounce:
         # No session yet -> on_user_adjustment is a no-op (nothing scheduled).
         rig.scheduler.on_user_adjustment()
         rig.dispatcher.run_pending()
-        assert rig.pending == {}
+        assert rig.pending == set()
         assert rig.seeks == []
 
         rig.start()
@@ -270,19 +284,22 @@ class TestExecutionGuards:
         rig.advance(0.5)                  # t=2.0: STABLE + quiet -> seek
         assert rig.seeks == [(4, 1)]
 
-    def test_never_stabilizes_abandons_at_deadline(self, rig):
-        # A session that never reaches STABLE is bounded by the DEADLINE: the
-        # attempt is abandoned at 8s, and no attempt survives afterwards.
+    def test_never_stabilizes_seeks_after_stability_grace(self, rig):
+        # A session that never reaches STABLE does NOT lose its replay: the
+        # stability preference only holds for STABILITY_GRACE, after which
+        # the quiet window alone decides (legacy sought blind after 2s on
+        # every stream; abandoning would regress undetectable streams).
         rig.start()                       # resume requested at t=0.0, never stable
-        for _ in range(16):
-            rig.advance(0.5)              # march to t=8.0 on the recheck cadence
+        rig.advance(QUIET)                # t=2.0: quiet, but within the grace
         assert rig.seeks == []
-        assert 'resume' not in rig.pending    # abandoned, pending cleared
-        assert rig.logged('Abandoning resume')
+        assert rig.logged('stream not stable yet')
 
-        rig.advance(5.0)                  # no timer remains -> nothing more fires
-        assert rig.seeks == []
-        assert rig.pending == {}
+        rig.advance(GRACE - QUIET)        # t=4.0: grace over -> quiet decides
+        # No profile exists, so the coordinator resolved the player itself
+        # (FakeGateway.active_player_id() -> 1).
+        assert rig.seeks == [(4, 1)]
+        assert 'resume' not in rig.pending
+        assert rig.errors == []           # no handler blew up along the way
 
     def test_pause_before_due_attempt_cancels(self, rig):
         # A pending seek that fires while the session is paused is abandoned
@@ -299,24 +316,45 @@ class TestExecutionGuards:
         rig.advance(5.0)                  # later advances never seek
         assert rig.seeks == []
 
-    def test_disabled_config_cancels_at_fire_time(self):
-        # seek_back_config disabled -> cancelled when the attempt fires (before
-        # the stability/quiet checks even run).
+    def test_disabled_config_drops_at_trigger_time(self):
+        # seek_back_config disabled -> the trigger never schedules anything
+        # (legacy 'change' parity: enabled was checked at trigger time).
         rig = Rig()
-        rig.facade.configs['resume'] = (False, 0)
-        rig.start()                       # attempt #1 fires immediately -> cancel
+        rig.facade.seek_configs['resume'] = (False, 0)
+        rig.start()
         assert rig.seeks == []
-        assert 'resume' not in rig.pending
+        assert 'resume' not in rig.pending    # never scheduled
         assert rig.logged('not enabled')
 
-    def test_zero_seconds_config_cancels_at_fire_time(self):
-        # Enabled but zero-length -> same cancellation branch.
+    def test_zero_seconds_config_warns_at_trigger_time(self):
+        # Enabled-but-zero-length is a user misconfiguration and must surface
+        # at WARNING in normal field logs (legacy parity), not just debug.
         rig = Rig()
-        rig.facade.configs['resume'] = (True, 0)
+        rig.facade.seek_configs['resume'] = (True, 0)
         rig.start()
         assert rig.seeks == []
         assert 'resume' not in rig.pending
-        assert rig.logged('not enabled')
+        assert any('Invalid seek back seconds' in m for m in rig.warnings)
+
+    def test_disabled_mid_defer_cancels_at_fire_time(self, rig):
+        # The trigger-time check is the primary; a toggle-off DURING the
+        # defer window is still honored when the attempt would execute.
+        rig.start()
+        rig.make_stable()
+        rig.facade.seek_configs['resume'] = (False, 0)   # toggled off mid-defer
+        rig.advance(QUIET)
+        assert rig.seeks == []
+        assert rig.logged('no longer enabled')
+
+    def test_vendor_busy_recorded_even_before_stable(self, rig):
+        # Vendors are probed on EVERY attempt, including pre-STABLE defers: a
+        # PM4K 'initializing' phase during our stabilization must land in the
+        # activity view, or we would seek right into its finishing seek.
+        rig.start()                       # never stabilized
+        rig.gateway.window_properties[VENDOR_PROP] = '1'
+        rig.advance(RECHECK)              # a pre-STABLE attempt fires
+        assert rig.coordinator._last_vendor_busy is not None
+        assert rig.seeks == []
 
     def test_vendor_busy_defers_and_recently_busy_window_bridges_a_clear(self, rig):
         # A busy vendor property defers the attempt AND records the sighting;
@@ -343,7 +381,7 @@ class TestExecutionGuards:
         rig.start()
         rig.make_stable()
         rig.gateway.window_properties[VENDOR_PROP] = '1'
-        for _ in range(16):
+        for _ in range(DEADLINE_STEPS):
             rig.advance(0.5)              # march to t=8.0 while vendor stays busy
         assert rig.seeks == []
         assert 'resume' not in rig.pending
@@ -354,42 +392,58 @@ class TestExecutionGuards:
         # session; a pending seek then defers until QUIET_WINDOW past it.
         rig.start()
         rig.make_stable()
-        rig.advance(2.0)                  # resume seek at t=2.0 (activity=2.0)
+        rig.advance(QUIET)                # resume seek at t=2.0 (activity=2.0)
+        rig.advance(RECHECK)              # t=2.5 (strictly after the seek)
 
-        rig.scheduler.on_user_adjustment()   # 'change' requested at t=2.0
+        rig.scheduler.on_user_adjustment()   # 'change' requested at t=2.5
         rig.dispatcher.run_pending()
 
-        rig.advance(0.5)                  # t=2.5
+        rig.advance(RECHECK)              # t=3.0
         rig.dispatcher.post(events.SeekOccurred(time_ms=0, offset_ms=0))
-        rig.dispatcher.run_pending()      # activity bumped to 2.5
+        rig.dispatcher.run_pending()      # activity bumped to 3.0
 
-        rig.advance(1.5)                  # t=4.0: WITHOUT the SeekOccurred this
-        assert rig.seeks == [(4, 1)]      # would have fired; it defers instead
+        rig.advance(QUIET - RECHECK)      # t=4.5: WITHOUT the SeekOccurred the
+        assert rig.seeks == [(4, 1)]      # change would have fired at 4.0/4.5
 
-        rig.advance(0.5)                  # t=4.5: 2.0s past the SeekOccurred
+        rig.advance(RECHECK)              # t=5.0: QUIET past the SeekOccurred
         assert rig.seeks == [(4, 1), (4, 1)]   # 'change' seek finally executes
 
     def test_cross_type_served_abandons(self, rig):
         # 'unpause' requested first, then 'adjust'. When both become eligible,
         # the older chain (unpause) fires first and executes; the 'adjust'
-        # attempt then finds one of our own seeks executed AFTER it was
-        # requested and abandons as already served.
+        # attempt then finds one of our own seeks executed AT/AFTER its
+        # request and abandons as already served.
         rig.start()
         rig.make_stable()
-        rig.advance(2.0)                  # resume seek at t=2.0
+        rig.advance(QUIET)                # resume seek at t=2.0
+        rig.advance(RECHECK)              # t=2.5 (strictly after the seek)
 
         sid = rig.session.session_id
-        rig.post(events.Resumed())        # 'unpause' requested first (t=2.0)
+        rig.post(events.Resumed())        # 'unpause' requested first (t=2.5)
         rig.session.initial_av_change_consumed = True   # skip the startup latch
         rig.post(events.StreamStabilized(session_id=sid, profile_changed=True))
         assert 'unpause' in rig.pending and 'adjust' in rig.pending
 
-        rig.advance(2.0)                  # t=4.0: both eligible; unpause wins
+        rig.advance(QUIET - RECHECK)      # t=4.0: both eligible; unpause wins
         assert rig.session.seek_history.get('unpause') == 4.0
         assert 'adjust' not in rig.session.seek_history   # adjust never executed
         assert 'adjust' not in rig.pending
         assert rig.logged('Abandoning adjust')
         assert rig.seeks == [(4, 1), (4, 1)]   # resume + unpause only
+
+    def test_same_instant_trigger_is_served_by_that_instants_seek(self, rig):
+        # The >= boundary: a trigger requested at the exact instant one of our
+        # seeks executes is treated as served (the safe side against a double
+        # rewind — legacy's cooldown dropped it too).
+        rig.start()
+        rig.make_stable()
+        rig.advance(QUIET)                # resume executes at t=2.0
+        rig.post(events.Resumed())        # 'unpause' requested at exactly t=2.0
+
+        rig.advance(DEADLINE)             # plenty of time to fire if it could
+        assert rig.session.seek_history.get('unpause') is None
+        assert rig.logged('Abandoning unpause')
+        assert rig.seeks == [(4, 1)]      # only the resume seek ever ran
 
 
 # ============================================================================
@@ -454,18 +508,18 @@ class TestStaleness:
         # stamped with the dead session id is dropped by the is_alive guard.
         rig.start()                       # session #1, resume pending (deferred)
         first_id = rig.session.session_id
-        assert rig.pending['resume'][0] == first_id
+        assert rig.pending_request('resume').session_id == first_id
 
         rig.post(events.PlaybackStarted())    # reopen without a stop
         second = rig.session
         assert second.session_id != first_id
         assert rig.tracker.is_alive(first_id) is False
         # Pending re-created under the NEW session id (old entry superseded).
-        assert rig.pending['resume'][0] == second.session_id
+        assert rig.pending_request('resume').session_id == second.session_id
 
         # A manually posted ExecuteSeek stamped with the dead session is inert.
         rig.post(events.ExecuteSeek(session_id=first_id, reason='resume',
-                                    attempt=99))
+                                    requested_at=0.0))
         assert rig.seeks == []
 
         # The new session's own chain still proceeds to a seek.
@@ -480,7 +534,7 @@ class TestStaleness:
 
         rig.post(events.PlaybackStopped())
         assert rig.tracker.current is None
-        assert rig.pending == {}          # cancelled on stop
+        assert rig.pending == set()          # cancelled on stop
 
         rig.advance(10.0)                 # later advances never seek
         assert rig.seeks == []

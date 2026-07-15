@@ -31,7 +31,7 @@ from resources.lib.aom.app.stream_detector import (
 )
 from resources.lib.aom.domain import formats
 from resources.lib.aom.domain.stream_state import StreamState
-from tests.fakes import FakeClock, FakeGateway
+from tests.fakes import FakeClock, FakeFacade, FakeGateway
 
 
 # A gateway scripted to report a complete Dolby Vision / TrueHD stream. With
@@ -61,16 +61,6 @@ def derive(raw_codec='truehd', raw_channels=8, raw_fps='23.976',
 
 
 # --- orchestration rig -------------------------------------------------------
-
-class FakeFacade:
-    """Tiny settings facade: the detector only reads fps_override_enabled."""
-
-    def __init__(self, fps_override=False):
-        self._fps_override = fps_override
-
-    def fps_override_enabled(self, hdr_type):
-        return self._fps_override
-
 
 class Rig:
     """The detector graph assembled on fakes; pump with start/advance/av_changed.

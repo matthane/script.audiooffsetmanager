@@ -10,38 +10,54 @@ re-check every 0.5s instead of blocking the dispatcher:
     addon's, or the user's — for QUIET_WINDOW seconds. Defer by
     rescheduling. Give up DEADLINE seconds after the request.
 
+Every attempt runs the same pipeline: probe the vendor list (a busy vendor
+is recorded as activity, so the quiet window itself defers past it — no
+separate vendor gate), ask the policy (sole owner of the quiet/deadline/
+served math), then apply the stability preference: a 'seek' verdict is
+downgraded to defer while the session is not yet STABLE, for up to
+STABILITY_GRACE seconds — after which the quiet window alone decides, so a
+stream whose profile never completes still gets its replay (legacy sought
+blind after 2s on every stream; holding the user's replay hostage to
+detection success would be a regression).
+
 Behavior mapping from legacy SeekBacks (parity unless noted):
 
-- Triggers: PlaybackStarted -> 'resume'; Resumed -> 'unpause' (and the
-  session paused flag lives here now); a change-announcing StreamStabilized
-  (after the per-session startup latch) -> 'adjust'; USER_ADJUSTMENT
-  (legacy bus, wired by the runtime — MIGRATION(p6): the typed
-  UserOffsetSaved replaces it when the adjustment watcher lands) -> 'change'.
+- Triggers: PlaybackStarted -> 'resume'; Resumed -> 'unpause'; a
+  change-announcing StreamStabilized (after the per-session startup latch)
+  -> 'adjust'; USER_ADJUSTMENT (legacy bus, wired by the runtime —
+  MIGRATION(p6): the typed UserOffsetSaved replaces it, gaining a session
+  stamp) -> 'change'.
 - Per-reason trigger debounce: a trigger within DEBOUNCE_SECONDS of that
   reason's last EXECUTED seek is dropped (legacy seek_history semantics);
-  a re-trigger while the same reason is still pending key-replaces the
-  pending attempt (storms collapse structurally).
-- Cross-type suppression: a request that one of our own seeks has already
-  served (executed after the request was made) is abandoned by the policy —
-  the legacy cross-type cooldown, without dropping genuine later triggers.
-- The legacy mandatory 2s settle falls out of session-start-as-activity:
-  QUIET_WINDOW from ``session.started_at`` reproduces it.
-- Seeks execute only when the session is STABLE (replacing the settle sleep
-  with the stream-state machine; new for 'unpause'/'change' — a seek during
-  renegotiation now waits for stability instead of firing blind).
-- Pause cancels: a pending seek firing while paused is abandoned.
-- Stale requests are inert: ExecuteSeek is session-stamped, pending state is
-  session-checked, and stop/end cancels the timers — the legacy
-  stop+autostart edge (a settling seek firing into a newly-started item)
-  is structurally impossible.
+  a re-trigger while pending key-replaces the attempt chain (and its
+  event-carried requested_at restarts the deadline). The enabled check
+  runs at trigger time (legacy 'change' parity); an enabled-but-zero
+  length warns like legacy did.
+- Cross-type suppression: a request served by one of our own seeks
+  (executed at/after the request) is abandoned by the policy. Divergence:
+  legacy also DROPPED genuinely-new triggers arriving <2s after any own
+  seek; those now defer and execute — a fresh user action gets its replay.
+- The legacy mandatory 2s settle falls out of session-start-as-activity.
+  Divergence: legacy exempted 'resume' from the recent-Kodi-seek guard;
+  now Kodi's own resume-position seek defers the replay ~2s past itself
+  (net timing ≈ legacy), and a start under a sustained seek storm abandons
+  at the deadline rather than rewinding under an actively seeking user.
+- Pause cancels the pending seek at fire time. (Legacy consumed the
+  trigger while paused too — and could even seek into a paused player
+  after its settle window; fire-time cancellation closes that.)
+- Stale requests are inert: ExecuteSeek is session-stamped and stop/end/
+  reopen cancels the (closed, per-reason) timer keys — the legacy
+  stop+autostart edge is structurally impossible. There is no side
+  bookkeeping to strand: the request state IS the key-replaced timer and
+  its event payload.
 
-``ExternalSeekCoordinator`` owns the vendor knowledge as DATA (PM4K's two
-busy properties today; the next seek-happy addon is a list entry) plus the
-reciprocity signal: while we execute a seek, our own home-window property
-``script.audiooffsetmanager.seeking`` is set to '1' so other addons can
-extend us the courtesy we extend PM4K. Its busy-recency timestamp is
-deliberately cross-session (vendor seeks span in-place reopens — legacy
-``_last_pm4k_busy`` parity).
+``ExternalSeekCoordinator`` owns the inter-addon seek protocol, both
+directions: the read side (vendor busy-property list as DATA — PM4K's two
+properties today; its busy-recency is deliberately cross-session, legacy
+``_last_pm4k_busy`` parity — aggregated with session activity into the
+policy's ``last_activity`` view) and the write side (the seek actuator,
+which sets our reciprocal ``script.audiooffsetmanager.seeking`` property
+around the seek so other addons get the courtesy we consume from PM4K).
 
 Pure app layer: Kodi I/O through the injected gateway, settings through the
 injected facade, log sinks injected; no Kodi imports.
@@ -55,7 +71,7 @@ from resources.lib.aom.domain.stream_state import StreamState
 
 
 class ExternalSeekCoordinator:
-    """One quiet-window activity view over all seek-activity signals."""
+    """The inter-addon seek protocol: activity view + reciprocal actuator."""
 
     # Vendor busy signals as data: home-window properties that read '1'
     # while that addon is running its own seeks.
@@ -97,8 +113,18 @@ class ExternalSeekCoordinator:
             candidates.append(self._last_vendor_busy)
         return max(candidates)
 
-    def execute_seek(self, seconds, player_id):
-        """Run one seek with the reciprocity property set around it."""
+    def execute_seek(self, seconds, player_id=None):
+        """Run one seek with the reciprocity property set around it.
+
+        ``player_id=None`` means the caller has no detected profile to read
+        it from (a stream seeking past the stability grace): query the
+        player directly — the legacy execution-time lookup — and let the
+        gateway's legacy default (player 1) absorb a -1 answer.
+        """
+        if player_id is None:
+            player_id = self._gateway.active_player_id()
+            if player_id == -1:
+                player_id = None
         self._gateway.set_window_property(self.RECIPROCAL_PROPERTY, '1')
         try:
             return self._gateway.seek_back(seconds, player_id=player_id)
@@ -107,29 +133,31 @@ class ExternalSeekCoordinator:
 
 
 class SeekScheduler:
-    """Plans seeks on triggering events; executes only when STABLE + quiet."""
+    """Plans seeks on triggering events; executes when quiet (+stability)."""
 
     QUIET_WINDOW_SECONDS = 2.0
     DEADLINE_SECONDS = 8.0
     RECHECK_SECONDS = 0.5
     DEBOUNCE_SECONDS = 2.0
+    # How long a 'seek' verdict defers waiting for STABLE before the quiet
+    # window alone decides (never-stabilizing streams keep their replay).
+    STABILITY_GRACE_SECONDS = 4.0
+
+    # The closed trigger vocabulary; also the cancellation key set.
+    REASONS = ('resume', 'unpause', 'adjust', 'change')
 
     def __init__(self, dispatcher, session_tracker, settings_facade,
-                 coordinator, clock=time.monotonic, *, log_debug):
+                 coordinator, clock=time.monotonic, *, log_debug,
+                 log_warning):
         self._dispatcher = dispatcher
         self._sessions = session_tracker
         self._settings = settings_facade
         self._coordinator = coordinator
         self._clock = clock
         self._log = log_debug
-        # Pending requests: reason -> (session_id, requested_at). Component-
-        # local like the detector's discovery bookkeeping: entries are
-        # session-stamped (stale fires are dropped) and cleared on
-        # stop/end/supersede, so session turnover resets them for free.
-        self._pending = {}
+        self._warn = log_warning
 
         dispatcher.subscribe(events.PlaybackStarted, self._on_playback_started)
-        dispatcher.subscribe(events.Paused, self._on_paused)
         dispatcher.subscribe(events.Resumed, self._on_resumed)
         dispatcher.subscribe(events.SeekOccurred, self._on_seek_occurred)
         dispatcher.subscribe(events.StreamStabilized, self._on_stream_stabilized)
@@ -140,24 +168,13 @@ class SeekScheduler:
     # -- triggers (dispatcher thread) -------------------------------------------
 
     def _on_playback_started(self, _event):
-        session = self._sessions.current
-        if session is None:
-            return
-        # Fresh session: pending entries from a superseded one are stale.
-        self._cancel_all_pending()
-        self._request('resume', session)
-
-    def _on_paused(self, _event):
-        session = self._sessions.current
-        if session is not None:
-            session.paused = True
+        # Fresh session: any timers from a superseded one are stale.
+        self._cancel_scheduled()
+        self._request('resume')
 
     def _on_resumed(self, _event):
-        session = self._sessions.current
-        if session is None:
-            return
-        session.paused = False
-        self._request('unpause', session)
+        # (SessionTracker owns the paused flag and has already cleared it.)
+        self._request('unpause')
 
     def _on_seek_occurred(self, _event):
         session = self._sessions.current
@@ -177,79 +194,73 @@ class SeekScheduler:
             session.initial_av_change_consumed = True
             self._log("AOM_SeekScheduler: Skipping initial AV change (startup)")
             return
-        self._request('adjust', session)
+        self._request('adjust')
 
     def on_user_adjustment(self):
         """Legacy-bus USER_ADJUSTMENT trigger (runtime-wired, MIGRATION(p6))."""
-        session = self._sessions.current
-        if session is None:
-            return
-        self._request('change', session)
+        self._request('change')
 
     def _on_playback_ended(self, _event):
-        self._cancel_all_pending()
+        self._cancel_scheduled()
 
     # -- execution ---------------------------------------------------------------
 
     def _on_execute_seek(self, event):
         if not self._sessions.is_alive(event.session_id):
             return
-        pending = self._pending.get(event.reason)
-        if pending is None or pending[0] != event.session_id:
-            return  # superseded request
         session = self._sessions.current
-        _, requested_at = pending
+        now = self._clock()
 
         if session.paused:
-            # Pause cancels: replaying into a paused player is pointless and
-            # the seek would fire on unpause anyway (its own trigger).
+            # Replaying into a paused player is pointless; an unpause is its
+            # own trigger. (Fire-time cancellation also closes legacy's gap
+            # of seeking into a player paused during its settle window.)
             self._log(f"AOM_SeekScheduler: Playback is paused; cancelling "
                       f"{event.reason} seek back")
-            del self._pending[event.reason]
+            return
+
+        # Probe vendors on EVERY attempt (a busy sighting during
+        # stabilization must count): the recording feeds last_activity, so
+        # the policy's quiet window is the only vendor gate needed.
+        self._coordinator.vendor_busy()
+
+        decision = policies.seek_decision(
+            now=now,
+            requested_at=event.requested_at,
+            last_activity=self._coordinator.last_activity(session),
+            last_own_seek=max(session.seek_history.values(), default=None),
+            quiet_window=self.QUIET_WINDOW_SECONDS,
+            deadline=self.DEADLINE_SECONDS)
+
+        if decision == 'abandon':
+            self._log(f"AOM_SeekScheduler: Abandoning {event.reason} seek "
+                      f"back (already served or deadline passed)")
+            return
+        if decision == 'defer':
+            self._defer(event, 'awaiting quiet window')
+            return
+
+        # 'seek' — apply the stability preference: wait for STABLE up to the
+        # grace, then let quietness alone decide (see module docstring).
+        if (session.stream_state is not StreamState.STABLE
+                and now - event.requested_at < self.STABILITY_GRACE_SECONDS):
+            self._defer(event, 'stream not stable yet')
             return
 
         enabled, seek_seconds = self._settings.seek_back_config(event.reason)
         if not enabled or seek_seconds <= 0:
-            self._log(f"AOM_SeekScheduler: Seek back on {event.reason} is "
-                      f"not enabled (or has no length); cancelling")
-            del self._pending[event.reason]
-            return
-
-        now = self._clock()
-        if session.stream_state is not StreamState.STABLE:
-            # Stability replaces the legacy settle sleep; the deadline still
-            # bounds a stream that never stabilizes.
-            self._defer_or_abandon(event, now, requested_at,
-                                   why='stream not stable yet')
-            return
-
-        if self._coordinator.vendor_busy():
-            self._defer_or_abandon(event, now, requested_at,
-                                   why='vendor busy')
-            return
-
-        last_own_seek = max(session.seek_history.values(), default=None)
-        decision = policies.seek_decision(
-            now=now,
-            requested_at=requested_at,
-            last_activity=self._coordinator.last_activity(session),
-            last_own_seek=last_own_seek,
-            quiet_window=self.QUIET_WINDOW_SECONDS,
-            deadline=self.DEADLINE_SECONDS)
-
-        if decision == 'defer':
-            self._reschedule(event)
-            return
-        if decision == 'abandon':
-            self._log(f"AOM_SeekScheduler: Abandoning {event.reason} seek "
-                      f"back (already served or deadline passed)")
-            del self._pending[event.reason]
+            # Toggled off mid-defer (the trigger-time check is the primary).
+            self._log(f"AOM_SeekScheduler: Seek back on {event.reason} no "
+                      f"longer enabled; cancelling")
             return
 
         self._log(f"AOM_SeekScheduler: Seeking back {seek_seconds} seconds "
                   f"on {event.reason}")
-        success = self._coordinator.execute_seek(
-            seek_seconds, session.profile.player_id)
+        # An undetected stream (profile None past the stability grace) lets
+        # the coordinator resolve the player at execution time.
+        player_id = (session.profile.player_id
+                     if session.profile is not None else None)
+        success = self._coordinator.execute_seek(seek_seconds, player_id)
         if success:
             executed_at = self._clock()
             session.seek_history[event.reason] = executed_at
@@ -257,11 +268,13 @@ class SeekScheduler:
         else:
             self._log(f"AOM_SeekScheduler: Seek back failed on "
                       f"{event.reason}")
-        del self._pending[event.reason]
 
     # -- internals ----------------------------------------------------------------
 
-    def _request(self, reason, session):
+    def _request(self, reason):
+        session = self._sessions.current
+        if session is None:
+            return
         now = self._clock()
         last_executed = session.seek_history.get(reason)
         if last_executed is not None and \
@@ -269,37 +282,33 @@ class SeekScheduler:
             self._log(f"AOM_SeekScheduler: Skipping {reason} seek back - "
                       f"too soon after the previous one")
             return
-        # A re-trigger while pending key-replaces the attempt chain and
-        # restarts the deadline (the newest user action is the one served).
-        self._pending[reason] = (session.session_id, now)
+        enabled, seek_seconds = self._settings.seek_back_config(reason)
+        if not enabled:
+            self._log(f"AOM_SeekScheduler: Seek back on {reason} is not "
+                      f"enabled")
+            return
+        if seek_seconds <= 0:
+            self._warn(f"AOM_SeekScheduler: Invalid seek back seconds "
+                       f"({seek_seconds}) for {reason}")
+            return
+        # A re-trigger while pending key-replaces the attempt chain; the
+        # fresh requested_at restarts the deadline (the newest user action
+        # is the one served).
         self._dispatcher.schedule(
             0.0,
             events.ExecuteSeek(session_id=session.session_id, reason=reason,
-                               attempt=1),
+                               requested_at=now),
             key=self._key(reason))
 
-    def _defer_or_abandon(self, event, now, requested_at, why):
-        if now - requested_at >= self.DEADLINE_SECONDS:
-            self._log(f"AOM_SeekScheduler: Abandoning {event.reason} seek "
-                      f"back after {self.DEADLINE_SECONDS}s ({why})")
-            del self._pending[event.reason]
-            return
+    def _defer(self, event, why):
         self._log(f"AOM_SeekScheduler: Deferring {event.reason} seek back "
                   f"({why})")
-        self._reschedule(event)
+        self._dispatcher.schedule(self.RECHECK_SECONDS, event,
+                                  key=self._key(event.reason))
 
-    def _reschedule(self, event):
-        self._dispatcher.schedule(
-            self.RECHECK_SECONDS,
-            events.ExecuteSeek(session_id=event.session_id,
-                               reason=event.reason,
-                               attempt=event.attempt + 1),
-            key=self._key(event.reason))
-
-    def _cancel_all_pending(self):
-        for reason in list(self._pending):
+    def _cancel_scheduled(self):
+        for reason in self.REASONS:
             self._dispatcher.cancel(self._key(reason))
-        self._pending.clear()
 
     @staticmethod
     def _key(reason):

@@ -88,10 +88,14 @@ class ServiceRuntime:
             gateway, log_debug=_log_debug)
         self.seek_scheduler = SeekScheduler(
             self.dispatcher, self.session_tracker, settings_facade,
-            self.seek_coordinator, log_debug=_log_debug)
+            self.seek_coordinator, log_debug=_log_debug,
+            log_warning=_log_warning)
         # MIGRATION(p6): ActiveMonitor still announces manual adjustments on
         # the legacy bus; the typed UserOffsetSaved replaces this wire when
-        # the adjustment watcher lands.
+        # the adjustment watcher lands. Bus order vs OffsetManager's own
+        # USER_ADJUSTMENT handler is immaterial: the scheduler only schedules
+        # a deferred ExecuteSeek, so the seek always runs after this dispatch
+        # (apply/notify) completes.
         self.router.subscribe('USER_ADJUSTMENT',
                               self.seek_scheduler.on_user_adjustment)
 
