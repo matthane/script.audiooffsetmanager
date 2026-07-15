@@ -163,15 +163,19 @@ class OffsetManager:
                 else:
                     session.pending_notification = None
 
+                # Bookkeeping BEFORE the RPC (DESIGN: AdjustmentWatcher
+                # self-echo): the moment Kodi's delay can reflect our write,
+                # session.applied already equals it, so the watcher can never
+                # misread our own apply as a user adjustment. Restored on
+                # failure — recording a failed apply would let the dedupe
+                # guard block every retry for the rest of the session.
+                previous_applied = session.applied
+                session.applied = (setting_id, delay_ms)
                 success = self.set_audio_delay(
                     profile.player_id, delay_ms / 1000.0, profile,
                     notify=not suppress_notification)
-                if success:
-                    # Only a successful RPC counts as applied: recording a
-                    # failure here would let the dedupe guard block every
-                    # retry for the rest of the session.
-                    session.applied = (setting_id, delay_ms)
-                else:
+                if not success:
+                    session.applied = previous_applied
                     log(f"AOM_OffsetManager: audio delay RPC failed for "
                         f"{setting_id}; will retry on the next AV event",
                         xbmc.LOGWARNING)
