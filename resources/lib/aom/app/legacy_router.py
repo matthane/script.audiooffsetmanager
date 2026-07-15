@@ -17,6 +17,16 @@ Thread model:
 This is legacy-bridging code, so unlike the rest of aom.app it may import
 legacy modules (and, through them, Kodi APIs). Log lines are kept verbatim
 from EventManager for field-log comparability during the migration.
+
+Known interim cost (removed by the detector/seek phases): blocking legacy
+handlers — SeekBacks' settle/PM4K waits and AvChangeFilter's synchronous
+codec probe — now stall the single dispatcher thread. That serializes paths
+legacy ran concurrently (ActiveMonitor's USER_ADJUSTMENT fired inline on the
+monitor thread; verify-thread publishes ran on their own thread), so during a
+stall those are DELAYED where legacy would have run them in parallel. The
+stall radius is wider than pre-migration, accepted for the construction
+phases and eliminated when the blocking handlers are rebuilt as scheduled,
+non-blocking components.
 """
 
 import time
@@ -30,7 +40,10 @@ from resources.lib.logger import log
 from resources.lib.aom.app import events
 
 
-@dataclass(frozen=True)
+# eq=False: keeps object-identity hashing — frozen+eq would auto-generate a
+# __hash__ over the fields and the mutable kwargs dict would make instances
+# unhashable the moment anything hashes one.
+@dataclass(frozen=True, eq=False)
 class _LegacyPublish:
     """Marshal a legacy publish from any thread onto the dispatcher thread."""
     name: str
@@ -83,6 +96,10 @@ class LegacyEventRouter:
         """Thread-safe: marshals the publish onto the dispatcher thread."""
         self._dispatcher.post(_LegacyPublish(event_name, args, kwargs))
 
+    def set_log_runtimes(self, enabled):
+        """Refresh the legacy bus's per-subscriber runtime logging flag."""
+        self.event_bus.log_runtimes = enabled
+
     # -- typed-event handlers (dispatcher thread) ------------------------------
 
     def _on_playback_started(self, _event):
@@ -97,9 +114,10 @@ class LegacyEventRouter:
 
     def _on_av_changed(self, _event):
         log("AOM_EventManager: AV change event received", xbmc.LOGDEBUG)
-        # The filter probes synchronously (dispatcher thread — acceptable
-        # interim, was Kodi's pump before) and confirms from its verify
-        # thread; both callbacks below marshal back via post().
+        # The filter probes synchronously — this can block the dispatcher for
+        # seconds on RPC retries (see the module docstring's interim note) —
+        # and confirms from its verify thread; both callbacks below marshal
+        # back via post().
         self.av_change_filter.handle_av_change(
             lambda: self.playback_state['av_started'],
             lambda: self._dispatcher.post(_LegacyPublish('ON_AV_CHANGE')),

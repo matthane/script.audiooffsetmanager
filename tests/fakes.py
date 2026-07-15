@@ -28,7 +28,7 @@ class FakeClock:
     Example::
 
         clock = FakeClock()
-        d = Dispatcher(clock=clock)
+        d = Dispatcher(clock=clock, log_error=errors.append)
         d.schedule(1.0, Tick())
         d.run_pending()      # nothing due yet
         clock.advance(1.0)

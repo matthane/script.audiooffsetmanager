@@ -17,9 +17,10 @@ prevent later handlers or later events. With log_runtimes enabled, per-handler
 elapsed time is logged (the legacy EventBus feature, carried over); the flag
 is a plain attribute so the runtime can refresh it on SettingsChanged.
 
-Pure Python — no Kodi imports. Logging callables are injected by the runtime;
-tests inject a fake clock and pump manually with run_pending() instead of
-start()ing the thread.
+Pure Python — no Kodi imports. The error-log sink is a REQUIRED constructor
+argument (an unwired dispatcher must not silently swallow handler failures);
+the debug sink is optional. Tests inject a fake clock and pump manually with
+run_pending() instead of start()ing the thread.
 """
 
 import heapq
@@ -49,11 +50,11 @@ def _handler_name(handler):
 
 
 class Dispatcher:
-    def __init__(self, clock=time.monotonic, log_debug=None, log_error=None,
+    def __init__(self, clock=time.monotonic, *, log_error, log_debug=None,
                  log_runtimes=False):
         self._clock = clock
         self._log_debug = log_debug or _noop
-        self._log_error = log_error or _noop
+        self._log_error = log_error
         self.log_runtimes = log_runtimes
         self._queue = queue.Queue()
         self._subscribers = {}       # event type -> [handlers, ...]
@@ -100,13 +101,22 @@ class Dispatcher:
                            (self._clock() + delay_s, seq, key, event))
         # Wake the loop so it recomputes its wait deadline: the new timer may
         # be nearer than whatever it is currently blocking for.
-        self._queue.put(_WAKE)
+        self._wake()
         return key
 
     def cancel(self, key):
         """Cancel the pending timer for `key` (no-op if absent or already fired)."""
         with self._timer_lock:
-            self._active_keys.pop(key, None)
+            cancelled = self._active_keys.pop(key, None) is not None
+        if cancelled:
+            # Symmetric with schedule(): the loop may be sleeping toward the
+            # deadline of the timer we just killed; let it recompute.
+            self._wake()
+
+    def _wake(self):
+        """Nudge a blocked loop — unless we ARE the loop (then it isn't blocked)."""
+        if self._thread is None or threading.current_thread() is not self._thread:
+            self._queue.put(_WAKE)
 
     # -- lifecycle -------------------------------------------------------------
 
@@ -120,9 +130,17 @@ class Dispatcher:
         self._thread.start()
 
     def stop(self, timeout=5.0):
-        """Stop immediately: pending queue/timers are dropped, thread joined."""
+        """Stop immediately: pending queue/timers are dropped, thread joined.
+
+        Safe to call from a handler (i.e. from the dispatcher thread itself):
+        the loop halts after the current handler returns; no self-join.
+        """
         if self._thread is None:
             self._stopped = True
+            return
+        if threading.current_thread() is self._thread:
+            self._stopped = True
+            self._thread = None
             return
         self._queue.put(_STOP)
         self._thread.join(timeout)
@@ -205,6 +223,10 @@ class Dispatcher:
     def _dispatch(self, event):
         handlers = list(self._subscribers.get(type(event), ()))
         for handler in handlers:
+            # started is read unconditionally: the log_runtimes check happens
+            # AFTER the handler so a mid-dispatch flip takes effect for the
+            # flipping handler itself (documented, pinned by the test suite).
+            # One monotonic read per handler is the accepted cost.
             started = self._clock()
             try:
                 handler(event)

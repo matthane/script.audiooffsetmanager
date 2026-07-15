@@ -54,20 +54,27 @@ class ServiceRuntime:
         """Refresh cached debug flags; never write settings from here."""
         debug = self._settings_facade.debug_logging_enabled()
         self.dispatcher.log_runtimes = debug
-        self.router.event_bus.log_runtimes = debug
+        self.router.set_log_runtimes(debug)
 
     def run(self):
-        # Subscription order is load-bearing: OffsetManager registers its
-        # EventBus callbacks before SeekBacks, so offsets are applied before
-        # any seek-back logic runs for the same event.
-        self.dispatcher.start()
+        # Components subscribe BEFORE the dispatcher thread starts: any events
+        # the bridges queued during construction are then dispatched to a
+        # complete graph instead of an empty bus (matters when the service
+        # (re)starts while playback is already active). Subscription order is
+        # load-bearing too: OffsetManager registers its EventBus callbacks
+        # before SeekBacks, so offsets are applied before any seek-back logic
+        # runs for the same event.
         self.offset_manager.start()
         self.seek_backs.start()
+        self.dispatcher.start()
         log("AOM_Runtime: service started", xbmc.LOGDEBUG)
 
         self.monitor.waitForAbort()
 
         log("AOM_Runtime: abort requested; shutting down", xbmc.LOGDEBUG)
+        # Dispatcher first: once its thread is joined, no handler can be
+        # mid-publish while the components unsubscribe from the (un-locked)
+        # EventBus below. Posts arriving after stop are dropped by design.
+        self.dispatcher.stop()
         self.offset_manager.stop()
         self.seek_backs.stop()
-        self.dispatcher.stop()
