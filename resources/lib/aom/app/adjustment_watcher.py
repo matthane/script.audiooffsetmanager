@@ -64,8 +64,10 @@ On a successful store the watcher posts a session-stamped
 ``UserOffsetSaved`` (profile + ms captured at store time), the typed
 replacement for the legacy unstamped ``USER_ADJUSTMENT`` bus signal.
 
-Pure app layer: Kodi I/O via the injected gateway, settings via the injected
-facade, log sinks injected; no Kodi imports.
+Pure app layer: Kodi I/O via the injected gateway, eligibility reads via the
+injected settings adapter, offset reads/writes via the injected OffsetTable
+(get/store by profile — the key is the table's concern), log sinks injected;
+no Kodi imports.
 """
 
 import time
@@ -87,12 +89,13 @@ class AdjustmentWatcher:
     SETTINGS_DIALOG_ID = 10140
     _TICK_KEY = 'aom.watcher.tick'
 
-    def __init__(self, dispatcher, session_tracker, gateway, settings_facade,
-                 clock=time.monotonic, *, log_debug, log_warning):
+    def __init__(self, dispatcher, session_tracker, gateway, settings,
+                 offsets, clock=time.monotonic, *, log_debug, log_warning):
         self._dispatcher = dispatcher
         self._sessions = session_tracker
         self._gateway = gateway
-        self._settings = settings_facade
+        self._settings = settings
+        self._offsets = offsets      # OffsetTable: get/store by profile
         self._clock = clock
         self._log = log_debug
         self._warn = log_warning
@@ -236,8 +239,7 @@ class AdjustmentWatcher:
             return
 
         setting_id = profile.setting_id()
-        current = self._settings.get_offset_ms(profile)
-        if observed_ms == current:
+        if observed_ms == self._offsets.get(profile):
             # Already the stored value (e.g. re-dialed to the configured
             # offset): account for it, emit nothing.
             session.watch_baseline_ms = observed_ms
@@ -245,7 +247,7 @@ class AdjustmentWatcher:
                       f"for {setting_id}; nothing to do")
             return
 
-        if not self._settings.store_integer_if_changed(setting_id, observed_ms):
+        if not self._offsets.store(profile, observed_ms):
             # The value is still foreign; leave the baseline untouched so the
             # next quiescence cycle retries the store.
             self._warn(f"AOM_AdjustmentWatcher: failed to store "

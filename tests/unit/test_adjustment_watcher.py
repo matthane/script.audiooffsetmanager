@@ -3,9 +3,9 @@
 Driven exactly like test_seek_scheduler / test_stream_detector: a FakeClock
 plus manually pumped Dispatcher, a real SessionTracker (subscribed FIRST so
 the watcher always sees a live session), a scriptable FakeGateway (the audio
-delay is set via ``gateway.infolabels['Player.AudioDelay']``), the extended
-FakeFacade, and a real AdjustmentWatcher. UserOffsetSaved posts are collected
-off the bus.
+delay is set via ``gateway.infolabels['Player.AudioDelay']``), the shared
+FakeFacade (eligibility reads) + FakeOffsetTable (offset get/store), and a
+real AdjustmentWatcher. UserOffsetSaved posts are collected off the bus.
 
 Timing facts the tests rely on (all derived from the class constants):
 
@@ -28,7 +28,7 @@ from resources.lib.aom.app.adjustment_watcher import AdjustmentWatcher
 from resources.lib.aom.app.dispatcher import Dispatcher
 from resources.lib.aom.app.session import SessionTracker
 from resources.lib.aom.domain.profile import StreamProfile
-from tests.fakes import FakeClock, FakeFacade, FakeGateway
+from tests.fakes import FakeClock, FakeFacade, FakeGateway, FakeOffsetTable
 
 
 # Timing constants derive from the watcher so a retune cannot leave these
@@ -68,9 +68,10 @@ class Rig:
                                       log_debug=self.debug.append)
         self.gateway = FakeGateway()
         self.facade = FakeFacade()
+        self.offset_table = FakeOffsetTable()
         self.watcher = AdjustmentWatcher(
             self.dispatcher, self.tracker, self.gateway, self.facade,
-            clock=self.clock, log_debug=self.debug.append,
+            self.offset_table, clock=self.clock, log_debug=self.debug.append,
             log_warning=self.warnings.append)
         self.saved = []
         self.dispatcher.subscribe(events.UserOffsetSaved, self.saved.append)
@@ -153,7 +154,7 @@ class TestBaselineAdoption:
         for _ in range(4):
             rig.advance(IDLE)
 
-        assert rig.facade.stored == []
+        assert rig.offset_table.stored == []
         assert rig.saved == []
         assert rig.session.watch_baseline_ms == -125
         assert rig.session.watch_pending is None
@@ -169,11 +170,11 @@ class TestBaselineAdoption:
 
         rig.advance(IDLE)
         assert rig.session.watch_baseline_ms == -100
-        assert rig.facade.stored == []
+        assert rig.offset_table.stored == []
         assert rig.saved == []
 
         rig.advance(IDLE)                 # still the same value -> nothing
-        assert rig.facade.stored == []
+        assert rig.offset_table.stored == []
         assert rig.saved == []
 
 
@@ -190,11 +191,11 @@ class TestQuiescence:
 
         rig.observe_foreign('-0.050 s')                # opens the pending window
         assert rig.session.watch_pending is not None
-        assert rig.facade.stored == []                 # not yet quiesced
+        assert rig.offset_table.stored == []                 # not yet quiesced
 
         rig.hold_to_quiescence()                       # holds >= QUIET
 
-        assert rig.facade.stored == [(profile.setting_id(), -50)]
+        assert rig.offset_table.stored == [(profile.setting_id(), -50)]
         assert len(rig.saved) == 1
         saved = rig.saved[0]
         assert saved.session_id == rig.session.session_id
@@ -207,7 +208,7 @@ class TestQuiescence:
         # Further idle ticks (now a self-echo of the stored value) do nothing.
         rig.advance(IDLE)
         rig.advance(IDLE)
-        assert rig.facade.stored == [(profile.setting_id(), -50)]
+        assert rig.offset_table.stored == [(profile.setting_id(), -50)]
         assert len(rig.saved) == 1
 
     def test_adjust_back_before_quiescence_stores_nothing(self, rig):
@@ -221,7 +222,7 @@ class TestQuiescence:
         rig.set_delay('0.000 s')                       # dialed back before quiescence
         rig.advance(ACTIVE)
 
-        assert rig.facade.stored == []
+        assert rig.offset_table.stored == []
         assert rig.saved == []
         assert rig.session.watch_pending is None
         assert rig.session.watch_baseline_ms == 0
@@ -235,16 +236,16 @@ class TestQuiescence:
         rig.observe_foreign('-0.025 s')                # pending on -25
         rig.advance(ACTIVE)                            # -25 held 0.5s total
         rig.advance(ACTIVE)
-        assert rig.facade.stored == []
+        assert rig.offset_table.stored == []
 
         rig.set_delay('-0.050 s')                      # value moves before -25 quiesced
         rig.advance(ACTIVE)                            # pending restarts on -50
         assert rig.session.watch_pending[0] == -50
-        assert rig.facade.stored == []
+        assert rig.offset_table.stored == []
 
         rig.hold_to_quiescence()                       # -50 now holds >= QUIET
 
-        assert rig.facade.stored == [(profile.setting_id(), -50)]
+        assert rig.offset_table.stored == [(profile.setting_id(), -50)]
         assert [s.ms for s in rig.saved] == [-50]
 
     def test_store_lands_under_the_current_profile(self, rig):
@@ -262,7 +263,7 @@ class TestQuiescence:
 
         rig.hold_to_quiescence()
 
-        assert rig.facade.stored == [(profile_b.setting_id(), -50)]
+        assert rig.offset_table.stored == [(profile_b.setting_id(), -50)]
         assert len(rig.saved) == 1
         assert rig.saved[0].profile == profile_b
         assert rig.saved[0].ms == -50
@@ -279,7 +280,7 @@ class TestQuiescence:
         rig.session.applied = (profile.setting_id(), -50)
         rig.advance(ACTIVE)
 
-        assert rig.facade.stored == []
+        assert rig.offset_table.stored == []
         assert rig.saved == []
         assert rig.session.watch_pending is None
         assert rig.session.watch_baseline_ms == -50
@@ -288,13 +289,13 @@ class TestQuiescence:
         # The user dials to a value that is ALREADY the stored offset: no store
         # call, no event — baseline simply adopts it (get_offset_ms short-cut).
         profile = make_profile()
-        rig.facade.offsets[profile.setting_id()] = -50
+        rig.offset_table.offsets[profile.setting_id()] = -50
         rig.begin(profile, baseline_delay='0.000 s')
 
         rig.observe_foreign('-0.050 s')
         rig.hold_to_quiescence()
 
-        assert rig.facade.stored == []
+        assert rig.offset_table.stored == []
         assert rig.saved == []
         assert rig.session.watch_baseline_ms == -50
 
@@ -316,7 +317,7 @@ class TestStorePathGuards:
         rig.observe_foreign('-0.050 s')
         rig.hold_to_quiescence()
 
-        assert rig.facade.stored == []
+        assert rig.offset_table.stored == []
         assert rig.saved == []
         assert rig.session.watch_baseline_ms == -50
 
@@ -332,35 +333,35 @@ class TestStorePathGuards:
         rig.observe_foreign('-0.050 s')
         rig.hold_to_quiescence()                       # quiesced, but deferred
         rig.advance(ACTIVE)                            # keeps deferring
-        assert rig.facade.stored == []
+        assert rig.offset_table.stored == []
         assert rig.saved == []
         assert rig.watching                            # chain alive, retrying
         assert rig.logged('settings dialog open')
 
         rig.gateway.dialog_id = 9999                   # dialog closed
         rig.advance(ACTIVE)                            # next attempt stores
-        assert rig.facade.stored == [(profile.setting_id(), -50)]
+        assert rig.offset_table.stored == [(profile.setting_id(), -50)]
         assert len(rig.saved) == 1
 
     def test_store_failure_warns_keeps_baseline_and_retries(self, rig):
         profile = make_profile()
-        rig.facade.store_ok = False
+        rig.offset_table.store_ok = False
         rig.begin(profile, baseline_delay='0.000 s')
 
         rig.observe_foreign('-0.050 s')
         rig.hold_to_quiescence()                       # store attempt fails
 
-        assert rig.facade.stored == []
+        assert rig.offset_table.stored == []
         assert rig.saved == []
         assert rig.session.watch_baseline_ms == 0      # NOT updated on failure
         assert any('failed to store' in m for m in rig.warnings)
 
         # The value is still foreign, so a later cycle retries and succeeds.
-        rig.facade.store_ok = True
+        rig.offset_table.store_ok = True
         rig.observe_foreign('-0.050 s')                # re-opens pending on -50
         rig.hold_to_quiescence()
 
-        assert rig.facade.stored == [(profile.setting_id(), -50)]
+        assert rig.offset_table.stored == [(profile.setting_id(), -50)]
         assert len(rig.saved) == 1
 
 
@@ -409,13 +410,13 @@ class TestEligibilityAndChain:
         rig.post(events.SettingsChanged())             # chain resumes
         rig.advance(IDLE)                              # first tick re-adopts
         assert rig.session.watch_baseline_ms == -80
-        assert rig.facade.stored == []
+        assert rig.offset_table.stored == []
         assert rig.saved == []
 
         # A change observed while watching still stores normally.
         rig.observe_foreign('-0.050 s')
         rig.hold_to_quiescence()
-        assert rig.facade.stored == [(profile.setting_id(), -50)]
+        assert rig.offset_table.stored == [(profile.setting_id(), -50)]
 
     def test_hdr_disabled_profile_is_not_watched(self, rig):
         profile = make_profile()
@@ -446,7 +447,7 @@ class TestEligibilityAndChain:
         rig.set_delay('')                              # unparseable
         rig.advance(IDLE)
         assert rig.watching                            # chain still running
-        assert rig.facade.stored == []
+        assert rig.offset_table.stored == []
         rig.advance(IDLE)
         assert rig.watching
         assert rig.saved == []
@@ -492,7 +493,7 @@ class TestCadenceAndLifecycle:
         assert rig.session.session_id != old_id
 
         rig.post(events.WatchTick(session_id=old_id))  # stale stamp
-        assert rig.facade.stored == []
+        assert rig.offset_table.stored == []
         assert rig.saved == []
         assert not rig.watching                        # nothing rescheduled
 

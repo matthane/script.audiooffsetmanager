@@ -1,117 +1,92 @@
 """Composition root for the service process.
 
-Builds the dispatcher, the Kodi bridges, and the (still partly legacy)
-component graph with explicit, REQUIRED constructor dependencies — no
-fallback construction anywhere. Blocks on the monitor until Kodi aborts,
-then shuts everything down in reverse order.
+Builds the full typed graph — the dispatcher, the Kodi adapters (gateway,
+settings, gui, log), and the app components — with explicit, REQUIRED
+constructor dependencies: no fallback construction anywhere, exactly one
+instance of each adapter for the whole process. Blocks on the monitor until
+Kodi aborts, then stops the dispatcher.
+
+Every component subscribes during construction, BEFORE the dispatcher thread
+starts, so events the bridges queue during construction are dispatched to a
+complete graph (matters when the service (re)starts while playback is
+already active).
+
+Subscription order is load-bearing (dispatch follows it, per event type):
+
+1. tracker — the session exists (or is torn down) before any other handler
+   of the same lifecycle event runs;
+2. detector — owns ``session.profile`` and the stream-state machine;
+3. recorder — consumes the detector's StreamProbed facts;
+4. applier — on ProfileChanged/StreamStabilized the offset is applied (and
+   ``session.applied`` recorded) before anything downstream reads it;
+5. notifier — its StreamStabilized release runs after the applier's retry
+   pass for the same stabilization;
+6. seek scheduler — seeks for a stabilization are planned only after the
+   offset work for it is done;
+7. adjustment watcher — its ProfileChanged eligibility pass runs last, so
+   ``session.applied`` is already current when the first watch tick of a
+   profile episode is scheduled.
 """
 
-import xbmc
-
-from resources.lib.logger import log
-from resources.lib.notification_handler import NotificationHandler
-from resources.lib.offset_manager import OffsetManager
+from resources.lib.aom.app import events
 from resources.lib.aom.app.adjustment_watcher import AdjustmentWatcher
+from resources.lib.aom.app.dispatcher import Dispatcher
+from resources.lib.aom.app.notifier import Notifier
+from resources.lib.aom.app.offset_applier import OffsetApplier
+from resources.lib.aom.app.platform_recorder import PlatformRecorder
 from resources.lib.aom.app.seek_scheduler import (ExternalSeekCoordinator,
                                                   SeekScheduler)
-from resources.lib.settings_facade import SettingsFacade
-from resources.lib.settings_manager import SettingsManager
-from resources.lib.stream_info import StreamInfo
-from resources.lib.aom.app import events
-from resources.lib.aom.app.dispatcher import Dispatcher
-from resources.lib.aom.app.legacy_router import LegacyEventRouter
-from resources.lib.aom.app.platform_recorder import PlatformRecorder
 from resources.lib.aom.app.session import SessionTracker
 from resources.lib.aom.app.stream_detector import StreamDetector
 from resources.lib.aom.kodi.gateway import KodiGateway
+from resources.lib.aom.kodi.gui import Gui
+from resources.lib.aom.kodi.log import KodiLogger
 from resources.lib.aom.kodi.monitor_bridge import MonitorBridge
 from resources.lib.aom.kodi.player_bridge import PlayerBridge
-
-
-# The injected log sinks, bound once (named functions also read better than
-# lambdas in the dispatcher's per-handler runtime logging).
-def _log_debug(message):
-    log(message, xbmc.LOGDEBUG)
-
-
-def _log_warning(message):
-    log(message, xbmc.LOGWARNING)
-
-
-def _log_error(message):
-    log(message, xbmc.LOGERROR)
+from resources.lib.aom.kodi.settings import OffsetTable, Settings
 
 
 class ServiceRuntime:
     def __init__(self):
-        settings_manager = SettingsManager()
-        settings_facade = SettingsFacade(settings_manager)
-        notification_handler = NotificationHandler(settings_manager,
-                                                   settings_facade)
-        gateway = KodiGateway(log=log)
+        # Adapters first: one instance each, injected everywhere.
+        self.logger = KodiLogger()
+        self.settings = Settings(log=self.logger)
+        self.logger.debug_escalation = self.settings.debug_logging_enabled()
+        self.offsets = OffsetTable(self.settings)
+        self.gateway = KodiGateway(log=self.logger)
+        self.gui = Gui(log=self.logger)
 
-        self._settings_facade = settings_facade
         self.dispatcher = Dispatcher(
-            log_debug=_log_debug,
-            log_error=_log_error,
-            log_runtimes=settings_facade.debug_logging_enabled())
+            log_debug=self.logger.debug,
+            log_error=self.logger.error,
+            log_runtimes=self.logger.debug_escalation)
 
-        # Subscription order is load-bearing (dispatch follows it):
-        # 1. tracker — the session exists (or is torn down) before any other
-        #    handler of the same lifecycle event runs;
-        # 2. router — publishes the legacy AV_STARTED before the detector
-        #    starts probing (legacy event order);
-        # 3. detector — owns session.profile and the stream-state machine;
-        # 4. recorder — consumes the detector's StreamProbed facts;
-        # 5. seek scheduler — its StreamStabilized handler runs after the
-        #    router's translation, so offsets are applied/released before
-        #    any seek request is even planned for the same stabilization;
-        # 6. adjustment watcher — after the router for the same reason (see
-        #    its construction comment below).
+        # App components, in the load-bearing subscription order (docstring).
         self.session_tracker = SessionTracker(
-            self.dispatcher, log_debug=_log_debug)
-
-        # MIGRATION(p7): the router carries the legacy EventBus surface.
-        self.router = LegacyEventRouter(self.dispatcher, self.session_tracker,
-                                        settings_facade)
+            self.dispatcher, log_debug=self.logger.debug)
         self.detector = StreamDetector(
-            self.dispatcher, self.session_tracker, gateway, settings_facade,
-            log_debug=_log_debug, log_warning=_log_warning)
+            self.dispatcher, self.session_tracker, self.gateway,
+            self.settings, log_debug=self.logger.debug,
+            log_warning=self.logger.warning)
         self.platform_recorder = PlatformRecorder(
-            self.dispatcher, settings_facade, log_debug=_log_debug)
-
-        # MIGRATION(p7): session-backed StreamInfo shim, read by the debug
-        # snapshot only; dies with debug_snapshot in the final splits.
-        stream_info = StreamInfo(self.session_tracker)
-        self.offset_manager = OffsetManager(self.router, settings_manager,
-                                            stream_info, notification_handler,
-                                            settings_facade,
-                                            self.session_tracker)
+            self.dispatcher, self.settings, log_debug=self.logger.debug)
+        self.offset_applier = OffsetApplier(
+            self.dispatcher, self.session_tracker, self.gateway,
+            self.settings, self.offsets, log_debug=self.logger.debug,
+            log_warning=self.logger.warning)
+        self.notifier = Notifier(
+            self.dispatcher, self.session_tracker, self.settings, self.gui,
+            log_debug=self.logger.debug)
         self.seek_coordinator = ExternalSeekCoordinator(
-            gateway, log_debug=_log_debug)
+            self.gateway, log_debug=self.logger.debug)
         self.seek_scheduler = SeekScheduler(
-            self.dispatcher, self.session_tracker, settings_facade,
-            self.seek_coordinator, log_debug=_log_debug,
-            log_warning=_log_warning)
-        # 6. adjustment watcher — constructed last so its ProfileChanged
-        #    handler runs after the router's translation (which applies the
-        #    offset synchronously): session.applied is already current when
-        #    the first watch tick of a profile episode is scheduled.
+            self.dispatcher, self.session_tracker, self.settings,
+            self.seek_coordinator, log_debug=self.logger.debug,
+            log_warning=self.logger.warning)
         self.adjustment_watcher = AdjustmentWatcher(
-            self.dispatcher, self.session_tracker, gateway, settings_facade,
-            log_debug=_log_debug, log_warning=_log_warning)
-        # MIGRATION(p7): the notification for a stored manual adjustment
-        # still lives on the legacy OffsetManager until the Notifier split;
-        # wire it to the watcher's typed, session-stamped event here. It
-        # deliberately bypasses the router: the handler needs the event's
-        # payload (session stamp + profile/ms captured at store time), and
-        # the router's argument-carrying publish machinery died with its
-        # last producer. Order vs the seek scheduler's own UserOffsetSaved
-        # handler is immaterial: the scheduler only schedules a deferred
-        # ExecuteSeek, so the seek always runs after this dispatch (notify)
-        # completes.
-        self.dispatcher.subscribe(events.UserOffsetSaved,
-                                  self.offset_manager.on_user_offset_saved)
+            self.dispatcher, self.session_tracker, self.gateway,
+            self.settings, self.offsets, log_debug=self.logger.debug,
+            log_warning=self.logger.warning)
 
         self.player_bridge = PlayerBridge(self.dispatcher)
         self.monitor = MonitorBridge(self.dispatcher)
@@ -119,25 +94,19 @@ class ServiceRuntime:
                                   self._on_settings_changed)
 
     def _on_settings_changed(self, _event):
-        """Refresh cached debug flags; never write settings from here."""
-        debug = self._settings_facade.debug_logging_enabled()
+        """Refresh the cached debug flags; never write settings from here."""
+        debug = self.settings.debug_logging_enabled()
+        self.logger.debug_escalation = debug
         self.dispatcher.log_runtimes = debug
-        self.router.set_log_runtimes(debug)
 
     def run(self):
-        # Components subscribe BEFORE the dispatcher thread starts: any events
-        # the bridges queued during construction are then dispatched to a
-        # complete graph instead of an empty bus (matters when the service
-        # (re)starts while playback is already active).
-        self.offset_manager.start()
         self.dispatcher.start()
-        log("AOM_Runtime: service started", xbmc.LOGDEBUG)
+        self.logger.debug("AOM_Runtime: service started")
 
         self.monitor.waitForAbort()
 
-        log("AOM_Runtime: abort requested; shutting down", xbmc.LOGDEBUG)
-        # Dispatcher first: once its thread is joined, no handler can be
-        # mid-publish while the components unsubscribe from the (un-locked)
-        # EventBus below. Posts arriving after stop are dropped by design.
+        self.logger.debug("AOM_Runtime: abort requested; shutting down")
+        # Joining the dispatcher thread is the whole shutdown: every
+        # subscription lives on the dispatcher, and posts arriving after
+        # stop are dropped by design.
         self.dispatcher.stop()
-        self.offset_manager.stop()

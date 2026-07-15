@@ -120,14 +120,13 @@ class FakeGateway:
 
 
 class FakeFacade:
-    """Scriptable settings facade covering the app components' read surface.
+    """Scriptable settings double covering the app components' read surface.
 
     ``fps_override`` drives the detector's fps-bucket collapse; ``seek_configs``
     maps a seek reason to its (enabled, seconds) pair, defaulting every reason
-    to (True, 4). The adjustment-watcher surface: ``active_monitoring`` /
-    ``hdr_enabled`` gate eligibility; ``offsets`` (setting_id -> ms) backs
-    ``get_offset_ms``; ``store_integer_if_changed`` appends to ``stored`` and
-    writes ``offsets`` (unless ``store_ok`` is False, when it reports failure).
+    to (True, 4); ``active_monitoring`` / ``hdr_enabled`` gate the adjustment
+    watcher's eligibility. Offset reads/writes live on ``FakeOffsetTable``
+    (matching the real split: ``aom.kodi.settings.Settings`` + ``OffsetTable``).
     """
 
     def __init__(self, fps_override=False):
@@ -135,9 +134,6 @@ class FakeFacade:
         self.seek_configs = {}
         self.active_monitoring = True
         self.hdr_enabled = True
-        self.offsets = {}            # setting_id -> ms
-        self.stored = []             # (setting_id, ms), in store order
-        self.store_ok = True
 
     def fps_override_enabled(self, hdr_type):
         return self.fps_override
@@ -151,14 +147,28 @@ class FakeFacade:
     def is_hdr_enabled(self, hdr_type):
         return self.hdr_enabled
 
-    def get_offset_ms(self, profile):
+
+class FakeOffsetTable:
+    """Scriptable stand-in for ``aom.kodi.settings.OffsetTable``.
+
+    ``offsets`` (setting_id -> ms) backs ``get`` (0 default — the real table
+    always answers an int); ``store`` appends to ``stored`` and writes
+    ``offsets`` unless ``store_ok`` is False, when it reports failure.
+    """
+
+    def __init__(self):
+        self.offsets = {}            # setting_id -> ms
+        self.stored = []             # (setting_id, ms), in store order
+        self.store_ok = True
+
+    def get(self, profile):
         return self.offsets.get(profile.setting_id(), 0)
 
-    def store_integer_if_changed(self, setting_id, value):
+    def store(self, profile, ms):
         if not self.store_ok:
             return False
-        self.stored.append((setting_id, value))
-        self.offsets[setting_id] = value
+        self.stored.append((profile.setting_id(), ms))
+        self.offsets[profile.setting_id()] = ms
         return True
 
 

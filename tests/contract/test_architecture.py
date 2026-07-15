@@ -1,13 +1,12 @@
 """Contract test: aom layering rules (import purity).
 
 DESIGN layering: `aom.domain` is pure Python (no Kodi, no legacy modules);
-`aom.app` imports only stdlib + aom (the legacy_router MIGRATION shim is the
-sole, explicit exemption); `aom.kodi` is the only package allowed to import
-xbmc*. `aom/runtime.py` is the composition root and exempt by design.
-
-The exemption set is asserted exactly: when the shim is deleted, the stale
-entry here fails the suite and forces the exemption (and this comment) to be
-cleaned up with it.
+`aom.app` imports only stdlib + aom — with the Phase 7 removal of the
+legacy_router MIGRATION shim, the exemption set is EMPTY and construction is
+complete; `aom.kodi` is the only package allowed to import xbmc*.
+`aom/runtime.py` and `aom/onboarding.py` are composition roots (per-process
+entry glue) and exempt by design (they sit outside the three checked
+subpackages).
 """
 
 import ast
@@ -17,7 +16,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 AOM = REPO_ROOT / "resources" / "lib" / "aom"
 
 # The ONLY aom.app modules allowed to import xbmc*/legacy resources.lib code.
-APP_IMPURITY_EXEMPTIONS = {"legacy_router.py"}
+# Empty since Phase 7: every app module is pure.
+APP_IMPURITY_EXEMPTIONS = set()
 
 
 def _imports(path):
