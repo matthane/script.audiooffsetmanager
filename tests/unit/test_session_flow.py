@@ -37,15 +37,22 @@ def rig(monkeypatch):
     from resources.lib.aom.runtime import ServiceRuntime
     runtime = ServiceRuntime()
 
-    # Deterministic time: the detector's probe/verify timers fire only when
-    # the test advances the clock and pumps.
+    # Deterministic time everywhere: every clock-holding component gets the
+    # same FakeClock, so timers, session birth times, and the seek quiet
+    # window all move only when the test advances it.
     clock = FakeClock()
     runtime.dispatcher._clock = clock
+    runtime.session_tracker._clock = clock
+    runtime.seek_scheduler._clock = clock
+    runtime.seek_coordinator._clock = clock
 
     # The platform seam: script what the "player" reports via the fake
     # gateway; mutate its attributes between pumps to change the stream.
+    # Both gateway consumers get the same fake (detector reads; the seek
+    # coordinator probes vendor properties and executes seeks through it).
     gateway = FakeGateway(infolabels=dict(INFOLABELS))
     runtime.detector._gateway = gateway
+    runtime.seek_coordinator._gateway = gateway
 
     # --- settings seams (facade instance shared across components) ------------
     facade = runtime.offset_manager.settings_facade
@@ -71,9 +78,8 @@ def rig(monkeypatch):
                             (ms, profile.setting_id())))
 
     # Components subscribe as run() would; the dispatcher stays un-started and
-    # is pumped manually.
+    # is pumped manually. (The seek scheduler subscribed at construction.)
     runtime.offset_manager.start()
-    runtime.seek_backs.start()
     return runtime, clock, gateway, applied, notified
 
 
@@ -191,6 +197,37 @@ def test_mid_play_change_applies_immediately_and_notifies_on_stable(rig):
     assert session.stream_state is StreamState.STABLE
     assert notified[-1] == (-125, 'dolbyvision_all_eac3')
     assert session.pending_notification is None
+
+
+def test_resume_seek_waits_for_stable_and_quiet_window_from_start(rig, monkeypatch):
+    # Worked-trace parity: session start counts as seek activity, so the
+    # resume seek executes QUIET_WINDOW (2.0s) after start — reproducing the
+    # legacy mandatory 2s settle without a bespoke constant — and only once
+    # the stream is STABLE. The reciprocity property is set around the seek
+    # and cleared afterwards.
+    runtime, clock, gateway, applied, _notified = rig
+    monkeypatch.setattr(
+        runtime.seek_scheduler._settings, 'seek_back_config',
+        lambda reason: (True, 4) if reason == 'resume' else (False, 0))
+
+    runtime.dispatcher.post(events.PlaybackStarted())
+    runtime.dispatcher.run_pending()          # t=0: probe adopts; seek defers
+    assert applied == [(1, -125)]             # offset FIRST (ordering restored)
+    assert gateway.seeks == []
+
+    _settle(runtime, clock, 0.5)              # t=0.5: still deferring
+    assert gateway.seeks == []
+    _settle(runtime, clock, 0.5)              # t=1.0: verify -> STABLE; not quiet
+    session = runtime.session_tracker.current
+    assert session.stream_state is StreamState.STABLE
+    assert gateway.seeks == []
+    _settle(runtime, clock, 0.5)              # t=1.5: still inside quiet window
+    assert gateway.seeks == []
+    _settle(runtime, clock, 0.5)              # t=2.0: quiet -> seek executes
+
+    assert gateway.seeks == [(4, 1)]          # configured length, live player
+    assert 'script.audiooffsetmanager.seeking' not in gateway.window_properties
+    assert session.seek_history['resume'] == pytest.approx(2.0)
 
 
 def test_blip_and_revert_fires_no_legacy_change_event(rig):

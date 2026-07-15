@@ -5,8 +5,8 @@
                                        └──(profile change detected)─────┘
 
 Replaces the legacy 2.0s startup grace window and the cross-component codec
-mirrors for NOTIFICATION settling. (SeekBacks' startup skip remains a plain
-per-session latch until the seek phase unifies it — see
+mirrors for NOTIFICATION settling. (The seek scheduler's startup skip
+remains a plain per-session latch until the watcher phase unifies it — see
 PlaybackSession.initial_av_change_consumed.) Consumers ask one question:
 ``session.stream_state is StreamState.STABLE``.
 

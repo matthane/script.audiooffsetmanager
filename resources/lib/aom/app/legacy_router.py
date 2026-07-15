@@ -1,10 +1,13 @@
 """Routing shim: typed dispatcher events -> the legacy string EventBus.
 
 MIGRATION(p7): this module replaces the legacy EventManager and dies with the
-legacy components. It exists so OffsetManager, SeekBacks, and ActiveMonitor
-run their legacy logic — same subscribe/unsubscribe/publish surface, same
-event names, same log lines — while every handler executes on the dispatcher
-thread instead of Kodi's callback pump.
+legacy components. It exists so OffsetManager and ActiveMonitor run their
+legacy logic — same subscribe/unsubscribe/publish surface, same event names,
+same log lines — while every handler executes on the dispatcher thread
+instead of Kodi's callback pump. Only the event names with a live legacy
+subscriber are still published (AV_STARTED, PROFILE_CHANGED, ON_AV_CHANGE,
+PLAYBACK_STOPPED/ENDED, and the marshaled USER_ADJUSTMENT); the rest of the
+old surface survives as verbatim log lines only.
 
 Per-playback state lives on the PlaybackSession (owned by SessionTracker,
 which subscribes to the lifecycle events BEFORE this router — dispatch order
@@ -26,17 +29,10 @@ This is legacy-bridging code, so unlike the rest of aom.app it may import
 legacy modules (and, through them, Kodi APIs). Log lines are kept verbatim
 from EventManager for field-log comparability during the migration.
 
-Known interim costs (removed by the seek phase): SeekBacks' blocking
-settle/PM4K waits still stall the single dispatcher thread, serializing
-paths legacy ran concurrently (ActiveMonitor's USER_ADJUSTMENT fired inline
-on the monitor thread and now queues behind a stall). New consequence since
-detection moved to queued events: the 'resume' seek-back's 2s settle runs
-inside the AV_STARTED publish, BEFORE the detector's first probe can
-dispatch — so on resume-with-seek-back the offset lands ~2s later than
-legacy and the replay seek precedes it (the re-watched seconds then play
-with the correct offset, so the UX cost is ~2s of visible lip-sync error
-that gets replayed anyway). Accepted for the construction phases;
-eliminated when the seek scheduler lands.
+With SeekBacks replaced by the non-blocking SeekScheduler, no legacy
+handler blocks anymore: the dispatcher stall radius and the interim
+resume-ordering inversion (seek before offset) are gone — every remaining
+bus subscriber returns quickly.
 """
 
 from dataclasses import dataclass, field
@@ -144,28 +140,27 @@ class LegacyEventRouter:
         log("AOM_EventManager: Playback ended", xbmc.LOGDEBUG)
         self._publish_here('PLAYBACK_ENDED')
 
+    # The handlers below keep EventManager's verbatim log lines but publish
+    # nothing: their legacy consumers were replaced by typed subscribers
+    # (SeekScheduler handles Paused/Resumed/SeekOccurred directly).
+
     def _on_paused(self, _event):
         log("AOM_EventManager: Playback paused", xbmc.LOGDEBUG)
-        self._publish_here('PLAYBACK_PAUSED')
 
     def _on_resumed(self, _event):
         log("AOM_EventManager: Playback resumed", xbmc.LOGDEBUG)
-        self._publish_here('PLAYBACK_RESUMED')
 
     def _on_seek(self, event):
         log(f"AOM_EventManager: Playback seek to time {event.time_ms} with offset "
             f"{event.offset_ms}", xbmc.LOGDEBUG)
-        self._publish_here('PLAYBACK_SEEK', event.time_ms, event.offset_ms)
 
     def _on_seek_chapter(self, event):
         log(f"AOM_EventManager: Playback seek to chapter {event.chapter}",
             xbmc.LOGDEBUG)
-        self._publish_here('PLAYBACK_SEEK_CHAPTER', event.chapter)
 
     def _on_speed_changed(self, event):
         log(f"AOM_EventManager: Playback speed changed to {event.speed}",
             xbmc.LOGDEBUG)
-        self._publish_here('PLAYBACK_SPEED_CHANGED', event.speed)
 
     def _on_legacy_publish(self, event):
         self._publish_here(event.name, *event.args, **event.kwargs)

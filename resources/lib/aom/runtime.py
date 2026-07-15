@@ -11,7 +11,8 @@ import xbmc
 from resources.lib.logger import log
 from resources.lib.notification_handler import NotificationHandler
 from resources.lib.offset_manager import OffsetManager
-from resources.lib.seek_backs import SeekBacks
+from resources.lib.aom.app.seek_scheduler import (ExternalSeekCoordinator,
+                                                  SeekScheduler)
 from resources.lib.settings_facade import SettingsFacade
 from resources.lib.settings_manager import SettingsManager
 from resources.lib.stream_info import StreamInfo
@@ -60,7 +61,10 @@ class ServiceRuntime:
         # 2. router — publishes the legacy AV_STARTED before the detector
         #    starts probing (legacy event order);
         # 3. detector — owns session.profile and the stream-state machine;
-        # 4. recorder — consumes the detector's StreamProbed facts.
+        # 4. recorder — consumes the detector's StreamProbed facts;
+        # 5. seek scheduler — its StreamStabilized handler runs after the
+        #    router's translation, so offsets are applied/released before
+        #    any seek request is even planned for the same stabilization.
         self.session_tracker = SessionTracker(
             self.dispatcher, log_debug=_log_debug)
 
@@ -80,8 +84,16 @@ class ServiceRuntime:
                                             stream_info, notification_handler,
                                             settings_facade,
                                             self.session_tracker)
-        self.seek_backs = SeekBacks(self.router, settings_manager,
-                                    settings_facade, self.session_tracker)
+        self.seek_coordinator = ExternalSeekCoordinator(
+            gateway, log_debug=_log_debug)
+        self.seek_scheduler = SeekScheduler(
+            self.dispatcher, self.session_tracker, settings_facade,
+            self.seek_coordinator, log_debug=_log_debug)
+        # MIGRATION(p6): ActiveMonitor still announces manual adjustments on
+        # the legacy bus; the typed UserOffsetSaved replaces this wire when
+        # the adjustment watcher lands.
+        self.router.subscribe('USER_ADJUSTMENT',
+                              self.seek_scheduler.on_user_adjustment)
 
         self.player_bridge = PlayerBridge(self.dispatcher)
         self.monitor = MonitorBridge(self.dispatcher)
@@ -98,12 +110,8 @@ class ServiceRuntime:
         # Components subscribe BEFORE the dispatcher thread starts: any events
         # the bridges queued during construction are then dispatched to a
         # complete graph instead of an empty bus (matters when the service
-        # (re)starts while playback is already active). Subscription order is
-        # load-bearing too: OffsetManager registers its EventBus callbacks
-        # before SeekBacks, so offsets are applied before any seek-back logic
-        # runs for the same event.
+        # (re)starts while playback is already active).
         self.offset_manager.start()
-        self.seek_backs.start()
         self.dispatcher.start()
         log("AOM_Runtime: service started", xbmc.LOGDEBUG)
 
@@ -115,4 +123,5 @@ class ServiceRuntime:
         # EventBus below. Posts arriving after stop are dropped by design.
         self.dispatcher.stop()
         self.offset_manager.stop()
-        self.seek_backs.stop()
+        self.router.unsubscribe('USER_ADJUSTMENT',
+                                self.seek_scheduler.on_user_adjustment)

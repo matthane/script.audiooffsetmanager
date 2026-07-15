@@ -46,13 +46,16 @@ def test_service_runtime_graph_wiring():
     from resources.lib.aom.runtime import ServiceRuntime
     runtime = ServiceRuntime()
     assert runtime.offset_manager.event_manager is runtime.router
-    assert runtime.seek_backs.event_manager is runtime.router
     assert runtime.offset_manager.sessions is runtime.session_tracker
-    assert runtime.seek_backs.sessions is runtime.session_tracker
     assert runtime.detector._sessions is runtime.session_tracker
     assert runtime.detector._dispatcher is runtime.dispatcher
+    assert runtime.seek_scheduler._sessions is runtime.session_tracker
+    assert runtime.seek_scheduler._coordinator is runtime.seek_coordinator
     # The StreamInfo shim reads through the same tracker the detector writes.
     assert runtime.offset_manager.stream_info._sessions is runtime.session_tracker
+    # MIGRATION(p6): the scheduler's 'change' trigger rides the legacy bus.
+    assert (runtime.seek_scheduler.on_user_adjustment
+            in runtime.router.event_bus._subscribers.get('USER_ADJUSTMENT', []))
 
 
 def test_runtime_subscription_order_is_pinned():
@@ -84,16 +87,18 @@ def test_runtime_subscription_order_is_pinned():
 
 
 def test_typed_events_translate_to_legacy_names_and_args(rig):
+    # Only event names with a live legacy subscriber are still published;
+    # Paused/Resumed/SeekOccurred/SeekChapter/SpeedChanged became typed-only
+    # (the SeekScheduler consumes them directly) and must NOT reach the bus.
     dispatcher, _tracker, router, errors = rig
     seen = []
     router.subscribe('AV_STARTED', lambda: seen.append(('AV_STARTED',)))
     router.subscribe('PLAYBACK_STOPPED', lambda: seen.append(('PLAYBACK_STOPPED',)))
     router.subscribe('PLAYBACK_ENDED', lambda: seen.append(('PLAYBACK_ENDED',)))
-    router.subscribe('PLAYBACK_PAUSED', lambda: seen.append(('PLAYBACK_PAUSED',)))
-    router.subscribe('PLAYBACK_RESUMED', lambda: seen.append(('PLAYBACK_RESUMED',)))
-    router.subscribe('PLAYBACK_SEEK', lambda t, o: seen.append(('PLAYBACK_SEEK', t, o)))
-    router.subscribe('PLAYBACK_SEEK_CHAPTER', lambda c: seen.append(('PLAYBACK_SEEK_CHAPTER', c)))
-    router.subscribe('PLAYBACK_SPEED_CHANGED', lambda s: seen.append(('PLAYBACK_SPEED_CHANGED', s)))
+    for dead_name in ('PLAYBACK_PAUSED', 'PLAYBACK_RESUMED', 'PLAYBACK_SEEK',
+                      'PLAYBACK_SEEK_CHAPTER', 'PLAYBACK_SPEED_CHANGED'):
+        router.subscribe(dead_name,
+                         lambda *a, name=dead_name, **k: seen.append((name,)))
 
     dispatcher.post(events.PlaybackStarted())
     dispatcher.post(events.Paused())
@@ -107,11 +112,6 @@ def test_typed_events_translate_to_legacy_names_and_args(rig):
 
     assert seen == [
         ('AV_STARTED',),
-        ('PLAYBACK_PAUSED',),
-        ('PLAYBACK_RESUMED',),
-        ('PLAYBACK_SEEK', 1234, -10),
-        ('PLAYBACK_SEEK_CHAPTER', 3),
-        ('PLAYBACK_SPEED_CHANGED', 2),
         ('PLAYBACK_STOPPED',),
         ('PLAYBACK_ENDED',),
     ]
