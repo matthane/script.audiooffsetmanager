@@ -1,32 +1,18 @@
-"""Characterization tests for ActiveMonitor.convert_delay_to_ms.
+"""Behavior matrix for aom.domain.policies.parse_delay_ms.
 
-Pins the CURRENT locale-safe parsing of Kodi's `Player.AudioDelay` infolabel
-string before Phase 1 relocates it to aom.domain.policies.parse_delay_ms.
-
-ActiveMonitor.__init__(event_manager, stream_info, offset_manager,
-settings_manager): convert_delay_to_ms touches none of these, so dummy Nones
-suffice for the first three; the required settings_manager is the singleton,
-which imports and constructs cleanly under Kodistubs.
-
-Current implementation (verbatim):
-    normalized = delay_str.replace(' s', '').replace('\\u202f', '') \\
-                          .replace(' ', '').replace(',', '.')
-    delay_seconds = max(-10.0, min(float(normalized), 10.0))
-    return int(delay_seconds * 1000)
+Began in Phase 0 as characterization tests for ActiveMonitor.convert_delay_to_ms
+(relocated to the domain in Phase 1). Phase 6 gave the parser to the
+AdjustmentWatcher and fixed its two pinned limitations — the
+NNBSP-as-sole-separator parse failure and the int() ms truncation — so this
+matrix now pins the FIXED semantics, targeting the domain function directly
+(the legacy delegating wrapper died with ActiveMonitor).
 """
 
 import pytest
 
-from resources.lib.active_monitor import ActiveMonitor
-from resources.lib.settings_manager import SettingsManager
+from resources.lib.aom.domain.policies import parse_delay_ms
 
-NNBSP = " "  # narrow no-break space (U+202F)
-
-
-@pytest.fixture
-def convert():
-    monitor = ActiveMonitor(None, None, None, SettingsManager())
-    return monitor.convert_delay_to_ms
+NNBSP = " "  # narrow no-break space
 
 
 @pytest.mark.parametrize("delay_str, expected", [
@@ -37,17 +23,23 @@ def convert():
     ("1.5 s", 1500),
     ("-0.025 s", -25),
 ])
-def test_valid_conversions(convert, delay_str, expected):
-    assert convert(delay_str) == expected
+def test_valid_conversions(delay_str, expected):
+    assert parse_delay_ms(delay_str) == expected
 
 
 @pytest.mark.parametrize("delay_str, expected", [
-    # A NNBSP that precedes the regular " s" unit is stripped -> parses fine.
+    # NNBSP preceding the regular " s" unit.
     ("-0.075" + NNBSP + " s", -75),
     ("-0,075" + NNBSP + " s", -75),
+    # Phase 6 fix (flipped pin): NNBSP as the SOLE unit separator — the
+    # modern CLDR convention ("-0.075<NNBSP>s") — used to return None.
+    ("-0.075" + NNBSP + "s", -75),
+    ("-0,075" + NNBSP + "s", -75),
+    # No separator at all: same trailing-unit strip handles it.
+    ("-0.075s", -75),
 ])
-def test_narrow_no_break_space_before_unit_parses(convert, delay_str, expected):
-    assert convert(delay_str) == expected
+def test_unit_separator_variants_parse(delay_str, expected):
+    assert parse_delay_ms(delay_str) == expected
 
 
 @pytest.mark.parametrize("delay_str", [
@@ -56,9 +48,10 @@ def test_narrow_no_break_space_before_unit_parses(convert, delay_str, expected):
     "",
     None,
     "s",
+    NNBSP + "s",
 ])
-def test_junk_returns_none(convert, delay_str):
-    assert convert(delay_str) is None
+def test_junk_returns_none(delay_str):
+    assert parse_delay_ms(delay_str) is None
 
 
 @pytest.mark.parametrize("delay_str, expected", [
@@ -70,15 +63,18 @@ def test_junk_returns_none(convert, delay_str):
     ("9.999 s", 9999),     # just under upper bound (not clamped)
     ("-9.999 s", -9999),   # just above lower bound (not clamped)
 ])
-def test_clamping_to_plus_minus_10_seconds(convert, delay_str, expected):
-    assert convert(delay_str) == expected
+def test_clamping_to_plus_minus_10_seconds(delay_str, expected):
+    assert parse_delay_ms(delay_str) == expected
 
 
-# --- FLAGGED CURRENT-BEHAVIOR ODDITY (do not "fix" in Phase 0) --------------
-# When a narrow no-break space sits DIRECTLY between the value and the unit with
-# no regular space (the modern CLDR unit-separator convention, e.g. Kodi could
-# emit "-0.075<NNBSP>s"), the replacement order strips the NNBSP and leaves
-# "-0.075s", which float() then rejects -> None. So a plausible real locale
-# string silently fails to parse. Pinned here as-is; flagged in the report.
-def test_narrow_no_break_space_as_sole_unit_separator_currently_returns_none(convert):
-    assert convert("-0.075" + NNBSP + "s") is None
+@pytest.mark.parametrize("delay_str, expected", [
+    # Phase 6 fix (flipped pin): values whose float round-trip lands just
+    # below the integer ("0.115" * 1000 == 114.999...) round instead of
+    # truncating toward zero.
+    ("0.115 s", 115),
+    ("-0.115 s", -115),
+    ("0.185 s", 185),
+    ("-0.185 s", -185),
+])
+def test_ms_conversion_rounds(delay_str, expected):
+    assert parse_delay_ms(delay_str) == expected

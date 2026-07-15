@@ -11,25 +11,36 @@ from resources.lib.aom.domain import formats
 def parse_delay_ms(delay_str):
     """Parse Kodi's localized `Player.AudioDelay` infolabel string to ms.
 
-    Handles '-0.075 s', comma decimals ('-0,075 s'), and strips narrow
-    no-break spaces. Clamps to +/-10 s. Returns None on unparseable input.
+    Handles '-0.075 s', comma decimals ('-0,075 s'), and narrow no-break
+    spaces anywhere around the unit. Clamps to +/-10 s. Returns None on
+    unparseable input.
 
-    Behavior is verbatim from ActiveMonitor.convert_delay_to_ms (Phase 1 move,
-    zero behavior change). Known limitation, pinned in
-    tests/unit/test_delay_parsing.py: a narrow no-break space as the SOLE
-    separator before the unit ('-0.075<U+202F>s') fails to parse and returns
-    None — scheduled to be fixed when the watcher rework takes ownership of
-    this parser and adds full locale-variant coverage.
+    Two Phase 6 fixes over the verbatim legacy parser (their Phase 0/1
+    behavior pins in test_delay_parsing.py / test_policies.py were flipped
+    alongside):
+
+    - A narrow no-break space as the SOLE separator before the unit
+      ('-0.075<U+202F>s', the CLDR unit-separator convention) parses now:
+      NNBSP is normalized to a regular space BEFORE the unit is stripped,
+      instead of being deleted (which used to leave '-0.075s' for float()).
+    - The ms conversion rounds instead of truncating: float('-0.115') * 1000
+      is -114.999...; the legacy int() returned -114 for a slider value of
+      -115 ms.
     """
     try:
-        normalized = (delay_str.replace(' s', '')
-                      .replace('\u202f', '')  # narrow no-break space
-                      .replace(' ', '')
-                      .replace(',', '.'))
+        normalized = (delay_str.replace('\u202f', ' ')  # narrow no-break space
+                      .replace(',', '.')
+                      .strip())
+        # Strip the trailing unit however it is separated: 's' never appears
+        # inside a parseable number, so dropping one trailing 's' (plus any
+        # remaining spaces) is unambiguous.
+        if normalized.endswith('s'):
+            normalized = normalized[:-1]
+        normalized = normalized.replace(' ', '')
         delay_seconds = float(normalized)
         # Clamp to reasonable bounds (-10s to +10s) to avoid junk values
         delay_seconds = max(-10.0, min(delay_seconds, 10.0))
-        return int(delay_seconds * 1000)
+        return int(round(delay_seconds * 1000))
     except (ValueError, AttributeError):
         return None
 

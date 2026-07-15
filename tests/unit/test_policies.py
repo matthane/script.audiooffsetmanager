@@ -1,8 +1,9 @@
 """Unit tests for aom.domain.policies — parsing, completeness, gating.
 
-parse_delay_ms behavior is verbatim from ActiveMonitor.convert_delay_to_ms
-(also pinned via delegation by tests/unit/test_delay_parsing.py); the direct
-cases here keep coverage when the legacy module is deleted in Phase 7.
+parse_delay_ms started as a verbatim move of ActiveMonitor.convert_delay_to_ms
+(full locale/clamping matrix in tests/unit/test_delay_parsing.py); Phase 6
+fixed its two pinned limitations — the NNBSP-as-sole-separator parse failure
+and the int() ms truncation — and flipped the pins here and there.
 """
 
 import pytest
@@ -43,10 +44,17 @@ def test_parse_delay_ms_junk_returns_none(delay_str):
     assert policies.parse_delay_ms(delay_str) is None
 
 
-def test_parse_delay_ms_nnbsp_sole_separator_pinned_limitation():
-    # Verbatim Phase 1 move keeps the known limitation (fix lands in Phase 6):
-    # NNBSP directly against the unit fails to parse.
-    assert policies.parse_delay_ms("-0.075" + NNBSP + "s") is None
+def test_parse_delay_ms_nnbsp_sole_separator_parses():
+    # Phase 6 fix (flipped pin): NNBSP directly against the unit — the CLDR
+    # unit-separator convention — parses like any other separator.
+    assert policies.parse_delay_ms("-0.075" + NNBSP + "s") == -75
+
+
+def test_parse_delay_ms_rounds_instead_of_truncating():
+    # Phase 6 fix: float('-0.115') * 1000 is -114.999...; int() used to
+    # truncate a -115 ms slider value to -114.
+    assert policies.parse_delay_ms("-0.115 s") == -115
+    assert policies.parse_delay_ms("0.115 s") == 115
 
 
 # --- is_complete -------------------------------------------------------------
