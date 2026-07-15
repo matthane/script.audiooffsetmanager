@@ -4,7 +4,7 @@ This module also controls the deployment of the Active Monitor when it's enabled
 
 import xbmc
 from resources.lib.active_monitor import ActiveMonitor
-from resources.lib.aom.domain import policies
+from resources.lib.aom.domain import formats, policies
 from resources.lib.aom.domain.stream_state import StreamState
 from resources.lib import rpc_client
 from resources.lib.logger import log
@@ -76,10 +76,10 @@ class OffsetManager:
                 xbmc.LOGDEBUG)
             return
         self.stream_info.update_stream_info()
-        session.profile = self.stream_info.profile
-        if (session.stream_state is StreamState.STARTING
-                and session.profile is not None):
-            session.stream_state = StreamState.STABILIZING
+        # session.profile stays unwritten during the migration (the live
+        # profile is stream_info.profile; a session mirror could diverge).
+        if policies.is_complete(self.stream_info.profile):
+            session.mark_profile_built()
         self.apply_audio_offset(session)
         log_snapshot("AV_EVENT", self.stream_info, self.settings_facade)
         self.manage_active_monitor(session)
@@ -178,7 +178,12 @@ class OffsetManager:
                              extra={"delay_ms": delay_ms, "notified": notify})
 
     def _should_start_active_monitor(self):
-        """Determine if active monitor should be started based on current conditions."""
+        """Determine if active monitor should be started based on current conditions.
+
+        Deliberately a PARTIAL unknown-check (hdr + fps, not audio): the
+        monitor may run while audio is unknown; its own write path
+        re-validates the full profile before storing anything.
+        """
         profile = self.stream_info.profile
         if profile is None:
             return False
@@ -188,10 +193,10 @@ class OffsetManager:
         fps_type = profile.fps_type
         hdr_type_enabled = self.settings_manager.get_setting_boolean(f'enable_{hdr_type}')
 
-        return (active_monitoring_enabled and 
-                hdr_type_enabled and 
-                hdr_type != 'unknown' and 
-                fps_type != 'unknown')
+        return (active_monitoring_enabled and
+                hdr_type_enabled and
+                hdr_type != formats.UNKNOWN and
+                fps_type != formats.UNKNOWN)
 
     def manage_active_monitor(self, session):
         """Manage the active monitor state based on current conditions."""
@@ -214,7 +219,13 @@ class OffsetManager:
             self.stop_active_monitor()
 
     def _maybe_send_pending_notification(self, session, profile):
-        """Send the session's pending notification once the stream is STABLE."""
+        """Send the session's pending notification once the stream is STABLE.
+
+        `profile` MUST be freshly derived by the caller (read from
+        stream_info immediately after update_stream_info) — passing a
+        profile captured during an earlier event would release/drop the
+        pending toast against a stale key (settings-doctrine hazard).
+        """
         if session.pending_notification is None:
             return
 

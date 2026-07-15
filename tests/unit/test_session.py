@@ -89,3 +89,30 @@ def test_stop_without_session_is_noop():
     dispatcher.post(events.PlaybackStopped())
     dispatcher.run_pending()
     assert tracker.current is None
+
+
+def test_stream_state_transition_methods():
+    session = PlaybackSession(session_id=1, started_at=100.0)
+
+    # mark_profile_built: STARTING -> STABILIZING only.
+    assert session.mark_profile_built() is True
+    assert session.stream_state is StreamState.STABILIZING
+    assert session.mark_profile_built() is False           # not from STABILIZING
+
+    # mark_stable: only from STABILIZING; idempotent once STABLE.
+    assert session.mark_stable() is True
+    assert session.stream_state is StreamState.STABLE
+    assert session.mark_stable() is True                   # already stable
+    assert session.mark_profile_built() is False           # not from STABLE
+
+    # mark_verifying: from any state back to STABILIZING.
+    assert session.mark_verifying() is True
+    assert session.stream_state is StreamState.STABILIZING
+    assert session.mark_verifying() is False               # already verifying
+
+
+def test_mark_stable_refused_from_starting():
+    # No verification was ever requested: refuse the STARTING -> STABLE jump.
+    session = PlaybackSession(session_id=1, started_at=100.0)
+    assert session.mark_stable() is False
+    assert session.stream_state is StreamState.STARTING

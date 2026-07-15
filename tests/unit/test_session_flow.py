@@ -13,7 +13,6 @@ import xbmc
 
 from resources.lib import rpc_client
 from resources.lib.aom.app import events
-from resources.lib.aom.app.legacy_router import _AvChangeStable
 from resources.lib.aom.domain.stream_state import StreamState
 
 
@@ -49,6 +48,12 @@ def rig(monkeypatch):
     monkeypatch.setattr(facade, 'fps_override_enabled', lambda hdr: False)
     monkeypatch.setattr(facade, 'get_offset_ms', lambda profile: -125)
 
+    # Hermeticity: without this, Kodistubs' getBool default would enable
+    # active monitoring and every PlaybackStarted would spawn a REAL
+    # ActiveMonitor daemon thread. (Also disables seek-backs.)
+    monkeypatch.setattr(runtime.offset_manager.settings_manager,
+                        'get_setting_boolean', lambda setting_id: False)
+
     notified = []
     monkeypatch.setattr(runtime.offset_manager.notification_handler,
                         'notify_audio_offset_applied',
@@ -63,9 +68,9 @@ def rig(monkeypatch):
 
 
 def _confirm_stability(runtime, session_id):
-    """Post what the AvChangeFilter verify thread posts, in its FIFO order."""
-    runtime.dispatcher.post(events.StreamStabilized(session_id=session_id))
-    runtime.dispatcher.post(_AvChangeStable(session_id=session_id))
+    """Confirm exactly as production does: call the router's verify-thread
+    marshal, so these tests stay coupled to the real confirmation protocol."""
+    runtime.router._on_verify_confirmed(session_id)
 
 
 def test_startup_apply_is_provisional_then_released_on_stable(rig):
@@ -136,6 +141,49 @@ def test_mid_play_codec_change_applies_and_notifies_immediately(rig):
     assert session.applied == ('dolbyvision_all_eac3', -125)
     assert notified[-1] == (-125, 'dolbyvision_all_eac3')   # immediate (STABLE)
     assert session.pending_notification is None
+
+
+def test_active_monitor_restarted_on_in_place_reopen(rig, monkeypatch):
+    # The supersede guard: an in-place reopen must tear down the old
+    # session's monitor (whose tracked delays belong to dead content) and
+    # start a fresh one bound to the new session.
+    runtime, _applied, _notified, _stream = rig
+
+    monitors = []
+
+    class FakeMonitor:
+        def __init__(self, event_manager, stream_info, offset_manager,
+                     settings_manager):
+            self.started = False
+            self.stopped = False
+            monitors.append(self)
+
+        def start(self):
+            self.started = True
+
+        def stop(self):
+            self.stopped = True
+
+    import resources.lib.offset_manager as om_module
+    monkeypatch.setattr(om_module, 'ActiveMonitor', FakeMonitor)
+    # Enable monitoring (the rig's hermetic default disables it).
+    monkeypatch.setattr(runtime.offset_manager.settings_manager,
+                        'get_setting_boolean', lambda setting_id: True)
+
+    runtime.dispatcher.post(events.PlaybackStarted())
+    runtime.dispatcher.run_pending()
+    first_session = runtime.session_tracker.current
+    assert len(monitors) == 1 and monitors[0].started
+    assert runtime.offset_manager._monitor_session_id == first_session.session_id
+
+    # In-place reopen: old monitor stopped, new one started for the new id.
+    runtime.dispatcher.post(events.PlaybackStarted())
+    runtime.dispatcher.run_pending()
+    second_session = runtime.session_tracker.current
+    assert monitors[0].stopped is True
+    assert len(monitors) == 2 and monitors[1].started
+    assert not monitors[1].stopped
+    assert runtime.offset_manager._monitor_session_id == second_session.session_id
 
 
 def test_av_event_after_stop_is_ignored(rig):

@@ -44,7 +44,6 @@ from resources.lib.av_change_filter import AvChangeFilter
 from resources.lib.event_bus import EventBus
 from resources.lib.logger import log
 from resources.lib.aom.app import events
-from resources.lib.aom.domain.stream_state import StreamState
 
 
 # eq=False: keeps object-identity hashing — frozen+eq would auto-generate a
@@ -56,12 +55,6 @@ class _LegacyPublish:
     name: str
     args: tuple = ()
     kwargs: dict = field(default_factory=dict)
-
-
-@dataclass(frozen=True)
-class _AvChangeStable:
-    """Verify thread confirmed the codec: publish legacy ON_AV_CHANGE."""
-    session_id: int
 
 
 class LegacyEventRouter:
@@ -84,7 +77,6 @@ class LegacyEventRouter:
         dispatcher.subscribe(events.SeekChapter, self._on_seek_chapter)
         dispatcher.subscribe(events.SpeedChanged, self._on_speed_changed)
         dispatcher.subscribe(events.StreamStabilized, self._on_stream_stabilized)
-        dispatcher.subscribe(_AvChangeStable, self._on_av_change_stable)
         dispatcher.subscribe(_LegacyPublish, self._on_legacy_publish)
 
     # -- legacy component surface (unchanged from EventManager) ---------------
@@ -128,28 +120,34 @@ class LegacyEventRouter:
             lambda: self._on_verify_confirmed(sid),
             None,
         )
-        if scheduled and session.stream_state is StreamState.STABLE:
-            # A genuine mid-play codec change: stability must be re-earned.
-            session.stream_state = StreamState.STABILIZING
+        if scheduled:
+            # A verification is pending: stability (re-)earned on confirm.
+            session.mark_verifying()
 
     def _on_verify_confirmed(self, session_id):
-        # VERIFY THREAD. FIFO order is load-bearing: the session is marked
-        # STABLE before ON_AV_CHANGE handlers run (legacy set-then-publish).
+        # VERIFY THREAD: marshal the confirmation onto the dispatcher.
         self._dispatcher.post(events.StreamStabilized(session_id=session_id))
-        self._dispatcher.post(_AvChangeStable(session_id=session_id))
 
     def _on_stream_stabilized(self, event):
-        if not self._sessions.is_alive(event.session_id):
+        """Mark STABLE, then publish ON_AV_CHANGE — one handler, so the
+        legacy set-then-publish ordering is local and self-evident.
+
+        MIGRATION(p7): this is currently the only STABLE-transition wiring in
+        the codebase; when this shim dies, the stream detector must own the
+        transition (it posts StreamStabilized itself in the target design).
+        """
+        session = self._sessions.current
+        if session is None or session.session_id != event.session_id:
             log(f"AOM_EventManager: dropping stale stabilization for session "
                 f"#{event.session_id}", xbmc.LOGDEBUG)
             return
-        self._sessions.current.stream_state = StreamState.STABLE
-
-    def _on_av_change_stable(self, event):
-        if not self._sessions.is_alive(event.session_id):
-            log(f"AOM_EventManager: dropping stale AV change for session "
-                f"#{event.session_id}", xbmc.LOGDEBUG)
-            return
+        if not session.mark_stable():
+            # Confirmation without a pending verification (session still
+            # STARTING): refuse the state jump, but still publish — legacy
+            # published unconditionally on confirmation.
+            log(f"AOM_EventManager: ignoring STABLE transition for session "
+                f"#{event.session_id} in state {session.stream_state.value}",
+                xbmc.LOGDEBUG)
         self._publish_here('ON_AV_CHANGE')
 
     def _on_playback_stopped(self, _event):

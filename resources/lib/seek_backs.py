@@ -23,8 +23,10 @@ class SeekBacks:
         self.settings_manager = settings_manager
         self.settings_facade = settings_facade
         self.sessions = session_tracker
-        # Cross-session on purpose (see module docstring).
-        self._last_pm4k_busy = 0.0
+        # Cross-session on purpose (see module docstring). None = never seen
+        # busy (0.0 would be a wrong sentinel for the arbitrary-epoch
+        # monotonic clock).
+        self._last_pm4k_busy = None
         self._events = {
             'AV_STARTED': self.on_av_started,
             'ON_AV_CHANGE': self.on_av_change,
@@ -57,9 +59,9 @@ class SeekBacks:
         if session is None:
             return
         if not session.initial_av_change_consumed:
-            # The session's first confirmed AV change is startup settling —
-            # the stream just reached STABLE for the first time; no 'adjust'
-            # seek-back for it.
+            # Plain first-call latch: the session's first confirmed AV change
+            # is startup settling, so no 'adjust' seek-back for it. (Only
+            # incidentally aligned with the stream-state machine.)
             session.initial_av_change_consumed = True
             log("AOM_SeekBacks: Skipping initial AV change (startup)", xbmc.LOGDEBUG)
             return
@@ -121,6 +123,8 @@ class SeekBacks:
 
     def _pm4k_recently_busy(self, grace_seconds=2.5):
         """Check if PM4K was busy recently to avoid back-to-back seeks."""
+        if self._last_pm4k_busy is None:
+            return False
         return (time.monotonic() - self._last_pm4k_busy) < grace_seconds
 
     def _wait_for_pm4k_idle(self, timeout=6.0):
@@ -143,12 +147,16 @@ class SeekBacks:
         Returns:
             tuple: (should_seek, seek_seconds) or (False, None) if seek is not needed
         """
-        # Check if we've performed a seek back recently (within 2 seconds, per event type)
+        # One seek back at a time, 2s cooldown across ALL trigger types. The
+        # cross-type reach also restores the suppression the legacy
+        # seek_in_progress flag provided: a different-type trigger landing
+        # during a settle window would otherwise run back-to-back with the
+        # first seek once dispatch serializes them.
         now = time.monotonic()
-        last_by_type = session.seek_history.get(event_type, 0)
-        if now - last_by_type < 2:
-            log(f"AOM_SeekBacks: Skipping seek back on {event_type} - too soon after last seek of this type",
-                xbmc.LOGDEBUG)
+        last_own_seek = max(session.seek_history.values(), default=None)
+        if last_own_seek is not None and now - last_own_seek < 2:
+            log(f"AOM_SeekBacks: Skipping seek back on {event_type} - too soon "
+                f"after the previous seek back", xbmc.LOGDEBUG)
             return False, None
 
         if session.paused:
@@ -166,6 +174,7 @@ class SeekBacks:
 
         if not ignore_recent_kodi_seek:
             if (event_type in ('unpause', 'resume')
+                    and session.last_seek_activity is not None
                     and (now - session.last_seek_activity) < 2.5):
                 log(f"AOM_SeekBacks: Recent Kodi seek detected; skipping {event_type} seek back to avoid double-seek",
                     xbmc.LOGDEBUG)

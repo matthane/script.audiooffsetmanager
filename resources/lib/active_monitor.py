@@ -3,7 +3,7 @@
 import xbmc
 import xbmcgui
 import threading
-from resources.lib.aom.domain.policies import parse_delay_ms
+from resources.lib.aom.domain.policies import is_complete, parse_delay_ms
 from resources.lib.logger import log
 
 
@@ -78,7 +78,7 @@ class ActiveMonitor:
 
     def _validate_stream_info(self):
         """Validate current stream information.
-        
+
         Returns:
             tuple: (is_valid, profile) or (False, None) if invalid
         """
@@ -87,12 +87,11 @@ class ActiveMonitor:
             log("AOM_ActiveMonitor: No stream profile available", xbmc.LOGDEBUG)
             return False, None
 
-        required_values = [profile.hdr_type, str(profile.fps_type), profile.audio_format]
-        if any(value == 'unknown' for value in required_values):
+        if not is_complete(profile):
             log(f"AOM_ActiveMonitor: Invalid stream profile: {profile}",
                 xbmc.LOGDEBUG)
             return False, None
-            
+
         return True, profile
 
     def update_last_stored_audio_delay(self):
