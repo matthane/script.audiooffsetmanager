@@ -81,6 +81,18 @@ class PlaybackSession:
     watch_baseline_ms: Optional[int] = None
     watch_pending: tuple = None
 
+    def describe(self):
+        """One-line state snapshot for field logs (replaces debug_snapshot).
+
+        Emitted by the applier after each apply decision so field logs keep a
+        greppable state line at the moments that matter.
+        """
+        setting_id = (self.profile.setting_id()
+                      if self.profile is not None else None)
+        return (f"session#{self.session_id} state={self.stream_state.value} "
+                f"profile={setting_id} applied={self.applied} "
+                f"paused={self.paused}")
+
     # -- stream-state transitions (the only sanctioned writers) ---------------
 
     def mark_profile_built(self):
