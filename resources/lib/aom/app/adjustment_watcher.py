@@ -32,6 +32,14 @@ over the user's configured offset.
 Quiescence replaces the legacy "slider closed" moment: a foreign value must
 hold unchanged for ``QUIESCENCE_SECONDS`` before it is stored (the tick
 cadence tightens to ``ACTIVE_TICK_SECONDS`` while a candidate is pending).
+Two teardown-phantom defenses back this up (Phase 8 field bug, 2026-07-15):
+during a slow stop — PM4K flows and natural end-of-media on CoreELEC
+measured 0.3-1.15s — Kodi's delay infolabel reads a parseable 0 while the
+session is still alive, which is indistinguishable from a user dialing to
+0. ``QUIESCENCE_SECONDS`` is sized to outrun that window, and the store
+path re-checks ``gateway.active_player_id()`` at store time, discarding
+the observation chain when the player is already gone (a native stop
+empties the player list before ``OnStop`` even fires).
 Acknowledged trade-off: without a dialog-close edge we cannot know the user
 is "done", so we wait out a short quiet window instead — a user who dials
 through several values only stores the one they settle on, and an
@@ -81,7 +89,12 @@ class AdjustmentWatcher:
 
     IDLE_TICK_SECONDS = 1.0     # poll cadence when nothing is happening
     ACTIVE_TICK_SECONDS = 0.25  # tightened cadence while observing a change
-    QUIESCENCE_SECONDS = 1.0    # foreign value must hold this long to be stored
+    # Foreign value must hold this long to be stored. 2.0s (raised from 1.0)
+    # outruns the teardown phantom: field-measured stop windows where the
+    # delay infolabel reads a parseable 0 while the session is still alive
+    # ran 0.3-1.15s (Phase 8, CoreELEC/PM4K 2026-07-15; a 1.15s window beat
+    # the old 1.0s quiescence and stored 0 over the user's offset).
+    QUIESCENCE_SECONDS = 2.0
     INFOLABEL_AUDIO_DELAY = 'Player.AudioDelay'
     _TICK_KEY = 'aom.watcher.tick'
 
@@ -214,6 +227,17 @@ class AdjustmentWatcher:
             return self.ACTIVE_TICK_SECONDS
         if now - pending[1] < self.QUIESCENCE_SECONDS:
             return self.ACTIVE_TICK_SECONDS
+        if self._gateway.active_player_id() == -1:
+            # Teardown phantom guard (Phase 8 field bug): during a slow stop
+            # the delay infolabel can read a parseable 0 while PlaybackStopped
+            # hasn't landed yet, so the quiesced "adjustment" belongs to a
+            # dying player. Never store an adjustment for a player that no
+            # longer exists — discard the whole observation chain (the
+            # baseline is teardown-tainted too).
+            self._clear_observation(session)
+            self._log("AOM_AdjustmentWatcher: no active player at store "
+                      "time; discarding pending adjustment")
+            return self.IDLE_TICK_SECONDS
         if self._gateway.settings_dialog_open():
             # Settings-state doctrine: never write a setting while the addon
             # settings dialog is open — its save-on-close would clobber the

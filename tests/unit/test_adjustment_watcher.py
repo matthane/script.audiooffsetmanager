@@ -343,6 +343,33 @@ class TestStorePathGuards:
         assert rig.offset_table.stored == [(profile.setting_id(), -50)]
         assert len(rig.saved) == 1
 
+    def test_player_gone_at_store_time_discards_the_observation(self, rig):
+        # Regression pin for the 2.0.0~beta1 teardown-phantom field bug
+        # (CoreELEC/PM4K, 2026-07-15): during a slow stop the delay infolabel
+        # reads a parseable 0 while the session is still alive; quiescence
+        # elapsed 99ms before PlaybackStopped and 0 was stored over the
+        # user's saved offset. The store path must re-check player liveness
+        # and discard the WHOLE observation chain (baseline included) when
+        # the player is already gone.
+        profile = make_profile()
+        rig.begin(profile, baseline_delay='0.020 s')
+
+        rig.observe_foreign('0.000 s')                 # teardown phantom
+        rig.gateway.player_id = -1                     # player dies mid-wait
+        rig.hold_to_quiescence()
+
+        assert rig.offset_table.stored == []
+        assert rig.saved == []
+        assert rig.session.watch_pending is None
+        assert rig.session.watch_baseline_ms is None   # chain fully cleared
+        assert rig.logged('no active player at store time')
+
+    def test_quiescence_outruns_measured_teardown_windows(self, rig):
+        # The longest field-measured phantom window (infolabel 0 with the
+        # session alive) was 1.15s; quiescence must exceed it with margin so
+        # the session dies before a phantom can quiesce.
+        assert AdjustmentWatcher.QUIESCENCE_SECONDS >= 2.0
+
     def test_store_failure_warns_keeps_baseline_and_retries(self, rig):
         profile = make_profile()
         rig.offset_table.store_ok = False
