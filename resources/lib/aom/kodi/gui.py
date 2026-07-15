@@ -18,7 +18,7 @@ import xbmc
 import xbmcaddon
 import xbmcgui
 
-ADDON_ID = 'script.audiooffsetmanager'
+from resources.lib.aom.kodi.settings import ADDON_ID
 
 
 class Gui:
@@ -50,15 +50,20 @@ class Gui:
                       f"{str(e)}", xbmc.LOGERROR)
             return ''
 
-    def notification(self, message, duration_ms):
+    def notification(self, message, duration_ms, title=None, icon=None):
         """Raise one Kodi toast for ``message`` lasting ``duration_ms``.
 
-        Exception guard: a GUI-layer failure logs LOGERROR through the sink
-        and never unwinds the caller.
+        ``title`` and ``icon`` default to the addon's name and icon; the
+        onboarding flow overrides them for its error toasts
+        (``xbmcgui.NOTIFICATION_ERROR``). Exception guard: a GUI-layer
+        failure logs LOGERROR through the sink and never unwinds the caller.
         """
         try:
             xbmcgui.Dialog().notification(
-                self._name, message, self._icon, duration_ms)
+                title if title is not None else self._name,
+                message,
+                icon if icon is not None else self._icon,
+                duration_ms)
         except Exception as e:
             self._log(f"AOM_Gui: Error raising notification: {str(e)}",
                       xbmc.LOGERROR)

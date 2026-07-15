@@ -113,7 +113,13 @@ class OffsetApplier:
 
     def _should_apply(self, profile):
         """Resolve the inputs and log the reason; the decision is the policy's."""
+        # Only read enable_<hdr> for a KNOWN hdr type: 'enable_unknown' is not
+        # a setting, and reading it would emit a spurious settings LOGWARNING
+        # on every apply attempt for an undetected stream (the policy skips
+        # incomplete profiles as 'unknown_format' before hdr_enabled matters,
+        # so False is never the deciding answer here).
         hdr_enabled = (profile is not None and
+                       policies.is_complete(profile) and
                        self._settings.is_hdr_enabled(profile.hdr_type))
         allowed, reason = policies.should_apply(
             profile,

@@ -83,10 +83,6 @@ class AdjustmentWatcher:
     ACTIVE_TICK_SECONDS = 0.25  # tightened cadence while observing a change
     QUIESCENCE_SECONDS = 1.0    # foreign value must hold this long to be stored
     INFOLABEL_AUDIO_DELAY = 'Player.AudioDelay'
-    # Kodi's WINDOW_DIALOG_ADDON_SETTINGS: while it is open its working copy
-    # of our settings is saved back on close, clobbering any programmatic
-    # write made in between (settings-state doctrine) — stores defer past it.
-    SETTINGS_DIALOG_ID = 10140
     _TICK_KEY = 'aom.watcher.tick'
 
     def __init__(self, dispatcher, session_tracker, gateway, settings,
@@ -127,7 +123,15 @@ class AdjustmentWatcher:
     def _on_profile_changed(self, event):
         if not self._sessions.is_alive(event.session_id):
             return
-        self._evaluate(self._sessions.current)
+        session = self._sessions.current
+        # A (re)adoption makes any in-flight observation ambiguous: a pending
+        # candidate was dialed against the PREVIOUS profile (storing it under
+        # the new key would be the adopt-vs-store hazard), and the baseline
+        # belongs to that profile's episode too. Drop both; the next tick
+        # re-establishes them — the applier (ordered before us) has already
+        # recorded its apply, so our own value reads as self-echo.
+        self._clear_observation(session)
+        self._evaluate(session)
 
     def _on_settings_changed(self, _event):
         session = self._sessions.current
@@ -210,7 +214,7 @@ class AdjustmentWatcher:
             return self.ACTIVE_TICK_SECONDS
         if now - pending[1] < self.QUIESCENCE_SECONDS:
             return self.ACTIVE_TICK_SECONDS
-        if self._gateway.current_dialog_id() == self.SETTINGS_DIALOG_ID:
+        if self._gateway.settings_dialog_open():
             # Settings-state doctrine: never write a setting while the addon
             # settings dialog is open — its save-on-close would clobber the
             # store. Hold the quiesced candidate and retry until it closes.

@@ -329,7 +329,7 @@ class TestStorePathGuards:
         profile = make_profile()
         rig.begin(profile, baseline_delay='0.000 s')
 
-        rig.gateway.dialog_id = AdjustmentWatcher.SETTINGS_DIALOG_ID
+        rig.gateway.settings_dialog = True
         rig.observe_foreign('-0.050 s')
         rig.hold_to_quiescence()                       # quiesced, but deferred
         rig.advance(ACTIVE)                            # keeps deferring
@@ -338,7 +338,7 @@ class TestStorePathGuards:
         assert rig.watching                            # chain alive, retrying
         assert rig.logged('settings dialog open')
 
-        rig.gateway.dialog_id = 9999                   # dialog closed
+        rig.gateway.settings_dialog = False            # dialog closed
         rig.advance(ACTIVE)                            # next attempt stores
         assert rig.offset_table.stored == [(profile.setting_id(), -50)]
         assert len(rig.saved) == 1
@@ -391,6 +391,31 @@ class TestEligibilityAndChain:
         rig.advance(IDLE)                              # the pending tick fires
         assert not rig.watching
         assert rig.logged('no longer eligible')
+
+    def test_profile_adoption_clears_the_observation(self, rig):
+        # A (re)adoption makes any in-flight candidate ambiguous: the pending
+        # value was dialed against the PREVIOUS profile, so a real
+        # ProfileChanged drops pending AND baseline — even if the new
+        # profile's apply failed (session.applied unchanged), the old value
+        # is re-adopted as baseline, never stored under the new key (the
+        # adopt-vs-store hazard, closed structurally).
+        profile_a = make_profile(hdr_type='dolbyvision', audio_format='truehd')
+        profile_b = make_profile(hdr_type='hdr10', audio_format='eac3')
+        rig.begin(profile_a, baseline_delay='0.000 s')
+
+        rig.observe_foreign('-0.050 s')                # pending under A
+        assert rig.session.watch_pending is not None
+
+        rig.session.profile = profile_b                # detector adopts B...
+        rig.arm()                                      # ...and posts ProfileChanged
+        assert rig.session.watch_pending is None       # candidate dropped
+        assert rig.session.watch_baseline_ms is None   # baseline dropped too
+
+        rig.hold_to_quiescence()                       # old cadence plays out
+        rig.advance(IDLE)                              # fresh first observation
+        assert rig.offset_table.stored == []           # nothing ever stored
+        assert rig.saved == []
+        assert rig.session.watch_baseline_ms == -50    # re-adopted, not stored
 
     def test_baseline_cleared_when_watching_stops(self, rig):
         # Only a change observed WHILE watching is an adjustment: a delay

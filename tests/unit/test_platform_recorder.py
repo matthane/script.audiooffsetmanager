@@ -1,19 +1,21 @@
 """Unit tests for aom.app.platform_recorder.PlatformRecorder.
 
 The recorder is a pure event consumer: on every StreamProbed it writes the two
-platform-capability flags through the facade's store-if-changed helper (the
-dedupe is the FACADE's job — the recorder always calls), and it clears the
-``new_install`` flag exactly once, on the first probe of the service lifetime.
+platform-capability flags through the settings adapter's store-if-changed
+helper (the dedupe is the ADAPTER's job — the recorder always calls), and it
+clears the ``new_install`` flag exactly once, on the first probe whose writes
+actually ran. Writes defer while the addon settings dialog is open (doctrine)
+— the gateway answers that question.
 
 Driven like the other app-layer tests: a real Dispatcher (no timers needed
-here) pumped with run_pending(), and a recording facade capturing every
-store_boolean_if_changed call in order.
+here) pumped with run_pending(), and a recording settings double capturing
+every store_boolean_if_changed call in order.
 """
 
 from resources.lib.aom.app import events
 from resources.lib.aom.app.dispatcher import Dispatcher
 from resources.lib.aom.app.platform_recorder import PlatformRecorder
-from tests.fakes import FakeClock
+from tests.fakes import FakeClock, FakeGateway
 
 
 class RecordingFacade:
@@ -31,13 +33,14 @@ class RecordingFacade:
 
 
 def make_rig(new_install=False):
-    """Return (dispatcher, facade, debug, errors) with the recorder wired."""
+    """Return (dispatcher, gateway, facade, debug, errors), recorder wired."""
     errors = []
     debug = []
     dispatcher = Dispatcher(clock=FakeClock(), log_error=errors.append)
+    gateway = FakeGateway()
     facade = RecordingFacade(new_install=new_install)
-    PlatformRecorder(dispatcher, facade, log_debug=debug.append)
-    return dispatcher, facade, debug, errors
+    PlatformRecorder(dispatcher, gateway, facade, log_debug=debug.append)
+    return dispatcher, gateway, facade, debug, errors
 
 
 def _probe(session_id=1, platform_hdr_full=True, advanced_hlg=False):
@@ -47,7 +50,7 @@ def _probe(session_id=1, platform_hdr_full=True, advanced_hlg=False):
 
 
 def test_stores_platform_facts_on_every_probe():
-    dispatcher, facade, _debug, errors = make_rig(new_install=False)
+    dispatcher, _gateway, facade, _debug, errors = make_rig(new_install=False)
 
     dispatcher.post(_probe(platform_hdr_full=True, advanced_hlg=False))
     dispatcher.run_pending()
@@ -67,7 +70,7 @@ def test_stores_platform_facts_on_every_probe():
 
 
 def test_new_install_cleared_once_on_first_probe():
-    dispatcher, facade, debug, errors = make_rig(new_install=True)
+    dispatcher, _gateway, facade, debug, errors = make_rig(new_install=True)
 
     dispatcher.post(_probe())
     dispatcher.run_pending()
@@ -86,7 +89,7 @@ def test_new_install_cleared_once_on_first_probe():
 
 
 def test_new_install_never_stored_when_flag_already_false():
-    dispatcher, facade, debug, errors = make_rig(new_install=False)
+    dispatcher, _gateway, facade, debug, errors = make_rig(new_install=False)
 
     dispatcher.post(_probe())
     dispatcher.post(_probe())
@@ -96,12 +99,34 @@ def test_new_install_never_stored_when_flag_already_false():
     assert errors == []
 
 
+def test_writes_defer_while_settings_dialog_open():
+    # Settings-state doctrine: a write under an open addon-settings dialog is
+    # clobbered by its save-on-close. The recorder skips the probe's writes —
+    # including the new_install clear, whose latch must stay armed — and the
+    # next probe (dialog closed) records everything.
+    dispatcher, gateway, facade, debug, errors = make_rig(new_install=True)
+
+    gateway.settings_dialog = True
+    dispatcher.post(_probe())
+    dispatcher.run_pending()
+    assert facade.stored == []                       # nothing written
+    assert any('deferring platform writes' in line for line in debug)
+
+    gateway.settings_dialog = False
+    dispatcher.post(_probe())
+    dispatcher.run_pending()
+    assert facade.stored == [('platform_hdr_full', True),
+                             ('advanced_hlg', False),
+                             ('new_install', False)]  # latch survived the defer
+    assert errors == []
+
+
 def test_records_regardless_of_session_id():
     # No session guard by design: platform facts are session-independent — a
     # probe stamped with a superseded (or never-live) session id still observed
     # the real platform, so the recorder records it unconditionally. The
     # recorder never consults the SessionTracker at all.
-    dispatcher, facade, _debug, errors = make_rig(new_install=False)
+    dispatcher, _gateway, facade, _debug, errors = make_rig(new_install=False)
 
     dispatcher.post(_probe(session_id=999999, platform_hdr_full=True,
                            advanced_hlg=True))

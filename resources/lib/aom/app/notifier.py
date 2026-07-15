@@ -100,6 +100,12 @@ class Notifier:
     def _on_user_offset_saved(self, event):
         if not self._sessions.is_alive(event.session_id):
             return
+        # A manual save supersedes any held provisional toast: the user's
+        # value is the fact on the ground, and releasing the old held ms on
+        # the next stabilization would announce a value that no longer
+        # applies. (Legacy parity: its non-suppressed apply path cleared the
+        # pending toast before the equivalent sequence could surface it.)
+        self._sessions.current.pending_notification = None
         # The payload is the profile/ms captured at store time by the watcher;
         # do NOT re-read session/settings for the message.
         self._toast(STRING_OFFSET_SAVED, event.ms, event.profile)
@@ -112,8 +118,11 @@ class Notifier:
 
         now = self._clock()
         key = (string_id, profile.setting_id(), ms)
-        if key == self._last_toast and self._last_toast_at is not None \
-                and now - self._last_toast_at < self.DEDUPE_SECONDS:
+        # _last_toast and _last_toast_at are set in lockstep, and a real key
+        # (a tuple) never equals the None sentinel, so the key comparison
+        # alone guards the subtraction.
+        if key == self._last_toast and \
+                now - self._last_toast_at < self.DEDUPE_SECONDS:
             return
 
         sign = '+' if ms > 0 else ''

@@ -109,6 +109,31 @@ def rig():
     return Rig()
 
 
+def test_manual_save_supersedes_a_held_provisional_toast(rig):
+    # A user adjustment landing INSIDE the provisional window makes the held
+    # ms stale: releasing it on stabilization would announce a value that no
+    # longer applies (legacy cleared the pending toast on its non-suppressed
+    # apply path before the equivalent sequence could surface it). The manual
+    # save clears the hold; stabilization then releases nothing.
+    profile = make_profile()
+    session = rig.start(profile)
+
+    rig.post(events.OffsetApplied(session_id=session.session_id,
+                                  profile=profile, ms=30, provisional=True))
+    assert session.pending_notification is not None
+    assert rig.toasts == []
+
+    rig.post(events.UserOffsetSaved(session_id=session.session_id,
+                                    profile=profile, ms=50))
+    assert session.pending_notification is None       # hold superseded
+    assert rig.toasts == [("#32093: +50 ms\nDV | TrueHD", DURATION_MS)]
+
+    rig.mark_stable(session)
+    rig.post(events.StreamStabilized(session_id=session.session_id))
+    assert rig.toasts == [("#32093: +50 ms\nDV | TrueHD", DURATION_MS)]
+    # No stale "applied +30" ever surfaces.
+
+
 # ============================================================================
 # Immediate (non-provisional) application
 # ============================================================================

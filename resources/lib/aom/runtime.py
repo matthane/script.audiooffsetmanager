@@ -16,7 +16,8 @@ Subscription order is load-bearing (dispatch follows it, per event type):
 1. tracker — the session exists (or is torn down) before any other handler
    of the same lifecycle event runs;
 2. detector — owns ``session.profile`` and the stream-state machine;
-3. recorder — consumes the detector's StreamProbed facts;
+3. recorder — sole StreamProbed consumer (data flow, not an ordering
+   constraint; listed for the construction narrative);
 4. applier — on ProfileChanged/StreamStabilized the offset is applied (and
    ``session.applied`` recorded) before anything downstream reads it;
 5. notifier — its StreamStabilized release runs after the applier's retry
@@ -69,7 +70,8 @@ class ServiceRuntime:
             self.settings, log_debug=self.logger.debug,
             log_warning=self.logger.warning)
         self.platform_recorder = PlatformRecorder(
-            self.dispatcher, self.settings, log_debug=self.logger.debug)
+            self.dispatcher, self.gateway, self.settings,
+            log_debug=self.logger.debug)
         self.offset_applier = OffsetApplier(
             self.dispatcher, self.session_tracker, self.gateway,
             self.settings, self.offsets, log_debug=self.logger.debug,

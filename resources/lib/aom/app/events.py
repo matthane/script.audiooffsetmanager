@@ -3,12 +3,12 @@
 Events are frozen dataclasses dispatched by type (subscribe registers against
 the class). Payloads are explicit fields — never positional *args.
 
-The catalog below is the full target set. The "player/monitor" group (Kodi
-bridges), the detection group (posted by StreamDetector), ExecuteSeek
-(posted by SeekScheduler), and the watcher group (UserOffsetSaved/WatchTick,
-posted by AdjustmentWatcher) are live. OffsetApplied is still defined ahead
-of the Phase 7 applier split that will post it, so the contract stays
-reviewable in one place. Pure Python: no Kodi imports.
+Every event has a live producer; SeekChapter and SpeedChanged are posted by
+the player bridge but currently have no consumer — kept deliberately so the
+bridge covers Kodi's full playback-callback surface (DESIGN marks them
+reserved; note that chapter jumps also fire onPlayBackSeek, so the seek
+quiet window already sees them via SeekOccurred). Pure Python: no Kodi
+imports.
 """
 
 from dataclasses import dataclass
@@ -105,11 +105,10 @@ class StreamStabilized:
 
     ``profile_changed`` is False for a pure re-confirmation (a blip that
     reverted with no adoption in between): the state machine re-earned
-    STABLE, but no stream change is being announced. The router uses it to
-    suppress the legacy ON_AV_CHANGE translation for those — legacy's
-    duplicate-codec filter never fired an event for a reverting blip. The
-    default is True (announce) so hand-posted events keep the announcing
-    behavior.
+    STABLE, but no stream change is being announced. The seek scheduler
+    skips the 'adjust' replay for those — legacy's duplicate-codec filter
+    never fired an event for a reverting blip either. The default is True
+    (announce) so hand-posted events keep the announcing behavior.
 
     ``initial`` is True on the session's FIRST stabilization — startup
     settling, not a mid-play change. The detector stamps it from

@@ -16,24 +16,34 @@ of ``StreamProbed``, so detection itself stays pure:
 No session guard on purpose: platform facts are session-independent — a
 probe stamped with a superseded session still observed the real platform.
 
-Writes happen only during playback (probe events), the same exposure window
-as legacy; the store-if-changed guard keeps the settings-dialog hazard
-surface identical (see CLAUDE.md's settings-state doctrine).
+Writes defer while the addon settings dialog is open (settings-state
+doctrine: its save-on-close would clobber them). A skipped probe is not
+retried explicitly — the values are re-observed and re-stored by the next
+gather, and the ``new_install`` latch is only consumed when its store
+actually ran, so nothing is lost, only delayed.
 
-Pure app layer: no Kodi imports; settings access via the injected facade.
+Pure app layer: no Kodi imports; settings via the injected adapter, the
+dialog question via the injected gateway.
 """
 
 from resources.lib.aom.app import events
 
 
 class PlatformRecorder:
-    def __init__(self, dispatcher, settings_facade, *, log_debug):
-        self._settings = settings_facade
+    def __init__(self, dispatcher, gateway, settings, *, log_debug):
+        self._gateway = gateway
+        self._settings = settings
         self._log = log_debug
-        self._new_install = settings_facade.is_new_install()
+        self._new_install = settings.is_new_install()
         dispatcher.subscribe(events.StreamProbed, self._on_probed)
 
     def _on_probed(self, event):
+        if self._gateway.settings_dialog_open():
+            # Deferred, not dropped: the next probe re-observes everything,
+            # and the new-install latch below stays armed.
+            self._log("AOM_PlatformRecorder: settings dialog open; "
+                      "deferring platform writes")
+            return
         self._settings.store_boolean_if_changed('platform_hdr_full',
                                                 event.platform_hdr_full)
         self._settings.store_boolean_if_changed('advanced_hlg',

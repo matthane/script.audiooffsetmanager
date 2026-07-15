@@ -24,6 +24,7 @@ def test_service_runtime_graph_wiring(runtime):
     assert runtime.offset_applier._gateway is runtime.gateway
     assert runtime.seek_coordinator._gateway is runtime.gateway
     assert runtime.adjustment_watcher._gateway is runtime.gateway
+    assert runtime.platform_recorder._gateway is runtime.gateway
 
     assert runtime.detector._settings is runtime.settings
     assert runtime.platform_recorder._settings is runtime.settings
@@ -55,10 +56,12 @@ def test_runtime_subscription_order_is_pinned(runtime):
     def owners(event_type):
         return [getattr(h, '__self__', None) for h in subs[event_type]]
 
-    # Lifecycle: the tracker runs FIRST — the session exists (or is torn
-    # down) before any other handler of the same event reads it.
+    # Lifecycle AND pause state: the tracker runs FIRST — the session exists
+    # (or is torn down) and session.paused is current before any other
+    # handler of the same event reads them (session.py states this
+    # guarantee for Paused/Resumed explicitly).
     for event_type in (events.PlaybackStarted, events.PlaybackStopped,
-                       events.PlaybackEnded):
+                       events.PlaybackEnded, events.Paused, events.Resumed):
         assert owners(event_type)[0] is runtime.session_tracker, (
             f"{event_type.__name__}: SessionTracker must be the first "
             f"subscriber")

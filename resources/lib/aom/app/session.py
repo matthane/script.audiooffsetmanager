@@ -48,9 +48,10 @@ class PlaybackSession:
     profile: object = None
     # True while a profile (re)adoption has happened since the last
     # StreamStabilized post. The detector consumes it to stamp
-    # StreamStabilized.profile_changed, which the router uses to suppress
-    # the legacy ON_AV_CHANGE for pure re-confirmations (a codec blip that
-    # reverted) — legacy's duplicate-codec filter never fired for those.
+    # StreamStabilized.profile_changed, which downstream consumers (the seek
+    # scheduler's 'adjust' replay) use to ignore pure re-confirmations (a
+    # codec blip that reverted) — legacy's duplicate-codec filter never
+    # fired for those either.
     profile_changed_since_stabilized: bool = False
     # (setting_key, delay_ms) — what we believe Kodi's audio delay is set to.
     # TWO sanctioned writers, both on the dispatcher thread: OffsetManager

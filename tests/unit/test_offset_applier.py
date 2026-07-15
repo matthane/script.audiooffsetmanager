@@ -17,7 +17,7 @@ from resources.lib.aom.app.offset_applier import OffsetApplier
 from resources.lib.aom.app.session import SessionTracker
 from resources.lib.aom.domain.profile import StreamProfile
 from resources.lib.aom.domain.stream_state import StreamState
-from tests.fakes import FakeClock, FakeGateway
+from tests.fakes import FakeClock, FakeGateway, FakeOffsetTable
 
 
 def make_profile(hdr_type='dolbyvision', fps_type='all', audio_format='truehd',
@@ -41,16 +41,6 @@ class FakeSettings:
         return self.hdr_enabled
 
 
-class FakeOffsets:
-    """OffsetTable double: get() always answers an int (generator guarantee)."""
-
-    def __init__(self):
-        self.offsets = {}                # setting_id -> ms
-
-    def get(self, profile):
-        return self.offsets.get(profile.setting_id(), 0)
-
-
 class Rig:
     def __init__(self):
         self.clock = FakeClock()
@@ -64,7 +54,7 @@ class Rig:
                                       log_debug=self.debug.append)
         self.gateway = FakeGateway()
         self.settings = FakeSettings()
-        self.offsets = FakeOffsets()
+        self.offsets = FakeOffsetTable()
         self.applier = OffsetApplier(
             self.dispatcher, self.tracker, self.gateway, self.settings,
             self.offsets, log_debug=self.debug.append,

@@ -181,19 +181,26 @@ class KodiGateway:
             self._log(f"AOM_Gateway: Error executing seek command: {str(e)}", xbmc.LOGERROR)
             return False
 
-    def current_dialog_id(self):
-        """Return the active dialog's window id, or -1 if the read raises.
+    # Kodi's WINDOW_DIALOG_ADDON_SETTINGS. While it is open, its working copy
+    # of our settings is saved back on close, clobbering programmatic writes
+    # made underneath it (settings-state doctrine) — writers defer past it.
+    _SETTINGS_DIALOG_ID = 10140
 
-        ``xbmcgui.getCurrentWindowDialogId()`` reports 9999 when no dialog is
-        open; callers compare against a specific id, so both 9999 and the
-        error fallback -1 read as "not the dialog you asked about".
+    def settings_dialog_open(self):
+        """True while an addon-settings dialog is the active dialog.
+
+        The window-id knowledge lives HERE (the Kodi layer): the app-layer
+        writers (adjustment watcher, platform recorder) only ask the
+        doctrine-level question. ``getCurrentWindowDialogId()`` reports 9999
+        when no dialog is open; the error fallback answers False — a
+        transient read failure must not wedge a store forever.
         """
         try:
-            return xbmcgui.getCurrentWindowDialogId()
+            return xbmcgui.getCurrentWindowDialogId() == self._SETTINGS_DIALOG_ID
         except Exception as e:
             self._log(f"AOM_Gateway: Error reading current dialog id: {str(e)}",
                       xbmc.LOGERROR)
-            return -1
+            return False
 
     def _window(self):
         """The cached home-window handle, created on first use."""

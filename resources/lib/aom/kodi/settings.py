@@ -67,28 +67,25 @@ class Settings:
         """Write a boolean only if it differs from the stored value.
 
         Returns True when the store succeeds or is skipped (already equal);
-        False when the underlying write raises. A failed pre-read falls through
-        to the write attempt, like legacy.
+        False when the underlying write raises. NOTE the pre-read runs
+        through get_bool, which swallows read errors into the default — so a
+        failed read of a setting whose target value equals that default
+        skips the write and reports success (exact legacy semantics; reads
+        of valid ids do not fail in practice).
         """
-        try:
-            if self.get_bool(setting_id) == value:
-                return True
-        except Exception:
-            pass
+        if self.get_bool(setting_id) == value:
+            return True
         return self._store(self._settings.setBool, setting_id, value, "boolean")
 
     def store_integer_if_changed(self, setting_id, value):
         """Write an integer only if it differs from the stored value.
 
         Returns True when the store succeeds or is skipped (already equal);
-        False when the underlying write raises. A failed pre-read falls through
-        to the write attempt, like legacy.
+        False when the underlying write raises. See store_boolean_if_changed
+        for the pre-read-vs-default caveat (legacy semantics).
         """
-        try:
-            if self.get_int(setting_id) == value:
-                return True
-        except Exception:
-            pass
+        if self.get_int(setting_id) == value:
+            return True
         return self._store(self._settings.setInt, setting_id, value, "integer")
 
     def _store(self, operation, setting_id, value, value_type):

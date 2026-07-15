@@ -79,8 +79,7 @@ class FakeGateway:
         self.codec = codec
         self.channels = channels
         self.infolabels = dict(infolabels or {})
-        # 9999 is Kodi's "no dialog open" answer from getCurrentWindowDialogId.
-        self.dialog_id = 9999
+        self.settings_dialog = False   # scripted addon-settings-dialog state
         self.applied = []            # (player_id, delay_seconds)
         self.seeks = []              # (seconds, player_id)
         self.window_properties = {}
@@ -96,8 +95,8 @@ class FakeGateway:
     def infolabel(self, label):
         return self.infolabels.get(label, '')
 
-    def current_dialog_id(self):
-        return self.dialog_id
+    def settings_dialog_open(self):
+        return self.settings_dialog
 
     def window_property(self, name):
         return self.window_properties.get(name, '')
@@ -182,5 +181,7 @@ class FakeGui:
     def localized(self, string_id):
         return self.localized_strings.get(string_id, f"#{string_id}")
 
-    def notification(self, message, duration_ms):
+    def notification(self, message, duration_ms, title=None, icon=None):
+        # title/icon mirror the real Gui's optional params; recorded toasts
+        # keep the 2-tuple shape the suites assert on.
         self.notifications.append((message, duration_ms))
