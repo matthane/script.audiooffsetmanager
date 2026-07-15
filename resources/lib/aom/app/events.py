@@ -85,6 +85,19 @@ class VerifyStream:
 
 
 @dataclass(frozen=True)
+class StreamProbed:
+    """A detection pass observed the platform (consumed by PlatformRecorder).
+
+    Posted on EVERY gather — probes, AV-change re-probes, and verifications —
+    matching legacy StreamInfo, which stored platform capabilities on every
+    gather. Carries facts, not decisions: the recorder owns the writes.
+    """
+    session_id: int
+    platform_hdr_full: bool
+    advanced_hlg: bool
+
+
+@dataclass(frozen=True)
 class StreamStabilized:
     """The session's profile held for the verification window."""
     session_id: int

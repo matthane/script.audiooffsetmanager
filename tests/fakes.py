@@ -1,16 +1,19 @@
 """Shared test fakes for the Audio Offset Manager suite.
 
-Phase 2 introduces the project's first shared fake: ``FakeClock``, the
-deterministic clock every later phase reuses. The dispatcher — and every future
-component that measures intervals — takes an injected ``clock`` callable that
-defaults to ``time.monotonic``. Tests pass a ``FakeClock`` instead so time only
-moves when the test says so, and timer-driven behaviour is driven with
-``Dispatcher.run_pending()`` rather than real sleeps.
+``FakeClock`` (Phase 2) is the deterministic clock every phase reuses: the
+dispatcher — and every component that measures intervals — takes an injected
+``clock`` callable that defaults to ``time.monotonic``. Tests pass a
+``FakeClock`` instead so time only moves when the test says so, and
+timer-driven behaviour is driven with ``Dispatcher.run_pending()`` rather
+than real sleeps.
 
-Keep this module tiny and dependency-free (no Kodi imports, no pytest) so every
-test tier can share it. Later phases will add a fake Kodi gateway and a fake
-settings store here as the components that need them land; until then this holds
-only the clock.
+``FakeGateway`` (Phase 4) is the scriptable stand-in for
+``aom.kodi.gateway.KodiGateway``: tests mutate its attributes between pumps
+to script what the "platform" reports, mirroring how the real single-shot
+gateway reads live Kodi state on every call.
+
+Keep this module tiny and dependency-free (no Kodi imports, no pytest) so
+every test tier can share it.
 """
 
 
@@ -49,3 +52,54 @@ class FakeClock:
             raise ValueError("FakeClock cannot move backwards")
         self._now += float(seconds)
         return self._now
+
+
+class FakeGateway:
+    """Scriptable stand-in for ``aom.kodi.gateway.KodiGateway``.
+
+    Mirrors the real gateway's single-shot semantics: every read reflects the
+    CURRENT attribute values, so tests script a stream by mutating
+    ``player_id`` / ``codec`` / ``channels`` / ``infolabels`` between pumps
+    (exactly how the real gateway sees live Kodi state change under it).
+    Write-side calls are recorded for assertions and report success.
+    """
+
+    def __init__(self, player_id=1, codec='truehd', channels=8,
+                 infolabels=None):
+        self.player_id = player_id
+        self.codec = codec
+        self.channels = channels
+        self.infolabels = dict(infolabels or {})
+        self.applied = []            # (player_id, delay_seconds)
+        self.seeks = []              # (seconds, player_id)
+        self.window_properties = {}
+
+    # -- reads ------------------------------------------------------------------
+
+    def active_player_id(self):
+        return self.player_id
+
+    def audio_info(self, player_id):
+        return self.codec, self.channels
+
+    def infolabel(self, label):
+        return self.infolabels.get(label, '')
+
+    def window_property(self, name):
+        return self.window_properties.get(name, '')
+
+    # -- writes -----------------------------------------------------------------
+
+    def set_audio_delay(self, player_id, delay_seconds):
+        self.applied.append((player_id, delay_seconds))
+        return True
+
+    def seek_back(self, seconds, player_id=None):
+        self.seeks.append((seconds, player_id))
+        return True
+
+    def set_window_property(self, name, value):
+        self.window_properties[name] = value
+
+    def clear_window_property(self, name):
+        self.window_properties.pop(name, None)
