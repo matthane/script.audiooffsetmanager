@@ -395,6 +395,10 @@ class TestChangeDetection:
         rig.advance(1.0)
         assert rig.session.stream_state is StreamState.STABLE
         assert len(rig.stabilized) == 2
+        # A mid-play change's stabilization is not the startup settle: the
+        # 'adjust' seek-back must not be skipped for it.
+        assert rig.stabilized[0].initial is True
+        assert rig.stabilized[1].initial is False
         assert rig.session.profile.setting_id() == 'dolbyvision_all_eac3'
         assert rig.errors == []
 
@@ -449,6 +453,10 @@ class TestVerificationRecovery:
         # blip can never fire a spurious 'adjust' seek-back.
         assert rig.stabilized[0].profile_changed is True    # startup settle
         assert rig.stabilized[1].profile_changed is False   # blip re-confirm
+        # The initial stamp comes from the state machine's own count: only
+        # the session's FIRST stabilization is startup settling.
+        assert rig.stabilized[0].initial is True
+        assert rig.stabilized[1].initial is False
         assert rig.errors == []
 
     def test_incidental_field_wiggle_still_stabilizes(self, rig):

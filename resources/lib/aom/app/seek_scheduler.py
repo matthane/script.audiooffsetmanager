@@ -23,10 +23,11 @@ detection success would be a regression).
 Behavior mapping from legacy SeekBacks (parity unless noted):
 
 - Triggers: PlaybackStarted -> 'resume'; Resumed -> 'unpause'; a
-  change-announcing StreamStabilized (after the per-session startup latch)
-  -> 'adjust'; USER_ADJUSTMENT (legacy bus, wired by the runtime —
-  MIGRATION(p6): the typed UserOffsetSaved replaces it, gaining a session
-  stamp) -> 'change'.
+  change-announcing, non-initial StreamStabilized (the detector stamps
+  ``initial`` on the session's first stabilization — startup settling gets
+  no 'adjust' replay) -> 'adjust'; USER_ADJUSTMENT (legacy bus, wired by
+  the runtime — MIGRATION(p6): the typed UserOffsetSaved replaces it,
+  gaining a session stamp) -> 'change'.
 - Per-reason trigger debounce: a trigger within DEBOUNCE_SECONDS of that
   reason's last EXECUTED seek is dropped (legacy seek_history semantics);
   a re-trigger while pending key-replaces the attempt chain (and its
@@ -186,12 +187,10 @@ class SeekScheduler:
             return
         if not event.profile_changed:
             return  # pure re-confirmation: nothing changed, nothing to replay
-        session = self._sessions.current
-        if not session.initial_av_change_consumed:
-            # The session's first change-announcing stabilization is startup
-            # settling, not an adjustment (legacy latch semantics; unified
-            # with the state machine when the adjustment watcher lands).
-            session.initial_av_change_consumed = True
+        if event.initial:
+            # Startup settling, not an adjustment — stamped by the detector
+            # from the state machine's own stabilization count (this replaced
+            # the per-session initial_av_change_consumed latch).
             self._log("AOM_SeekScheduler: Skipping initial AV change (startup)")
             return
         self._request('adjust')

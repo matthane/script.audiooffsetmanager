@@ -210,43 +210,28 @@ class TestTriggersAndDebounce:
         assert rig.session.paused is False
         assert 'unpause' in rig.pending   # Resumed requested an 'unpause' seek
 
-    def test_stabilized_startup_latch_then_adjust(self, rig):
-        # The FIRST change-announcing StreamStabilized is the startup settle:
-        # it consumes the latch and requests nothing. The SECOND requests
-        # 'adjust'. profile_changed=False never requests (and never consumes
-        # the latch).
+    def test_initial_stabilization_skipped_then_adjust(self, rig):
+        # A change-announcing StreamStabilized stamped ``initial`` is the
+        # startup settle: it requests nothing (the detector derives the stamp
+        # from the state machine's stabilization count — the Phase 6
+        # replacement for the consumed-latch semantics). A non-initial one
+        # requests 'adjust'; profile_changed=False never requests.
         rig.start()
         rig.make_stable()
         sid = rig.session.session_id
 
-        rig.post(events.StreamStabilized(session_id=sid, profile_changed=True))
+        rig.post(events.StreamStabilized(session_id=sid, profile_changed=True,
+                                         initial=True))
         assert 'adjust' not in rig.pending
-        assert rig.session.initial_av_change_consumed is True
         assert rig.logged('Skipping initial')
 
-        # A pure re-confirmation (profile_changed=False) is inert.
+        # A pure re-confirmation (profile_changed=False) is inert — with or
+        # without the initial stamp.
         rig.post(events.StreamStabilized(session_id=sid, profile_changed=False))
         assert 'adjust' not in rig.pending
-
-        rig.post(events.StreamStabilized(session_id=sid, profile_changed=True))
-        assert 'adjust' in rig.pending
-
-    def test_false_stabilization_first_does_not_consume_latch(self, rig):
-        # A profile_changed=False stabilization arriving FIRST must NOT consume
-        # the startup latch: a later True one still hits the latch (skip) before
-        # any True one can request 'adjust'.
-        rig.start()
-        rig.make_stable()
-        sid = rig.session.session_id
-
-        rig.post(events.StreamStabilized(session_id=sid, profile_changed=False))
-        assert rig.session.initial_av_change_consumed is False   # latch untouched
+        rig.post(events.StreamStabilized(session_id=sid, profile_changed=False,
+                                         initial=True))
         assert 'adjust' not in rig.pending
-
-        rig.post(events.StreamStabilized(session_id=sid, profile_changed=True))
-        assert rig.session.initial_av_change_consumed is True     # now consumed
-        assert 'adjust' not in rig.pending                        # skipped, no request
-        assert rig.logged('Skipping initial')
 
         rig.post(events.StreamStabilized(session_id=sid, profile_changed=True))
         assert 'adjust' in rig.pending
@@ -420,7 +405,7 @@ class TestExecutionGuards:
 
         sid = rig.session.session_id
         rig.post(events.Resumed())        # 'unpause' requested first (t=2.5)
-        rig.session.initial_av_change_consumed = True   # skip the startup latch
+        # initial defaults to False: a mid-play change, no startup skip.
         rig.post(events.StreamStabilized(session_id=sid, profile_changed=True))
         assert 'unpause' in rig.pending and 'adjust' in rig.pending
 

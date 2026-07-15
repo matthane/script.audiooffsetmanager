@@ -5,10 +5,12 @@
                                        └──(profile change detected)─────┘
 
 Replaces the legacy 2.0s startup grace window and the cross-component codec
-mirrors for NOTIFICATION settling. (The seek scheduler's startup skip
-remains a plain per-session latch until the watcher phase unifies it — see
-PlaybackSession.initial_av_change_consumed.) Consumers ask one question:
-``session.stream_state is StreamState.STABLE``.
+mirrors for NOTIFICATION settling. Consumers ask one question:
+``session.stream_state is StreamState.STABLE``. The machine also counts its
+own STABLE transitions (``PlaybackSession.stabilized_count``), so "is this
+stabilization startup settling or a mid-play change?" is answered here —
+stamped as ``StreamStabilized.initial`` — rather than by consumer-side
+latches (the seek scheduler's startup skip used one until Phase 6).
 
 The StreamDetector drives every transition: stability is judged on the WHOLE
 profile (HDR + FPS + audio, not just the codec), and a failed verification

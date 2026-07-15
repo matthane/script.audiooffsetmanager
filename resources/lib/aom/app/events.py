@@ -109,9 +109,17 @@ class StreamStabilized:
     duplicate-codec filter never fired an event for a reverting blip. The
     default is True (announce) so hand-posted events keep the announcing
     behavior.
+
+    ``initial`` is True on the session's FIRST stabilization — startup
+    settling, not a mid-play change. The detector stamps it from
+    ``session.stabilized_count`` (owned by the state machine's only edge
+    into STABLE), and the seek scheduler skips the 'adjust' replay for it —
+    what used to be a consumer-side latch on the session. The default is
+    False (the mid-play case) so hand-posted change events act like changes.
     """
     session_id: int
     profile_changed: bool = True
+    initial: bool = False
 
 
 @dataclass(frozen=True)

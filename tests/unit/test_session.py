@@ -35,7 +35,7 @@ def test_session_created_on_playback_started():
     assert session.applied is None
     assert session.pending_notification is None
     assert session.paused is False
-    assert session.initial_av_change_consumed is False
+    assert session.stabilized_count == 0
     assert session.seek_history == {}
     assert tracker.is_alive(1) is True
 
@@ -99,10 +99,14 @@ def test_stream_state_transition_methods():
     assert session.stream_state is StreamState.STABILIZING
     assert session.mark_profile_built() is False           # not from STABILIZING
 
-    # mark_stable: only from STABILIZING; idempotent once STABLE.
+    # mark_stable: only from STABILIZING; idempotent once STABLE. Each real
+    # transition (and ONLY a real transition) bumps stabilized_count — the
+    # source of the StreamStabilized.initial stamp.
     assert session.mark_stable() is True
     assert session.stream_state is StreamState.STABLE
+    assert session.stabilized_count == 1
     assert session.mark_stable() is True                   # already stable
+    assert session.stabilized_count == 1                   # no double count
     assert session.mark_profile_built() is False           # not from STABLE
 
     # mark_verifying: from any state back to STABILIZING.
@@ -110,9 +114,14 @@ def test_stream_state_transition_methods():
     assert session.stream_state is StreamState.STABILIZING
     assert session.mark_verifying() is False               # already verifying
 
+    # Re-earning STABLE counts again.
+    assert session.mark_stable() is True
+    assert session.stabilized_count == 2
+
 
 def test_mark_stable_refused_from_starting():
     # No verification was ever requested: refuse the STARTING -> STABLE jump.
     session = PlaybackSession(session_id=1, started_at=100.0)
     assert session.mark_stable() is False
     assert session.stream_state is StreamState.STARTING
+    assert session.stabilized_count == 0

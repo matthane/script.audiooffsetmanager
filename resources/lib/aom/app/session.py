@@ -55,10 +55,12 @@ class PlaybackSession:
     applied: tuple = None                   # (setting_key, delay_ms) dedupe guard
     pending_notification: tuple = None      # (setting_key, delay_ms) awaiting STABLE
     paused: bool = False
-    # Plain first-call latch for the startup 'adjust' seek-back skip. Only
-    # incidentally aligned with the state machine (ON_AV_CHANGE happens to
-    # follow the first STABLE); do not assume a stronger coupling.
-    initial_av_change_consumed: bool = False
+    # How many times this session has earned STABLE. Written only by
+    # mark_stable() (the diagram's one edge into STABLE); the detector stamps
+    # StreamStabilized.initial from it, which replaced the scheduler's
+    # startup-skip latch (initial_av_change_consumed) — the "is this startup
+    # settling?" question is now answered by the state machine itself.
+    stabilized_count: int = 0
     # Monotonic timestamps; None = never (a 0.0 sentinel would be wrong for
     # monotonic clocks, whose epoch is arbitrary).
     last_seek_activity: Optional[float] = None
@@ -91,6 +93,7 @@ class PlaybackSession:
         """
         if self.stream_state is StreamState.STABILIZING:
             self.stream_state = StreamState.STABLE
+            self.stabilized_count += 1
             return True
         return self.stream_state is StreamState.STABLE
 

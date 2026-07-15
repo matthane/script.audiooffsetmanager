@@ -324,7 +324,8 @@ class StreamDetector:
                       f"#{event.session_id} stable "
                       f"(profile_changed={announce})")
             self._dispatcher.post(events.StreamStabilized(
-                session_id=event.session_id, profile_changed=announce))
+                session_id=event.session_id, profile_changed=announce,
+                initial=session.stabilized_count == 1))
         elif policies.is_complete(facts.profile):
             self._log(f"AOM_StreamDetector: profile changed during "
                       f"verification: {session.profile} -> {facts.profile}; "
