@@ -41,10 +41,10 @@ class PlaybackSession:
     # the seek scheduler lands (DESIGN: ExternalSeekCoordinator).
     started_at: float
     stream_state: StreamState = StreamState.STARTING
-    # The session's profile. UNWRITTEN during the migration phases: the live
-    # profile is stream_info.profile (mutated by the monitor thread too, so a
-    # mirror here could silently diverge). The stream detector becomes the
-    # sole writer when it lands.
+    # The session's profile. Written ONLY by the StreamDetector (its sole
+    # writer), on the dispatcher thread; read cross-thread by ActiveMonitor
+    # through the StreamInfo shim (an atomic reference read of a frozen
+    # dataclass — no partial states are observable).
     profile: object = None
     applied: tuple = None                   # (setting_key, delay_ms) dedupe guard
     pending_notification: tuple = None      # (setting_key, delay_ms) awaiting STABLE
@@ -78,12 +78,10 @@ class PlaybackSession:
 
         A confirmation landing on STARTING means no verification was ever
         requested for this session — refuse rather than jump states; the
-        caller logs it. Returns True when the transition happened.
-
-        Known limitation (documented, consequence-free this phase): a failed
-        verification leaves the session STABILIZING with no automatic
-        recovery edge — recovery requires the next confirmation. The stream
-        detector replaces this with scheduled re-verification.
+        caller logs it. Returns True when the transition happened. A failed
+        verification no longer strands STABILIZING: the StreamDetector
+        re-schedules verification until the profile settles (the recovery
+        edge).
         """
         if self.stream_state is StreamState.STABILIZING:
             self.stream_state = StreamState.STABLE

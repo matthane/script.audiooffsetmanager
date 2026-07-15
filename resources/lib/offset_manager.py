@@ -1,5 +1,11 @@
 """Offset manager module to receive playback events and assign audio offsets as needed.
 This module also controls the deployment of the Active Monitor when it's enabled.
+
+Detection is the StreamDetector's job: the profile is read from the current
+PlaybackSession (the detector is its sole writer), always freshly at the
+moment of use — never captured across events. The injected ``stream_info``
+is the MIGRATION(p6) session-backed shim, kept only to hand to ActiveMonitor
+and the debug snapshot; this module's own decisions read ``session.profile``.
 """
 
 import xbmc
@@ -24,6 +30,7 @@ class OffsetManager:
         self._monitor_session_id = None
         self._events = {
             'AV_STARTED': self.on_av_started,
+            'PROFILE_CHANGED': self.on_profile_changed,
             'ON_AV_CHANGE': self.on_av_change,
             'PLAYBACK_STOPPED': self.on_playback_stopped,
             'PLAYBACK_ENDED': self.on_playback_stopped,
@@ -42,24 +49,33 @@ class OffsetManager:
         self.stop_active_monitor()
 
     def on_av_started(self):
-        """Handle AV started event (per-playback resets are session-borne)."""
+        """Handle AV started event (per-playback resets are session-borne).
+
+        The profile is still None here — the detector's first probe hasn't
+        run — so this is a skip pass; kept for legacy log/flow parity.
+        """
+        self._handle_av_event()
+
+    def on_profile_changed(self):
+        """Handle the detector adopting a (new) profile: the apply trigger."""
         self._handle_av_event()
 
     def on_av_change(self):
-        """Handle AV change event."""
+        """Handle the legacy stream-settled event (releases notifications)."""
         self._handle_av_event()
 
     def on_playback_stopped(self):
-        """Handle playback stopped event."""
-        self.stream_info.clear_stream_info()
+        """Handle playback stopped event (the dead session clears the profile)."""
         self.stop_active_monitor()
-        
+
     def on_user_adjustment(self):
         """Handle user adjustment event (manual offset change)."""
+        session = self.sessions.current
         # Only send notification if active monitor is enabled
-        if self.active_monitor is not None and self.stream_info.profile is not None:
+        if (self.active_monitor is not None and session is not None
+                and session.profile is not None):
             # Get the current audio delay from settings
-            profile = self.stream_info.profile
+            profile = session.profile
             delay_ms = self.settings_manager.get_setting_integer(profile.setting_id())
 
             # Send notification about the manual offset change
@@ -75,22 +91,16 @@ class OffsetManager:
             log("AOM_OffsetManager: no active session; ignoring AV event",
                 xbmc.LOGDEBUG)
             return
-        self.stream_info.update_stream_info()
-        # session.profile stays unwritten during the migration (the live
-        # profile is stream_info.profile; a session mirror could diverge).
-        if policies.is_complete(self.stream_info.profile):
-            session.mark_profile_built()
         self.apply_audio_offset(session)
         log_snapshot("AV_EVENT", self.stream_info, self.settings_facade)
         self.manage_active_monitor(session)
 
-    def _should_apply_offset(self):
+    def _should_apply_offset(self, profile):
         """Check if audio offset should be applied based on current conditions.
 
         The decision itself lives in aom.domain.policies.should_apply (single
         source of truth); this method resolves the inputs and logs the reason.
         """
-        profile = self.stream_info.profile
         hdr_enabled = (profile is not None and
                        self.settings_facade.is_hdr_enabled(profile.hdr_type))
         allowed, reason = policies.should_apply(
@@ -115,12 +125,14 @@ class OffsetManager:
         return False
 
     def apply_audio_offset(self, session):
-        """Apply audio offset based on current stream information and settings."""
+        """Apply audio offset for the session's current profile and settings."""
         try:
-            if not self._should_apply_offset():
+            # Freshly derived at the moment of use: the detector is the sole
+            # writer of session.profile, on this same dispatcher thread.
+            profile = session.profile
+            if not self._should_apply_offset(profile):
                 return
 
-            profile = self.stream_info.profile
             setting_id = profile.setting_id()
             delay_ms = self.settings_facade.get_offset_ms(profile)
 
@@ -150,7 +162,7 @@ class OffsetManager:
                     session.pending_notification = None
 
                 self.set_audio_delay(profile.player_id, delay_ms / 1000.0,
-                                     notify=not suppress_notification)
+                                     profile, notify=not suppress_notification)
                 session.applied = (setting_id, delay_ms)
                 if not suppress_notification:
                     self._maybe_send_pending_notification(session, profile)
@@ -162,8 +174,12 @@ class OffsetManager:
             log(f"AOM_OffsetManager: Error applying audio offset: {str(e)}",
                 xbmc.LOGERROR)
 
-    def set_audio_delay(self, player_id, delay_seconds, notify=True):
-        """Set the audio delay using JSON-RPC."""
+    def set_audio_delay(self, player_id, delay_seconds, profile, notify=True):
+        """Set the audio delay using JSON-RPC.
+
+        `profile` is the caller's freshly-read session profile — passed in so
+        the notification is keyed to the exact profile the apply decision used.
+        """
         success = rpc_client.set_audio_delay(player_id, delay_seconds)
         if success:
             # Convert seconds to milliseconds for notification
@@ -171,20 +187,18 @@ class OffsetManager:
 
             # Send notification for automatic offset application
             # This is only called for automatic offset application (not manual adjustments)
-            if self.stream_info.profile is not None:
-                if notify:
-                    self.notification_handler.notify_audio_offset_applied(delay_ms, self.stream_info.profile)
-                log_snapshot("APPLY_OFFSET", self.stream_info, self.settings_facade,
-                             extra={"delay_ms": delay_ms, "notified": notify})
+            if notify:
+                self.notification_handler.notify_audio_offset_applied(delay_ms, profile)
+            log_snapshot("APPLY_OFFSET", self.stream_info, self.settings_facade,
+                         extra={"delay_ms": delay_ms, "notified": notify})
 
-    def _should_start_active_monitor(self):
+    def _should_start_active_monitor(self, profile):
         """Determine if active monitor should be started based on current conditions.
 
         Deliberately a PARTIAL unknown-check (hdr + fps, not audio): the
         monitor may run while audio is unknown; its own write path
         re-validates the full profile before storing anything.
         """
-        profile = self.stream_info.profile
         if profile is None:
             return False
 
@@ -200,9 +214,10 @@ class OffsetManager:
 
     def manage_active_monitor(self, session):
         """Manage the active monitor state based on current conditions."""
+        profile = session.profile
         log(f"AOM_OffsetManager: Checking active monitor status - "
-            f"HDR: {self.stream_info.profile.hdr_type if self.stream_info.profile else 'unknown'}, "
-            f"FPS: {self.stream_info.profile.fps_type if self.stream_info.profile else 'unknown'}",
+            f"HDR: {profile.hdr_type if profile else 'unknown'}, "
+            f"FPS: {profile.fps_type if profile else 'unknown'}",
             xbmc.LOGDEBUG)
 
         if (self.active_monitor is not None
@@ -213,7 +228,7 @@ class OffsetManager:
                 f"session #{self._monitor_session_id}; restarting", xbmc.LOGDEBUG)
             self.stop_active_monitor()
 
-        if self._should_start_active_monitor():
+        if self._should_start_active_monitor(profile):
             self.start_active_monitor(session)
         else:
             self.stop_active_monitor()
@@ -221,10 +236,10 @@ class OffsetManager:
     def _maybe_send_pending_notification(self, session, profile):
         """Send the session's pending notification once the stream is STABLE.
 
-        `profile` MUST be freshly derived by the caller (read from
-        stream_info immediately after update_stream_info) — passing a
-        profile captured during an earlier event would release/drop the
-        pending toast against a stale key (settings-doctrine hazard).
+        `profile` MUST be freshly read by the caller (session.profile at the
+        moment of the event) — passing a profile captured during an earlier
+        event would release/drop the pending toast against a stale key
+        (settings-doctrine hazard).
         """
         if session.pending_notification is None:
             return

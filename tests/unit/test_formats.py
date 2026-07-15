@@ -43,9 +43,9 @@ def test_per_hdr_ui_tables_cover_vocabulary():
 
 
 def test_fps_buckets_are_ints():
-    # stream_info.py membership-tests the player's INTEGER fps value against
-    # FPS_BUCKETS; redefining the buckets as strings would silently collapse
-    # every stream to fps 'unknown'. Pin the element type.
+    # stream_detector.py membership-tests the player's INTEGER fps value
+    # against FPS_BUCKETS; redefining the buckets as strings would silently
+    # collapse every stream to fps 'unknown'. Pin the element type.
     assert all(isinstance(b, int) and not isinstance(b, bool)
                for b in formats.FPS_BUCKETS)
 
@@ -62,13 +62,18 @@ def test_all_setting_keys_unique_and_ordered_by_hdr():
     assert keys[-1] == 'sdr_60_pcm'
 
 
-def test_stream_info_consumes_this_vocabulary():
-    # Legacy StreamInfo must stay wired to formats (imports under Kodistubs).
-    from resources.lib.settings_facade import SettingsFacade
-    from resources.lib.settings_manager import SettingsManager
-    from resources.lib.stream_info import StreamInfo
-    manager = SettingsManager()
-    info = StreamInfo(manager, SettingsFacade(manager))
-    assert tuple(info.valid_audio_formats) == formats.AUDIO_FORMATS
-    assert tuple(info.valid_hdr_types) == formats.HDR_TYPES
-    assert tuple(info.valid_fps_types) == formats.FPS_BUCKETS
+def test_stream_detector_consumes_this_vocabulary():
+    # The runtime consumer is the detector's pure derivation: every vocabulary
+    # member must round-trip through it unchanged (a detector that stopped
+    # consulting formats would fail here, not silently misfile offsets).
+    from resources.lib.aom.app.stream_detector import derive_stream_facts
+    for audio in formats.AUDIO_FORMATS:
+        for hdr in formats.HDR_TYPES:
+            for fps in formats.FPS_BUCKETS:
+                facts = derive_stream_facts(
+                    player_id=1, raw_codec=audio, raw_channels=6,
+                    raw_fps=str(fps), raw_hdr=hdr, raw_hdr_fallback='',
+                    raw_gamut='', fps_override_enabled=lambda h: True)
+                assert facts.profile.audio_format == audio
+                assert facts.profile.hdr_type == hdr
+                assert facts.profile.fps_type == fps

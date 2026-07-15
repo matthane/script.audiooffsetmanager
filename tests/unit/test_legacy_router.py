@@ -1,9 +1,11 @@
 """Behavioral tests for the legacy event router (MIGRATION shim) + runtime wiring.
 
 The router must reproduce the deleted EventManager's component-facing surface
-(event names/args on the legacy bus, publish marshaling) with per-playback
-state now owned by the PlaybackSession. These tests pin that contract, the
-FIFO stabilization ordering, and the session-stamped staleness drops.
+(event names/args on the legacy bus, publish marshaling) while detection and
+stream-state transitions belong to the StreamDetector. These tests pin the
+translation contract (ProfileChanged -> PROFILE_CHANGED, StreamStabilized ->
+ON_AV_CHANGE), the session-stamped staleness drops, and the load-bearing
+subscription order in the runtime graph.
 """
 
 import threading
@@ -18,7 +20,6 @@ from resources.lib.aom.app.session import SessionTracker
 from resources.lib.aom.domain.stream_state import StreamState
 from resources.lib.settings_facade import SettingsFacade
 from resources.lib.settings_manager import SettingsManager
-from resources.lib.stream_info import StreamInfo
 from tests.fakes import FakeClock
 
 
@@ -29,8 +30,7 @@ def rig():
     tracker = SessionTracker(dispatcher)
     manager = SettingsManager()
     facade = SettingsFacade(manager)
-    stream_info = StreamInfo(manager, facade)
-    router = LegacyEventRouter(dispatcher, tracker, stream_info, facade)
+    router = LegacyEventRouter(dispatcher, tracker, facade)
     return dispatcher, tracker, router, errors
 
 
@@ -42,30 +42,45 @@ def _start_playback(dispatcher, tracker):
 
 def test_service_runtime_graph_wiring():
     # Full composition-root construction under Kodistubs: required constructor
-    # args are all wired, and every component shares the tracker + router.
+    # args are all wired, and every component shares the tracker + dispatcher.
     from resources.lib.aom.runtime import ServiceRuntime
     runtime = ServiceRuntime()
     assert runtime.offset_manager.event_manager is runtime.router
     assert runtime.seek_backs.event_manager is runtime.router
     assert runtime.offset_manager.sessions is runtime.session_tracker
     assert runtime.seek_backs.sessions is runtime.session_tracker
+    assert runtime.detector._sessions is runtime.session_tracker
+    assert runtime.detector._dispatcher is runtime.dispatcher
+    # The StreamInfo shim reads through the same tracker the detector writes.
+    assert runtime.offset_manager.stream_info._sessions is runtime.session_tracker
 
 
-def test_session_tracker_subscribes_first():
-    # Load-bearing invariant: dispatch follows subscription order, so the
-    # tracker's lifecycle handlers must be FIRST for PlaybackStarted/Stopped/
-    # Ended — every later subscriber must observe the fresh (or torn-down)
-    # session. Pins runtime construction order.
+def test_runtime_subscription_order_is_pinned():
+    # Load-bearing invariants: dispatch follows subscription order, so for the
+    # lifecycle events the tracker must run FIRST (the session exists / is
+    # torn down before anyone reads it), the router SECOND (AV_STARTED is
+    # published before probing starts), and the detector AFTER the router.
     from resources.lib.aom.runtime import ServiceRuntime
+    from resources.lib.aom.app.stream_detector import StreamDetector
     runtime = ServiceRuntime()
-    tracker = runtime.session_tracker
     subs = runtime.dispatcher._subscribers
+
     for event_type in (events.PlaybackStarted, events.PlaybackStopped,
                        events.PlaybackEnded):
         first_handler = subs[event_type][0]
-        assert getattr(first_handler, '__self__', None) is tracker, (
+        assert getattr(first_handler, '__self__', None) is runtime.session_tracker, (
             f"{event_type.__name__}: SessionTracker must be the first "
             f"subscriber, found {first_handler!r}")
+
+    started_owners = [getattr(h, '__self__', None)
+                      for h in subs[events.PlaybackStarted]]
+    assert started_owners.index(runtime.router) < started_owners.index(
+        runtime.detector), "router must publish AV_STARTED before the detector probes"
+    # Detection events are the detector's alone.
+    assert all(isinstance(getattr(h, '__self__', None), StreamDetector)
+               for h in subs[events.ProbeStream])
+    assert all(isinstance(getattr(h, '__self__', None), StreamDetector)
+               for h in subs[events.VerifyStream])
 
 
 def test_typed_events_translate_to_legacy_names_and_args(rig):
@@ -125,43 +140,37 @@ def test_cross_thread_publish_marshals_to_pump(rig):
     assert seen == ['USER_ADJ']        # delivered on the pump
 
 
-def test_stabilization_marks_session_stable_before_on_av_change(rig):
-    # The StreamStabilized handler marks STABLE and then publishes
-    # ON_AV_CHANGE in one place — the subscriber must observe STABLE
-    # (legacy parity with set-then-publish).
+def test_profile_changed_translates_for_live_session(rig):
     dispatcher, tracker, router, _errors = rig
     session = _start_playback(dispatcher, tracker)
-    session.mark_verifying()   # a verification was pending
+
+    seen = []
+    router.subscribe('PROFILE_CHANGED', lambda: seen.append('PROFILE_CHANGED'))
+    dispatcher.post(events.ProfileChanged(session_id=session.session_id))
+    dispatcher.run_pending()
+    assert seen == ['PROFILE_CHANGED']
+
+
+def test_stream_stabilized_translates_without_touching_state(rig):
+    # The detector marks the session STABLE BEFORE posting StreamStabilized;
+    # the router only translates. A subscriber therefore observes whatever
+    # state the detector left — pinned here with an explicitly staged one.
+    dispatcher, tracker, router, _errors = rig
+    session = _start_playback(dispatcher, tracker)
+    session.mark_verifying()
+    session.mark_stable()
 
     state_at_delivery = []
     router.subscribe(
         'ON_AV_CHANGE',
         lambda: state_at_delivery.append(tracker.current.stream_state))
-
     dispatcher.post(events.StreamStabilized(session_id=session.session_id))
     dispatcher.run_pending()
 
     assert state_at_delivery == [StreamState.STABLE]
 
 
-def test_stabilization_on_starting_session_publishes_but_keeps_state(rig):
-    # Defense-in-depth: a confirmation with no pending verification (session
-    # still STARTING) refuses the state jump but still publishes, matching
-    # legacy's unconditional publish-on-confirmation.
-    dispatcher, tracker, router, _errors = rig
-    session = _start_playback(dispatcher, tracker)
-    assert session.stream_state is StreamState.STARTING
-
-    seen = []
-    router.subscribe('ON_AV_CHANGE', lambda: seen.append('ON_AV_CHANGE'))
-    dispatcher.post(events.StreamStabilized(session_id=session.session_id))
-    dispatcher.run_pending()
-
-    assert seen == ['ON_AV_CHANGE']
-    assert session.stream_state is StreamState.STARTING
-
-
-def test_stale_confirmations_for_superseded_session_are_dropped(rig):
+def test_stale_detector_events_for_superseded_session_are_dropped(rig):
     dispatcher, tracker, router, _errors = rig
     first = _start_playback(dispatcher, tracker)
 
@@ -171,80 +180,36 @@ def test_stale_confirmations_for_superseded_session_are_dropped(rig):
 
     seen = []
     router.subscribe('ON_AV_CHANGE', lambda: seen.append('ON_AV_CHANGE'))
+    router.subscribe('PROFILE_CHANGED', lambda: seen.append('PROFILE_CHANGED'))
     dispatcher.post(events.StreamStabilized(session_id=first.session_id))
+    dispatcher.post(events.ProfileChanged(session_id=first.session_id))
     dispatcher.run_pending()
 
     assert seen == []                                       # stale: dropped
     assert second.stream_state is StreamState.STARTING      # untouched
 
 
-def test_av_changed_wires_filter_callbacks_and_regresses_state(rig):
+def test_stale_detector_events_after_stop_are_dropped(rig):
     dispatcher, tracker, router, _errors = rig
-    captured = {}
-
-    class RecordingFilter:
-        def on_playback_start(self):
-            pass
-
-        def on_playback_stop(self):
-            pass
-
-        def handle_av_change(self, is_active, on_stable, set_codec):
-            captured['is_active'] = is_active
-            captured['on_stable'] = on_stable
-            captured['set_codec'] = set_codec
-            return True   # a verification was scheduled
-
-    router.av_change_filter = RecordingFilter()
     session = _start_playback(dispatcher, tracker)
-
-    # A scheduled verification moves STARTING -> STABILIZING too (the
-    # verification-pending state is not reserved for regressions).
-    dispatcher.post(events.AvChanged())
-    dispatcher.run_pending()
-    assert session.stream_state is StreamState.STABILIZING
-
-    session.stream_state = StreamState.STABLE   # pretend already stabilized
-    dispatcher.post(events.AvChanged())
+    session_id = session.session_id
+    dispatcher.post(events.PlaybackStopped())
     dispatcher.run_pending()
 
-    # A genuinely scheduled verification regresses STABLE -> STABILIZING.
-    assert session.stream_state is StreamState.STABILIZING
-    # The codec value has no consumer anymore.
-    assert captured['set_codec'] is None
-    # is_active is session-scoped: True now, False once superseded.
-    assert captured['is_active']() is True
-
-    # Simulate the verify thread confirming.
     seen = []
     router.subscribe('ON_AV_CHANGE', lambda: seen.append('ON_AV_CHANGE'))
-    captured['on_stable']()
+    router.subscribe('PROFILE_CHANGED', lambda: seen.append('PROFILE_CHANGED'))
+    dispatcher.post(events.StreamStabilized(session_id=session_id))
+    dispatcher.post(events.ProfileChanged(session_id=session_id))
     dispatcher.run_pending()
-    assert session.stream_state is StreamState.STABLE
-    assert seen == ['ON_AV_CHANGE']
-
-    # After supersession the captured probe is inert.
-    _start_playback(dispatcher, tracker)
-    assert captured['is_active']() is False
+    assert seen == []
 
 
-def test_duplicate_av_change_does_not_regress_state(rig):
-    dispatcher, tracker, router, _errors = rig
-
-    class IgnoringFilter:
-        def on_playback_start(self):
-            pass
-
-        def on_playback_stop(self):
-            pass
-
-        def handle_av_change(self, is_active, on_stable, set_codec):
-            return False   # duplicate/no-op event: nothing scheduled
-
-    router.av_change_filter = IgnoringFilter()
-    session = _start_playback(dispatcher, tracker)
-    session.stream_state = StreamState.STABLE
-
-    dispatcher.post(events.AvChanged())
+def test_legacy_publish_forwards_args_and_kwargs(rig):
+    dispatcher, _tracker, router, _errors = rig
+    seen = []
+    router.subscribe('PLAYBACK_SEEK', lambda t, o: seen.append((t, o)))
+    router.publish('PLAYBACK_SEEK', 100, o=-5)
     dispatcher.run_pending()
-    assert session.stream_state is StreamState.STABLE   # not regressed
+    assert seen == [(100, -5)]
+    assert isinstance(_LegacyPublish('X'), _LegacyPublish)  # shape stays importable

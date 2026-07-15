@@ -1,9 +1,9 @@
 """Composition root for the service process.
 
-Builds the dispatcher, the Kodi bridges, and the (still legacy) component
-graph with explicit, REQUIRED constructor dependencies — no fallback
-construction anywhere. Blocks on the monitor until Kodi aborts, then shuts
-everything down in reverse order.
+Builds the dispatcher, the Kodi bridges, and the (still partly legacy)
+component graph with explicit, REQUIRED constructor dependencies — no
+fallback construction anywhere. Blocks on the monitor until Kodi aborts,
+then shuts everything down in reverse order.
 """
 
 import xbmc
@@ -18,7 +18,10 @@ from resources.lib.stream_info import StreamInfo
 from resources.lib.aom.app import events
 from resources.lib.aom.app.dispatcher import Dispatcher
 from resources.lib.aom.app.legacy_router import LegacyEventRouter
+from resources.lib.aom.app.platform_recorder import PlatformRecorder
 from resources.lib.aom.app.session import SessionTracker
+from resources.lib.aom.app.stream_detector import StreamDetector
+from resources.lib.aom.kodi.gateway import KodiGateway
 from resources.lib.aom.kodi.monitor_bridge import MonitorBridge
 from resources.lib.aom.kodi.player_bridge import PlayerBridge
 
@@ -27,9 +30,9 @@ class ServiceRuntime:
     def __init__(self):
         settings_manager = SettingsManager()
         settings_facade = SettingsFacade(settings_manager)
-        stream_info = StreamInfo(settings_manager, settings_facade)
         notification_handler = NotificationHandler(settings_manager,
                                                    settings_facade)
+        gateway = KodiGateway(log=log)
 
         self._settings_facade = settings_facade
         self.dispatcher = Dispatcher(
@@ -37,16 +40,31 @@ class ServiceRuntime:
             log_error=lambda message: log(message, xbmc.LOGERROR),
             log_runtimes=settings_facade.debug_logging_enabled())
 
-        # The tracker subscribes FIRST: dispatch follows subscription order,
-        # so the session exists (or is torn down) before any other handler of
-        # the same lifecycle event runs.
+        # Subscription order is load-bearing (dispatch follows it):
+        # 1. tracker — the session exists (or is torn down) before any other
+        #    handler of the same lifecycle event runs;
+        # 2. router — publishes the legacy AV_STARTED before the detector
+        #    starts probing (legacy event order);
+        # 3. detector — owns session.profile and the stream-state machine;
+        # 4. recorder — consumes the detector's StreamProbed facts.
         self.session_tracker = SessionTracker(
             self.dispatcher,
             log_debug=lambda message: log(message, xbmc.LOGDEBUG))
 
         # MIGRATION(p7): the router carries the legacy EventBus surface.
         self.router = LegacyEventRouter(self.dispatcher, self.session_tracker,
-                                        stream_info, settings_facade)
+                                        settings_facade)
+        self.detector = StreamDetector(
+            self.dispatcher, self.session_tracker, gateway, settings_facade,
+            log_debug=lambda message: log(message, xbmc.LOGDEBUG),
+            log_warning=lambda message: log(message, xbmc.LOGWARNING))
+        self.platform_recorder = PlatformRecorder(
+            self.dispatcher, settings_facade,
+            log_debug=lambda message: log(message, xbmc.LOGDEBUG))
+
+        # MIGRATION(p6): session-backed StreamInfo shim, read by ActiveMonitor
+        # and the debug snapshot only.
+        stream_info = StreamInfo(self.session_tracker)
         self.offset_manager = OffsetManager(self.router, settings_manager,
                                             stream_info, notification_handler,
                                             settings_facade,
