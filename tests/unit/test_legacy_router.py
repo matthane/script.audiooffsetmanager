@@ -53,9 +53,17 @@ def test_service_runtime_graph_wiring():
     assert runtime.seek_scheduler._coordinator is runtime.seek_coordinator
     # The StreamInfo shim reads through the same tracker the detector writes.
     assert runtime.offset_manager.stream_info._sessions is runtime.session_tracker
-    # MIGRATION(p6): the scheduler's 'change' trigger rides the legacy bus.
-    assert (runtime.seek_scheduler.on_user_adjustment
-            in runtime.router.event_bus._subscribers.get('USER_ADJUSTMENT', []))
+    # The watcher shares the graph's tracker and dispatcher.
+    assert runtime.adjustment_watcher._sessions is runtime.session_tracker
+    assert runtime.adjustment_watcher._dispatcher is runtime.dispatcher
+    # The scheduler's 'change' trigger and the manual-offset notification
+    # (MIGRATION(p7): still on OffsetManager until the Notifier split) both
+    # ride the typed, session-stamped UserOffsetSaved — the legacy
+    # USER_ADJUSTMENT bus wire is gone.
+    saved_handlers = runtime.dispatcher._subscribers[events.UserOffsetSaved]
+    assert runtime.seek_scheduler._on_user_offset_saved in saved_handlers
+    assert runtime.offset_manager.on_user_offset_saved in saved_handlers
+    assert 'USER_ADJUSTMENT' not in runtime.router.event_bus._subscribers
 
 
 def test_runtime_subscription_order_is_pinned():

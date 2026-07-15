@@ -4,10 +4,11 @@ Events are frozen dataclasses dispatched by type (subscribe registers against
 the class). Payloads are explicit fields — never positional *args.
 
 The catalog below is the full target set. The "player/monitor" group (Kodi
-bridges), the detection group (posted by StreamDetector), and ExecuteSeek
-(posted by SeekScheduler) are live. OffsetApplied/UserOffsetSaved/WatchTick
-are still defined ahead of the components that will post them (Phases 6-7),
-so the contract stays reviewable in one place. Pure Python: no Kodi imports.
+bridges), the detection group (posted by StreamDetector), ExecuteSeek
+(posted by SeekScheduler), and the watcher group (UserOffsetSaved/WatchTick,
+posted by AdjustmentWatcher) are live. OffsetApplied is still defined ahead
+of the Phase 7 applier split that will post it, so the contract stays
+reviewable in one place. Pure Python: no Kodi imports.
 """
 
 from dataclasses import dataclass

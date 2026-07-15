@@ -11,6 +11,7 @@ import xbmc
 from resources.lib.logger import log
 from resources.lib.notification_handler import NotificationHandler
 from resources.lib.offset_manager import OffsetManager
+from resources.lib.aom.app.adjustment_watcher import AdjustmentWatcher
 from resources.lib.aom.app.seek_scheduler import (ExternalSeekCoordinator,
                                                   SeekScheduler)
 from resources.lib.settings_facade import SettingsFacade
@@ -64,7 +65,9 @@ class ServiceRuntime:
         # 4. recorder — consumes the detector's StreamProbed facts;
         # 5. seek scheduler — its StreamStabilized handler runs after the
         #    router's translation, so offsets are applied/released before
-        #    any seek request is even planned for the same stabilization.
+        #    any seek request is even planned for the same stabilization;
+        # 6. adjustment watcher — after the router for the same reason (see
+        #    its construction comment below).
         self.session_tracker = SessionTracker(
             self.dispatcher, log_debug=_log_debug)
 
@@ -77,8 +80,8 @@ class ServiceRuntime:
         self.platform_recorder = PlatformRecorder(
             self.dispatcher, settings_facade, log_debug=_log_debug)
 
-        # MIGRATION(p6): session-backed StreamInfo shim, read by ActiveMonitor
-        # and the debug snapshot only.
+        # MIGRATION(p7): session-backed StreamInfo shim, read by the debug
+        # snapshot only; dies with debug_snapshot in the final splits.
         stream_info = StreamInfo(self.session_tracker)
         self.offset_manager = OffsetManager(self.router, settings_manager,
                                             stream_info, notification_handler,
@@ -90,14 +93,21 @@ class ServiceRuntime:
             self.dispatcher, self.session_tracker, settings_facade,
             self.seek_coordinator, log_debug=_log_debug,
             log_warning=_log_warning)
-        # MIGRATION(p6): ActiveMonitor still announces manual adjustments on
-        # the legacy bus; the typed UserOffsetSaved replaces this wire when
-        # the adjustment watcher lands. Bus order vs OffsetManager's own
-        # USER_ADJUSTMENT handler is immaterial: the scheduler only schedules
-        # a deferred ExecuteSeek, so the seek always runs after this dispatch
-        # (apply/notify) completes.
-        self.router.subscribe('USER_ADJUSTMENT',
-                              self.seek_scheduler.on_user_adjustment)
+        # 6. adjustment watcher — constructed last so its ProfileChanged
+        #    handler runs after the router's translation (which applies the
+        #    offset synchronously): session.applied is already current when
+        #    the first watch tick of a profile episode is scheduled.
+        self.adjustment_watcher = AdjustmentWatcher(
+            self.dispatcher, self.session_tracker, gateway, settings_facade,
+            log_debug=_log_debug, log_warning=_log_warning)
+        # MIGRATION(p7): the notification for a stored manual adjustment
+        # still lives on the legacy OffsetManager until the Notifier split;
+        # wire it to the watcher's typed, session-stamped event here. Order
+        # vs the seek scheduler's own UserOffsetSaved handler is immaterial:
+        # the scheduler only schedules a deferred ExecuteSeek, so the seek
+        # always runs after this dispatch (notify) completes.
+        self.dispatcher.subscribe(events.UserOffsetSaved,
+                                  self.offset_manager.on_user_offset_saved)
 
         self.player_bridge = PlayerBridge(self.dispatcher)
         self.monitor = MonitorBridge(self.dispatcher)
@@ -127,5 +137,3 @@ class ServiceRuntime:
         # EventBus below. Posts arriving after stop are dropped by design.
         self.dispatcher.stop()
         self.offset_manager.stop()
-        self.router.unsubscribe('USER_ADJUSTMENT',
-                                self.seek_scheduler.on_user_adjustment)

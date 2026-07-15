@@ -25,9 +25,9 @@ Behavior mapping from legacy SeekBacks (parity unless noted):
 - Triggers: PlaybackStarted -> 'resume'; Resumed -> 'unpause'; a
   change-announcing, non-initial StreamStabilized (the detector stamps
   ``initial`` on the session's first stabilization — startup settling gets
-  no 'adjust' replay) -> 'adjust'; USER_ADJUSTMENT (legacy bus, wired by
-  the runtime — MIGRATION(p6): the typed UserOffsetSaved replaces it,
-  gaining a session stamp) -> 'change'.
+  no 'adjust' replay) -> 'adjust'; UserOffsetSaved (the watcher stored a
+  manual adjustment; session-stamped, so a store racing an in-place reopen
+  can never seek the new session) -> 'change'.
 - Per-reason trigger debounce: a trigger within DEBOUNCE_SECONDS of that
   reason's last EXECUTED seek is dropped (legacy seek_history semantics);
   a re-trigger while pending key-replaces the attempt chain (and its
@@ -162,6 +162,7 @@ class SeekScheduler:
         dispatcher.subscribe(events.Resumed, self._on_resumed)
         dispatcher.subscribe(events.SeekOccurred, self._on_seek_occurred)
         dispatcher.subscribe(events.StreamStabilized, self._on_stream_stabilized)
+        dispatcher.subscribe(events.UserOffsetSaved, self._on_user_offset_saved)
         dispatcher.subscribe(events.ExecuteSeek, self._on_execute_seek)
         dispatcher.subscribe(events.PlaybackStopped, self._on_playback_ended)
         dispatcher.subscribe(events.PlaybackEnded, self._on_playback_ended)
@@ -195,8 +196,10 @@ class SeekScheduler:
             return
         self._request('adjust')
 
-    def on_user_adjustment(self):
-        """Legacy-bus USER_ADJUSTMENT trigger (runtime-wired, MIGRATION(p6))."""
+    def _on_user_offset_saved(self, event):
+        """The watcher stored a manual adjustment: replay the glitched audio."""
+        if not self._sessions.is_alive(event.session_id):
+            return
         self._request('change')
 
     def _on_playback_ended(self, _event):

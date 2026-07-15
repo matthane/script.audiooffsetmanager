@@ -1,16 +1,16 @@
 """Offset manager module to receive playback events and assign audio offsets as needed.
-This module also controls the deployment of the Active Monitor when it's enabled.
 
 Detection is the StreamDetector's job: the profile is read from the current
 PlaybackSession (the detector is its sole writer), always freshly at the
 moment of use — never captured across events. The injected ``stream_info``
-is the MIGRATION(p6) session-backed shim, kept only to hand to ActiveMonitor
-and the debug snapshot; this module's own decisions read ``session.profile``.
+is the MIGRATION(p7) session-backed shim, kept only for the debug snapshot;
+this module's own decisions read ``session.profile``. Manual-adjustment
+detection is the AdjustmentWatcher's job: this module only consumes its
+typed, session-stamped ``UserOffsetSaved`` (runtime-wired) to notify.
 """
 
 import xbmc
-from resources.lib.active_monitor import ActiveMonitor
-from resources.lib.aom.domain import formats, policies
+from resources.lib.aom.domain import policies
 from resources.lib.aom.domain.stream_state import StreamState
 from resources.lib import rpc_client
 from resources.lib.logger import log
@@ -26,15 +26,10 @@ class OffsetManager:
         self.stream_info = stream_info
         self.notification_handler = notification_handler
         self.sessions = session_tracker
-        self.active_monitor = None
-        self._monitor_session_id = None
         self._events = {
             'AV_STARTED': self.on_av_started,
             'PROFILE_CHANGED': self.on_profile_changed,
             'ON_AV_CHANGE': self.on_av_change,
-            'PLAYBACK_STOPPED': self.on_playback_stopped,
-            'PLAYBACK_ENDED': self.on_playback_stopped,
-            'USER_ADJUSTMENT': self.on_user_adjustment
         }
 
     def start(self):
@@ -46,7 +41,6 @@ class OffsetManager:
         """Stop the offset manager and clean up subscriptions."""
         for event, callback in self._events.items():
             self.event_manager.unsubscribe(event, callback)
-        self.stop_active_monitor()
 
     def on_av_started(self):
         """Handle AV started event (per-playback resets are session-borne).
@@ -66,25 +60,26 @@ class OffsetManager:
         """Handle the legacy stream-settled event (releases notifications)."""
         self._handle_av_event()
 
-    def on_playback_stopped(self):
-        """Handle playback stopped event (the dead session clears the profile)."""
-        self.stop_active_monitor()
+    def on_user_offset_saved(self, event):
+        """Notify for a manual offset the AdjustmentWatcher stored.
 
-    def on_user_adjustment(self):
-        """Handle user adjustment event (manual offset change)."""
-        session = self.sessions.current
-        # Only send notification if active monitor is enabled
-        if (self.active_monitor is not None and session is not None
-                and session.profile is not None):
-            # Get the current audio delay from settings
-            profile = session.profile
-            delay_ms = self.settings_manager.get_setting_integer(profile.setting_id())
-
-            # Send notification about the manual offset change
-            self.notification_handler.notify_manual_offset_saved(delay_ms, profile)
-            log(f"AOM_OffsetManager: Notified user about manual offset change to {delay_ms}ms",
-                xbmc.LOGDEBUG)
-            log_snapshot("USER_ADJUST", self.stream_info, self.settings_facade, extra={"delay_ms": delay_ms})
+        Runtime-wired to the typed ``UserOffsetSaved`` (MIGRATION(p7): moves
+        to the Notifier). The profile/ms ride on the event as captured at
+        store time, so the toast always describes exactly what was stored —
+        the legacy USER_ADJUSTMENT wire re-read the live profile and settings
+        instead, so a reopen between store and dispatch could describe the
+        wrong stream; the session stamp now drops that case outright. The
+        legacy "only when the monitor is running" gate is inherent: the event
+        exists only because the watcher (which enforces eligibility) stored.
+        """
+        if not self.sessions.is_alive(event.session_id):
+            log(f"AOM_OffsetManager: dropping manual-offset notification for "
+                f"superseded session #{event.session_id}", xbmc.LOGDEBUG)
+            return
+        self.notification_handler.notify_manual_offset_saved(event.ms, event.profile)
+        log(f"AOM_OffsetManager: Notified user about manual offset change to {event.ms}ms",
+            xbmc.LOGDEBUG)
+        log_snapshot("USER_ADJUST", self.stream_info, self.settings_facade, extra={"delay_ms": event.ms})
 
     def _handle_av_event(self):
         """Common handler for AV-related events."""
@@ -95,7 +90,6 @@ class OffsetManager:
             return
         self.apply_audio_offset(session)
         log_snapshot("AV_EVENT", self.stream_info, self.settings_facade)
-        self.manage_active_monitor(session)
 
     def _should_apply_offset(self, profile):
         """Check if audio offset should be applied based on current conditions.
@@ -207,47 +201,6 @@ class OffsetManager:
                          extra={"delay_ms": delay_ms, "notified": notify})
         return success
 
-    def _should_start_active_monitor(self, profile):
-        """Determine if active monitor should be started based on current conditions.
-
-        Deliberately a PARTIAL unknown-check (hdr + fps, not audio): the
-        monitor may run while audio is unknown; its own write path
-        re-validates the full profile before storing anything.
-        """
-        if profile is None:
-            return False
-
-        active_monitoring_enabled = self.settings_manager.get_setting_boolean('enable_active_monitoring')
-        hdr_type = profile.hdr_type
-        fps_type = profile.fps_type
-        hdr_type_enabled = self.settings_manager.get_setting_boolean(f'enable_{hdr_type}')
-
-        return (active_monitoring_enabled and
-                hdr_type_enabled and
-                hdr_type != formats.UNKNOWN and
-                fps_type != formats.UNKNOWN)
-
-    def manage_active_monitor(self, session):
-        """Manage the active monitor state based on current conditions."""
-        profile = session.profile
-        log(f"AOM_OffsetManager: Checking active monitor status - "
-            f"HDR: {profile.hdr_type if profile else 'unknown'}, "
-            f"FPS: {profile.fps_type if profile else 'unknown'}",
-            xbmc.LOGDEBUG)
-
-        if (self.active_monitor is not None
-                and self._monitor_session_id != session.session_id):
-            # In-place reopen: the running monitor's tracked delays belong to
-            # a superseded session — never let them leak into this one.
-            log("AOM_OffsetManager: Active monitor belongs to superseded "
-                f"session #{self._monitor_session_id}; restarting", xbmc.LOGDEBUG)
-            self.stop_active_monitor()
-
-        if self._should_start_active_monitor(profile):
-            self.start_active_monitor(session)
-        else:
-            self.stop_active_monitor()
-
     def _maybe_send_pending_notification(self, session, profile):
         """Send the session's pending notification once the stream is STABLE.
 
@@ -272,24 +225,3 @@ class OffsetManager:
         log("AOM_OffsetManager: Released pending offset notification after stream stabilization",
             xbmc.LOGDEBUG)
         session.pending_notification = None
-
-    def start_active_monitor(self, session):
-        """Start the active monitor if it's not already running."""
-        if self.active_monitor is None:
-            self.active_monitor = ActiveMonitor(
-                self.event_manager,
-                self.stream_info,
-                self,
-                self.settings_manager
-            )
-            self.active_monitor.start()
-            self._monitor_session_id = session.session_id
-            log("AOM_OffsetManager: Active monitor started", xbmc.LOGDEBUG)
-
-    def stop_active_monitor(self):
-        """Stop the active monitor if it's running."""
-        if self.active_monitor is not None:
-            self.active_monitor.stop()
-            self.active_monitor = None
-            self._monitor_session_id = None
-            log("AOM_OffsetManager: Active monitor stopped", xbmc.LOGDEBUG)

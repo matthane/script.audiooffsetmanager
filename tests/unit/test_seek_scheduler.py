@@ -236,16 +236,23 @@ class TestTriggersAndDebounce:
         rig.post(events.StreamStabilized(session_id=sid, profile_changed=True))
         assert 'adjust' in rig.pending
 
-    def test_on_user_adjustment_requests_change_and_noops_without_session(self, rig):
-        # No session yet -> on_user_adjustment is a no-op (nothing scheduled).
-        rig.scheduler.on_user_adjustment()
-        rig.dispatcher.run_pending()
+    def test_user_offset_saved_requests_change_and_stale_stamp_is_inert(self, rig):
+        # No session yet -> a UserOffsetSaved is a no-op (nothing scheduled).
+        rig.post(events.UserOffsetSaved(session_id=1, profile=None, ms=-50))
         assert rig.pending == set()
         assert rig.seeks == []
 
         rig.start()
         rig.make_stable()
-        rig.scheduler.on_user_adjustment()
+        sid = rig.session.session_id
+
+        # A stamp from a superseded session is inert: a store racing an
+        # in-place reopen can never seek the new session.
+        rig.post(events.UserOffsetSaved(session_id=sid + 1, profile=None,
+                                        ms=-50))
+        assert 'change' not in rig.pending
+
+        rig.post(events.UserOffsetSaved(session_id=sid, profile=None, ms=-50))
         assert 'change' in rig.pending
 
 
@@ -380,8 +387,8 @@ class TestExecutionGuards:
         rig.advance(QUIET)                # resume seek at t=2.0 (activity=2.0)
         rig.advance(RECHECK)              # t=2.5 (strictly after the seek)
 
-        rig.scheduler.on_user_adjustment()   # 'change' requested at t=2.5
-        rig.dispatcher.run_pending()
+        rig.post(events.UserOffsetSaved(       # 'change' requested at t=2.5
+            session_id=rig.session.session_id, profile=None, ms=-50))
 
         rig.advance(RECHECK)              # t=3.0
         rig.dispatcher.post(events.SeekOccurred(time_ms=0, offset_ms=0))

@@ -113,17 +113,41 @@ class FakeGateway:
 class FakeFacade:
     """Scriptable settings facade covering the app components' read surface.
 
-    ``fps_override`` drives the detector's fps-bucket collapse;
-    ``seek_configs`` maps a seek reason to its (enabled, seconds) pair,
-    defaulting every reason to (True, 4).
+    ``fps_override`` drives the detector's fps-bucket collapse; ``seek_configs``
+    maps a seek reason to its (enabled, seconds) pair, defaulting every reason
+    to (True, 4). The adjustment-watcher surface: ``active_monitoring`` /
+    ``hdr_enabled`` gate eligibility; ``offsets`` (setting_id -> ms) backs
+    ``get_offset_ms``; ``store_integer_if_changed`` appends to ``stored`` and
+    writes ``offsets`` (unless ``store_ok`` is False, when it reports failure).
     """
 
     def __init__(self, fps_override=False):
         self.fps_override = fps_override
         self.seek_configs = {}
+        self.active_monitoring = True
+        self.hdr_enabled = True
+        self.offsets = {}            # setting_id -> ms
+        self.stored = []             # (setting_id, ms), in store order
+        self.store_ok = True
 
     def fps_override_enabled(self, hdr_type):
         return self.fps_override
 
     def seek_back_config(self, reason):
         return self.seek_configs.get(reason, (True, 4))
+
+    def active_monitoring_enabled(self):
+        return self.active_monitoring
+
+    def is_hdr_enabled(self, hdr_type):
+        return self.hdr_enabled
+
+    def get_offset_ms(self, profile):
+        return self.offsets.get(profile.setting_id(), 0)
+
+    def store_integer_if_changed(self, setting_id, value):
+        if not self.store_ok:
+            return False
+        self.stored.append((setting_id, value))
+        self.offsets[setting_id] = value
+        return True

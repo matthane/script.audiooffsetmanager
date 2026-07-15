@@ -42,9 +42,9 @@ class PlaybackSession:
     started_at: float
     stream_state: StreamState = StreamState.STARTING
     # The session's profile. Written ONLY by the StreamDetector (its sole
-    # writer), on the dispatcher thread; read cross-thread by ActiveMonitor
-    # through the StreamInfo shim (an atomic reference read of a frozen
-    # dataclass — no partial states are observable).
+    # writer), on the dispatcher thread — where every reader now lives too
+    # (the last cross-thread reader, ActiveMonitor via the StreamInfo shim,
+    # was replaced by the dispatcher-driven AdjustmentWatcher in Phase 6).
     profile: object = None
     # True while a profile (re)adoption has happened since the last
     # StreamStabilized post. The detector consumes it to stamp
@@ -127,12 +127,10 @@ class SessionTracker:
     def is_alive(self, session_id):
         """True while the given session is still the live one.
 
-        All remaining callers run on the dispatcher thread (the deleted
-        AvChangeFilter verify thread was the cross-thread caller; today the
-        only cross-thread READER of session state is the StreamInfo shim's
-        profile property). The single read of self.current is kept: it is
-        free, and it makes the method safe for any future off-thread caller
-        without a change here.
+        Every caller — and since the AdjustmentWatcher replaced ActiveMonitor,
+        every reader of session state at all — runs on the dispatcher thread.
+        The single read of self.current is kept: it is free, and it makes the
+        method safe for any future off-thread caller without a change here.
         """
         current = self.current
         return current is not None and current.session_id == session_id

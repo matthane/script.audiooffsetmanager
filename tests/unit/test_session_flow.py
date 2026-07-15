@@ -48,11 +48,13 @@ def rig(monkeypatch):
 
     # The platform seam: script what the "player" reports via the fake
     # gateway; mutate its attributes between pumps to change the stream.
-    # Both gateway consumers get the same fake (detector reads; the seek
-    # coordinator probes vendor properties and executes seeks through it).
+    # Every gateway consumer gets the same fake (detector reads; the seek
+    # coordinator probes vendor properties and executes seeks through it;
+    # the adjustment watcher polls Player.AudioDelay).
     gateway = FakeGateway(infolabels=dict(INFOLABELS))
     runtime.detector._gateway = gateway
     runtime.seek_coordinator._gateway = gateway
+    runtime.adjustment_watcher._gateway = gateway
 
     # --- settings seams (facade instance shared across components) ------------
     facade = runtime.offset_manager.settings_facade
@@ -65,9 +67,9 @@ def rig(monkeypatch):
     monkeypatch.setattr(facade, 'store_boolean_if_changed',
                         lambda setting_id, value: None)
 
-    # Hermeticity: without this, Kodistubs' getBool default would enable
-    # active monitoring and every PlaybackStarted would spawn a REAL
-    # ActiveMonitor daemon thread. (Also disables seek-backs.)
+    # Hermeticity: the blanket False keeps the adjustment watcher ineligible
+    # (no recurring WatchTick timers muddying the pump) and disables
+    # seek-backs, so flow tests only see the events they drive.
     monkeypatch.setattr(runtime.offset_manager.settings_manager,
                         'get_setting_boolean', lambda setting_id: False)
 
@@ -327,47 +329,37 @@ def test_unchanged_av_change_is_ignored(rig):
     assert len(notified) == baseline_notified
 
 
-def test_active_monitor_restarted_on_in_place_reopen(rig, monkeypatch):
-    # The supersede guard: an in-place reopen must tear down the old
-    # session's monitor (whose tracked delays belong to dead content) and
-    # start a fresh one bound to the new session.
+def test_user_offset_saved_notifies_live_session_only(rig, monkeypatch):
+    # The manual-offset notification consumes the watcher's typed event: the
+    # toast describes the payload captured at store time, and a stamp from a
+    # superseded session is dropped. (The legacy USER_ADJUSTMENT wire carried
+    # no payload and no stamp, so a reopen between store and dispatch made
+    # the notification describe the NEW stream's profile.)
     runtime, _clock, _gateway, _applied, _notified = rig
 
-    monitors = []
-
-    class FakeMonitor:
-        def __init__(self, event_manager, stream_info, offset_manager,
-                     settings_manager):
-            self.started = False
-            self.stopped = False
-            monitors.append(self)
-
-        def start(self):
-            self.started = True
-
-        def stop(self):
-            self.stopped = True
-
-    import resources.lib.offset_manager as om_module
-    monkeypatch.setattr(om_module, 'ActiveMonitor', FakeMonitor)
-    # Enable monitoring (the rig's hermetic default disables it).
-    monkeypatch.setattr(runtime.offset_manager.settings_manager,
-                        'get_setting_boolean', lambda setting_id: True)
+    manual = []
+    monkeypatch.setattr(runtime.offset_manager.notification_handler,
+                        'notify_manual_offset_saved',
+                        lambda ms, profile: manual.append(
+                            (ms, profile.setting_id())))
 
     runtime.dispatcher.post(events.PlaybackStarted())
     runtime.dispatcher.run_pending()
-    first_session = runtime.session_tracker.current
-    assert len(monitors) == 1 and monitors[0].started
-    assert runtime.offset_manager._monitor_session_id == first_session.session_id
+    session = runtime.session_tracker.current
+    profile = session.profile
 
-    # In-place reopen: old monitor stopped, new one started for the new id.
-    runtime.dispatcher.post(events.PlaybackStarted())
+    runtime.dispatcher.post(events.UserOffsetSaved(
+        session_id=session.session_id, profile=profile, ms=-75))
     runtime.dispatcher.run_pending()
-    second_session = runtime.session_tracker.current
-    assert monitors[0].stopped is True
-    assert len(monitors) == 2 and monitors[1].started
-    assert not monitors[1].stopped
-    assert runtime.offset_manager._monitor_session_id == second_session.session_id
+    assert manual == [(-75, 'dolbyvision_all_truehd')]
+
+    # In-place reopen already queued ahead of the stale-stamped event: by the
+    # time the event dispatches, its session is superseded -> no toast.
+    runtime.dispatcher.post(events.PlaybackStarted())
+    runtime.dispatcher.post(events.UserOffsetSaved(
+        session_id=session.session_id, profile=profile, ms=-100))
+    runtime.dispatcher.run_pending()
+    assert manual == [(-75, 'dolbyvision_all_truehd')]
 
 
 def test_av_event_after_stop_is_ignored(rig):
