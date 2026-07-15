@@ -52,6 +52,21 @@ def test_addon_id_constant():
     assert ADDON_ID == 'script.audiooffsetmanager'
 
 
+def test_settings_keeps_parent_addon_alive():
+    """Regression pin for the 2.0.0~beta1 field bug (Kodi 21.2/Windows).
+
+    ``xbmcaddon.Addon(...).getSettings()`` as a one-liner leaves the Addon a
+    garbage-collected temporary, which orphans the Settings proxy: writes
+    report success but never persist (``new_install`` clear was lost) and
+    dialog edits never arrive. The proxy is live only while its parent Addon
+    is alive, so Settings must hold the Addon it derived ``_settings`` from.
+    """
+    import xbmcaddon
+
+    settings, _ = _make_settings()
+    assert isinstance(settings._addon, xbmcaddon.Addon)
+
+
 # --- get_bool / get_int ------------------------------------------------------
 
 class TestTypedReads:

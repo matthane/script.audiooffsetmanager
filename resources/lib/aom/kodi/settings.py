@@ -14,6 +14,14 @@ everywhere at once, so the store cannot drift out of sync with itself. Holding
 one proxy per process is a tidiness convenience, not the thing that makes
 reads/writes consistent.
 
+LIFETIME RULE (field-verified on Kodi 21.2/Windows, 2026-07-15): the proxy is
+live ONLY while the ``xbmcaddon.Addon`` it came from stays alive. A
+``Settings`` object whose parent ``Addon`` was a garbage-collected temporary
+degrades into a detached copy — writes report success but never persist to
+the real store or ``settings.xml``, and outside changes (settings dialog
+edits) never arrive. ``__init__`` therefore keeps the ``Addon`` on ``self``;
+never rewrite it as ``xbmcaddon.Addon(...).getSettings()``.
+
 Faithful port of the legacy semantics, with two deliberate upgrades noted as
 Phase 7 work: the bare ``except:`` clauses become ``except Exception`` here, and
 the ``AOM_SettingsManager`` log prefix becomes ``AOM_Settings``. The
@@ -39,7 +47,9 @@ class Settings:
         """``log`` is a REQUIRED ``(message, level)`` sink (same convention as
         ``KodiGateway``)."""
         self._log = log
-        self._settings = xbmcaddon.Addon(ADDON_ID).getSettings()
+        # The Addon must outlive the Settings proxy (see LIFETIME RULE above).
+        self._addon = xbmcaddon.Addon(ADDON_ID)
+        self._settings = self._addon.getSettings()
 
     # --- typed primitives ---------------------------------------------------
 
