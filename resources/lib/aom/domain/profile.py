@@ -20,14 +20,17 @@ class StreamProfile:
     player_id: int
     audio_channels: object
 
-    def setting_key(self):
-        """Settings id for this profile: `<hdr>_<fps>_<audio>`. FROZEN format."""
-        return formats.setting_key(self.hdr_type, self._fps_key(), self.audio_format)
-
-    # Legacy name; new code uses setting_key(). MIGRATION(p7): drop the alias
-    # once every legacy call site is gone.
     def setting_id(self):
-        return self.setting_key()
+        """Settings id for this profile: `<hdr>_<fps>_<audio>`. FROZEN format.
+
+        (DESIGN.md sketched this as ``setting_key()``, but every call site —
+        and the frozen-vocabulary language in CLAUDE.md — standardized on the
+        legacy ``setting_id()`` name during construction, so the planned
+        rename was dropped rather than churning the whole codebase; the
+        Phase 9 DESIGN.md reconciliation records the decision.)
+        """
+        return formats.setting_key(self.hdr_type, self._fps_key(),
+                                   self.audio_format)
 
     def display_hdr(self):
         return formats.HDR_DISPLAY_NAMES.get(self.hdr_type, self.hdr_type)

@@ -1,6 +1,7 @@
 """Kodi logging adapter: a callable ``(message, level)`` sink.
 
-Drop-in replacement for the legacy ``resources.lib.logger.log``. The legacy
+Replacement for the legacy ``resources.lib.logger.log`` (deleted with the
+Phase 7 splits). The legacy
 module imported the settings machinery and re-checked the debug toggle on EVERY
 log call — a logger<->settings import knot that this layer unties. The adapter
 instead holds a plain cached ``debug_escalation`` flag: the runtime seeds it

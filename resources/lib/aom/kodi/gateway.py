@@ -25,12 +25,12 @@ class KodiGateway:
     """Single-shot wrapper over Kodi's JSON-RPC, InfoLabels, and window props."""
 
     def __init__(self, *, log):
-        """``log`` is a REQUIRED ``(message, level)`` sink — the signature of
-        ``resources.lib.logger.log``, which production injects here. Injection
-        (rather than importing the logger) keeps this layer import-pure of
-        legacy modules (enforced by ``tests/contract/test_architecture.py``)
-        while preserving the addon-wide LOGDEBUG->LOGINFO escalation the
-        logger applies when the debug toggle is on.
+        """``log`` is a REQUIRED ``(message, level)`` sink — production
+        injects the ``aom.kodi.log.KodiLogger`` callable. Injection (rather
+        than importing a logger module) keeps the wiring explicit and one
+        instance per process, and preserves the addon-wide
+        LOGDEBUG->LOGINFO escalation the logger applies when the debug
+        toggle is on.
         """
         self._log = log
         # Home-window handle, created LAZILY on first window-property use:

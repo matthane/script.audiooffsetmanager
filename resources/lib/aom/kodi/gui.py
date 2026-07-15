@@ -25,10 +25,10 @@ class Gui:
     """Single-shot wrapper over Kodi's notification dialog and string table."""
 
     def __init__(self, *, log):
-        """``log`` is a REQUIRED ``(message, level)`` sink — the signature of
-        ``resources.lib.logger.log`` (production injects it), matching the
-        gateway convention so this layer stays import-pure of the legacy
-        logger while preserving the addon-wide LOGDEBUG->LOGINFO escalation.
+        """``log`` is a REQUIRED ``(message, level)`` sink — production
+        injects the ``aom.kodi.log.KodiLogger`` callable, matching the
+        gateway convention, so one logger instance (and its cached debug
+        escalation) serves the whole process.
         """
         addon = xbmcaddon.Addon(ADDON_ID)
         self._addon = addon
