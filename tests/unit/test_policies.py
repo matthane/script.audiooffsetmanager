@@ -50,6 +50,11 @@ def test_parse_delay_ms_nnbsp_sole_separator_parses():
     assert policies.parse_delay_ms("-0.075" + NNBSP + "s") == -75
 
 
+def test_parse_delay_ms_unicode_minus_sign():
+    # Phase 6 review fix: some CLDR locales render negatives with U+2212.
+    assert policies.parse_delay_ms("−0.075 s") == -75
+
+
 def test_parse_delay_ms_rounds_instead_of_truncating():
     # Phase 6 fix: float('-0.115') * 1000 is -114.999...; int() used to
     # truncate a -115 ms slider value to -114.

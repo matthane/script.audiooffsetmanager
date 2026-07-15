@@ -12,7 +12,8 @@ import pytest
 
 from resources.lib.aom.domain.policies import parse_delay_ms
 
-NNBSP = " "  # narrow no-break space
+NNBSP = " "  # narrow no-break space (U+202F)
+UMINUS = "−"  # Unicode minus sign
 
 
 @pytest.mark.parametrize("delay_str, expected", [
@@ -77,4 +78,15 @@ def test_clamping_to_plus_minus_10_seconds(delay_str, expected):
     ("-0.185 s", -185),
 ])
 def test_ms_conversion_rounds(delay_str, expected):
+    assert parse_delay_ms(delay_str) == expected
+
+
+@pytest.mark.parametrize("delay_str, expected", [
+    # Phase 6 review fix: a Unicode minus sign (CLDR negative-number
+    # convention in some locales) is normalized to ASCII '-'; combined
+    # locale styling (comma decimal + NNBSP unit separator) parses too.
+    (UMINUS + "0.075 s", -75),
+    (UMINUS + "0,075" + NNBSP + "s", -75),
+])
+def test_unicode_minus_sign_parses(delay_str, expected):
     assert parse_delay_ms(delay_str) == expected

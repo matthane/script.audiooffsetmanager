@@ -41,7 +41,17 @@ Self-echo suppression: an automatic apply is a JSON-RPC player call, so our
 own applied value shows up in the infolabel just like a user's would. The
 applier records ``session.applied = (setting_id, delay_ms)`` BEFORE issuing
 the RPC precisely so ``observed == session.applied[1]`` here is always
-current; a match is our own value — baseline-refresh, never store.
+current; a match is our own value — baseline-refresh, never store. A
+corollary (reviewed, accepted): an automatic apply landing INSIDE a pending
+quiescence window supersedes the candidate — the pending value was dialed
+for the stream that just changed, so its target profile is ambiguous and
+dropping beats storing it under the wrong key (the legacy monitor did the
+latter — the adopt-vs-store interleaving this design closes).
+
+Stores also defer while the addon settings dialog (window 10140) is open:
+the dialog saves its working copy of our settings on close, which would
+clobber any write made underneath it (settings-state doctrine). The quiesced
+candidate is simply held on the active cadence until the dialog closes.
 
 Store-time profile derivation on the dispatcher thread closes the legacy
 adjust-vs-adopt interleaving: the old monitor thread stored under the live
@@ -71,6 +81,10 @@ class AdjustmentWatcher:
     ACTIVE_TICK_SECONDS = 0.25  # tightened cadence while observing a change
     QUIESCENCE_SECONDS = 1.0    # foreign value must hold this long to be stored
     INFOLABEL_AUDIO_DELAY = 'Player.AudioDelay'
+    # Kodi's WINDOW_DIALOG_ADDON_SETTINGS: while it is open its working copy
+    # of our settings is saved back on close, clobbering any programmatic
+    # write made in between (settings-state doctrine) — stores defer past it.
+    SETTINGS_DIALOG_ID = 10140
     _TICK_KEY = 'aom.watcher.tick'
 
     def __init__(self, dispatcher, session_tracker, gateway, settings_facade,
@@ -126,7 +140,7 @@ class AdjustmentWatcher:
             self._schedule_tick(session.session_id, self.IDLE_TICK_SECONDS)
         else:
             self._dispatcher.cancel(self._TICK_KEY)
-            session.watch_pending = None  # keep the baseline; drop the candidate
+            self._clear_observation(session)
             self._log(f"AOM_AdjustmentWatcher: not watching session "
                       f"#{session.session_id} (ineligible: "
                       f"profile={session.profile})")
@@ -141,18 +155,22 @@ class AdjustmentWatcher:
             return  # a superseded session's chain is inert
         session = self._sessions.current
         if not self._eligible(session.profile):
-            session.watch_pending = None
+            self._clear_observation(session)
             self._log("AOM_AdjustmentWatcher: no longer eligible; stopping "
                       "watch")
             return  # ProfileChanged/SettingsChanged restart the chain
+        # One poll, one reschedule: _observe classifies the reading and only
+        # picks the next cadence — every continue-watching path funnels here.
+        self._schedule_tick(session.session_id, self._observe(session))
 
+    def _observe(self, session):
+        """Classify the current delay reading; return the next tick cadence."""
         observed = policies.parse_delay_ms(
             self._gateway.infolabel(self.INFOLABEL_AUDIO_DELAY))
         if observed is None:
             self._log("AOM_AdjustmentWatcher: audio delay unreadable; "
                       "retrying")
-            self._schedule_tick(session.session_id, self.IDLE_TICK_SECONDS)
-            return
+            return self.IDLE_TICK_SECONDS
 
         applied_ms = session.applied[1] if session.applied is not None else None
 
@@ -161,8 +179,7 @@ class AdjustmentWatcher:
             # BEFORE the RPC, so this comparison is always current).
             session.watch_baseline_ms = observed
             session.watch_pending = None
-            self._schedule_tick(session.session_id, self.IDLE_TICK_SECONDS)
-            return
+            return self.IDLE_TICK_SECONDS
 
         if session.watch_baseline_ms is None:
             # First observation and it isn't ours: adopt as baseline silently.
@@ -172,15 +189,13 @@ class AdjustmentWatcher:
             session.watch_baseline_ms = observed
             self._log(f"AOM_AdjustmentWatcher: adopting baseline "
                       f"{observed}ms (first observation)")
-            self._schedule_tick(session.session_id, self.IDLE_TICK_SECONDS)
-            return
+            return self.IDLE_TICK_SECONDS
 
         if observed == session.watch_baseline_ms:
             # Nothing changed, or the user dialed back to the baseline before
             # quiescence ("adjust back to what it was" stores nothing).
             session.watch_pending = None
-            self._schedule_tick(session.session_id, self.IDLE_TICK_SECONDS)
-            return
+            return self.IDLE_TICK_SECONDS
 
         # A foreign CHANGE away from the baseline: a quiescence candidate.
         now = self._clock()
@@ -189,12 +204,20 @@ class AdjustmentWatcher:
             session.watch_pending = (observed, now)
             self._log(f"AOM_AdjustmentWatcher: observing manual adjustment "
                       f"{observed}ms; awaiting quiescence")
-            self._schedule_tick(session.session_id, self.ACTIVE_TICK_SECONDS)
-        elif now - pending[1] >= self.QUIESCENCE_SECONDS:
-            self._store(session, observed)
-            self._schedule_tick(session.session_id, self.IDLE_TICK_SECONDS)
-        else:
-            self._schedule_tick(session.session_id, self.ACTIVE_TICK_SECONDS)
+            return self.ACTIVE_TICK_SECONDS
+        if now - pending[1] < self.QUIESCENCE_SECONDS:
+            return self.ACTIVE_TICK_SECONDS
+        if self._gateway.current_dialog_id() == self.SETTINGS_DIALOG_ID:
+            # Settings-state doctrine: never write a setting while the addon
+            # settings dialog is open — its save-on-close would clobber the
+            # store. Hold the quiesced candidate and retry until it closes.
+            # (Legacy was structurally immune: its only change source, the
+            # OSD slider, cannot be open at the same time as this dialog.)
+            self._log("AOM_AdjustmentWatcher: settings dialog open; "
+                      "deferring store")
+            return self.ACTIVE_TICK_SECONDS
+        self._store(session, observed)
+        return self.IDLE_TICK_SECONDS
 
     # -- store (dispatcher thread) ----------------------------------------------
 
@@ -239,6 +262,19 @@ class AdjustmentWatcher:
             session_id=session.session_id, profile=profile, ms=observed_ms))
 
     # -- internals --------------------------------------------------------------
+
+    def _clear_observation(self, session):
+        """Drop ALL observation state whenever the watch chain stops.
+
+        The baseline must not survive a not-watching gap: a delay changed
+        while monitoring was disabled would otherwise compare against the
+        stale baseline on re-enable and be stored as a fresh adjustment —
+        but only a change observed WHILE watching is an adjustment. Clearing
+        makes the first post-gap observation re-adopt silently (exactly the
+        fresh state a restarted legacy monitor had).
+        """
+        session.watch_pending = None
+        session.watch_baseline_ms = None
 
     def _schedule_tick(self, session_id, delay):
         """One place for the self-scheduled poll chain (key-replaced)."""

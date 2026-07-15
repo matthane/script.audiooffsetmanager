@@ -102,10 +102,14 @@ class ServiceRuntime:
             log_debug=_log_debug, log_warning=_log_warning)
         # MIGRATION(p7): the notification for a stored manual adjustment
         # still lives on the legacy OffsetManager until the Notifier split;
-        # wire it to the watcher's typed, session-stamped event here. Order
-        # vs the seek scheduler's own UserOffsetSaved handler is immaterial:
-        # the scheduler only schedules a deferred ExecuteSeek, so the seek
-        # always runs after this dispatch (notify) completes.
+        # wire it to the watcher's typed, session-stamped event here. It
+        # deliberately bypasses the router: the handler needs the event's
+        # payload (session stamp + profile/ms captured at store time), and
+        # the router's argument-carrying publish machinery died with its
+        # last producer. Order vs the seek scheduler's own UserOffsetSaved
+        # handler is immaterial: the scheduler only schedules a deferred
+        # ExecuteSeek, so the seek always runs after this dispatch (notify)
+        # completes.
         self.dispatcher.subscribe(events.UserOffsetSaved,
                                   self.offset_manager.on_user_offset_saved)
 

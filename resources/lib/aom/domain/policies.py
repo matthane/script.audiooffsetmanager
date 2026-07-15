@@ -11,9 +11,9 @@ from resources.lib.aom.domain import formats
 def parse_delay_ms(delay_str):
     """Parse Kodi's localized `Player.AudioDelay` infolabel string to ms.
 
-    Handles '-0.075 s', comma decimals ('-0,075 s'), and narrow no-break
-    spaces anywhere around the unit. Clamps to +/-10 s. Returns None on
-    unparseable input.
+    Handles '-0.075 s', comma decimals ('-0,075 s'), a Unicode minus sign
+    (U+2212, used by some CLDR locales), and narrow no-break spaces anywhere
+    around the unit. Clamps to +/-10 s. Returns None on unparseable input.
 
     Two Phase 6 fixes over the verbatim legacy parser (their Phase 0/1
     behavior pins in test_delay_parsing.py / test_policies.py were flipped
@@ -29,6 +29,7 @@ def parse_delay_ms(delay_str):
     """
     try:
         normalized = (delay_str.replace('\u202f', ' ')  # narrow no-break space
+                      .replace('\u2212', '-')  # Unicode minus sign (CLDR locales)
                       .replace(',', '.')
                       .strip())
         # Strip the trailing unit however it is separated: 's' never appears

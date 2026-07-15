@@ -75,6 +75,8 @@ class FakeGateway:
         self.codec = codec
         self.channels = channels
         self.infolabels = dict(infolabels or {})
+        # 9999 is Kodi's "no dialog open" answer from getCurrentWindowDialogId.
+        self.dialog_id = 9999
         self.applied = []            # (player_id, delay_seconds)
         self.seeks = []              # (seconds, player_id)
         self.window_properties = {}
@@ -89,6 +91,9 @@ class FakeGateway:
 
     def infolabel(self, label):
         return self.infolabels.get(label, '')
+
+    def current_dialog_id(self):
+        return self.dialog_id
 
     def window_property(self, name):
         return self.window_properties.get(name, '')

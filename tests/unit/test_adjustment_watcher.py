@@ -320,6 +320,28 @@ class TestStorePathGuards:
         assert rig.saved == []
         assert rig.session.watch_baseline_ms == -50
 
+    def test_store_deferred_while_settings_dialog_open(self, rig):
+        # Settings-state doctrine: a write made while the addon settings
+        # dialog is open is clobbered by its save-on-close. The quiesced
+        # candidate is held (active cadence) until the dialog closes, then
+        # stored exactly once.
+        profile = make_profile()
+        rig.begin(profile, baseline_delay='0.000 s')
+
+        rig.gateway.dialog_id = AdjustmentWatcher.SETTINGS_DIALOG_ID
+        rig.observe_foreign('-0.050 s')
+        rig.hold_to_quiescence()                       # quiesced, but deferred
+        rig.advance(ACTIVE)                            # keeps deferring
+        assert rig.facade.stored == []
+        assert rig.saved == []
+        assert rig.watching                            # chain alive, retrying
+        assert rig.logged('settings dialog open')
+
+        rig.gateway.dialog_id = 9999                   # dialog closed
+        rig.advance(ACTIVE)                            # next attempt stores
+        assert rig.facade.stored == [(profile.setting_id(), -50)]
+        assert len(rig.saved) == 1
+
     def test_store_failure_warns_keeps_baseline_and_retries(self, rig):
         profile = make_profile()
         rig.facade.store_ok = False
@@ -368,6 +390,32 @@ class TestEligibilityAndChain:
         rig.advance(IDLE)                              # the pending tick fires
         assert not rig.watching
         assert rig.logged('no longer eligible')
+
+    def test_baseline_cleared_when_watching_stops(self, rig):
+        # Only a change observed WHILE watching is an adjustment: a delay
+        # changed during a monitoring-disabled gap must be re-adopted as the
+        # baseline on re-enable, never stored against the stale baseline
+        # (fresh-state parity with a restarted legacy monitor).
+        profile = make_profile()
+        rig.begin(profile, baseline_delay='0.000 s')
+        assert rig.session.watch_baseline_ms == 0
+
+        rig.facade.active_monitoring = False
+        rig.post(events.SettingsChanged())             # chain stops
+        assert rig.session.watch_baseline_ms is None   # observation state gone
+
+        rig.set_delay('-0.080 s')                      # changed while not watching
+        rig.facade.active_monitoring = True
+        rig.post(events.SettingsChanged())             # chain resumes
+        rig.advance(IDLE)                              # first tick re-adopts
+        assert rig.session.watch_baseline_ms == -80
+        assert rig.facade.stored == []
+        assert rig.saved == []
+
+        # A change observed while watching still stores normally.
+        rig.observe_foreign('-0.050 s')
+        rig.hold_to_quiescence()
+        assert rig.facade.stored == [(profile.setting_id(), -50)]
 
     def test_hdr_disabled_profile_is_not_watched(self, rig):
         profile = make_profile()

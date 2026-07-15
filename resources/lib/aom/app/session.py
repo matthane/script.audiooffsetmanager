@@ -52,7 +52,14 @@ class PlaybackSession:
     # the legacy ON_AV_CHANGE for pure re-confirmations (a codec blip that
     # reverted) — legacy's duplicate-codec filter never fired for those.
     profile_changed_since_stabilized: bool = False
-    applied: tuple = None                   # (setting_key, delay_ms) dedupe guard
+    # (setting_key, delay_ms) — what we believe Kodi's audio delay is set to.
+    # TWO sanctioned writers, both on the dispatcher thread: OffsetManager
+    # records it BEFORE each apply RPC (restoring on failure), and the
+    # AdjustmentWatcher updates it when it stores a user's manual value (the
+    # user's value IS the applied value; skipping this would make the next
+    # same-profile AV event re-apply and re-notify). It is both the applier's
+    # dedupe guard and the watcher's self-echo reference.
+    applied: tuple = None
     pending_notification: tuple = None      # (setting_key, delay_ms) awaiting STABLE
     paused: bool = False
     # How many times this session has earned STABLE. Written only by

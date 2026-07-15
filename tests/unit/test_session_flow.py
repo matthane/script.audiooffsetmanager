@@ -329,6 +329,61 @@ def test_unchanged_av_change_is_ignored(rig):
     assert len(notified) == baseline_notified
 
 
+def test_applied_is_recorded_before_the_rpc_executes(rig, monkeypatch):
+    # The AdjustmentWatcher's self-echo suppression depends on this exact
+    # ordering contract: at the instant Kodi's delay can reflect our write,
+    # session.applied must already equal it. Pin it AT the RPC boundary so a
+    # future applier rebuild (Phase 7) cannot silently flip back to the
+    # legacy record-after-success order.
+    runtime, _clock, _gateway, _applied, _notified = rig
+
+    seen_at_rpc = []
+
+    def rpc(player_id, seconds):
+        session = runtime.session_tracker.current
+        seen_at_rpc.append((session.applied, round(seconds * 1000)))
+        return True
+
+    monkeypatch.setattr(rpc_client, 'set_audio_delay', rpc)
+
+    runtime.dispatcher.post(events.PlaybackStarted())
+    runtime.dispatcher.run_pending()
+
+    assert seen_at_rpc == [(('dolbyvision_all_truehd', -125), -125)]
+
+
+def test_auto_apply_never_emits_user_offset_saved(rig, monkeypatch):
+    # End-to-end self-echo: with the watcher armed and Kodi's infolabel
+    # echoing our own automatic apply, ticks must adopt the value as
+    # baseline — never store it or post UserOffsetSaved (which would toast
+    # the user and fire a 'change' seek for our own write).
+    runtime, clock, gateway, _applied, _notified = rig
+
+    facade = runtime.offset_manager.settings_facade
+    monkeypatch.setattr(facade, 'active_monitoring_enabled', lambda: True)
+    stored = []
+    monkeypatch.setattr(facade, 'store_integer_if_changed',
+                        lambda setting_id, ms: stored.append((setting_id, ms))
+                        or True)
+    saved = []
+    runtime.dispatcher.subscribe(events.UserOffsetSaved, saved.append)
+
+    runtime.dispatcher.post(events.PlaybackStarted())
+    runtime.dispatcher.run_pending()
+    session = runtime.session_tracker.current
+    assert session.applied == ('dolbyvision_all_truehd', -125)
+
+    # Kodi's Player.AudioDelay now echoes the applied value.
+    gateway.infolabels['Player.AudioDelay'] = '-0.125 s'
+    for _ in range(4):                         # several idle polls
+        clock.advance(1.0)
+        runtime.dispatcher.run_pending()
+
+    assert session.watch_baseline_ms == -125   # adopted as ours
+    assert stored == []
+    assert saved == []
+
+
 def test_user_offset_saved_notifies_live_session_only(rig, monkeypatch):
     # The manual-offset notification consumes the watcher's typed event: the
     # toast describes the payload captured at store time, and a stamp from a
