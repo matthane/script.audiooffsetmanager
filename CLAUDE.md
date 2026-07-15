@@ -33,6 +33,18 @@ part of the shipped addon unless `export-ignore`'d.
 - Verify what will ship at any time:
   `git archive --format=zip -o /tmp/pkg.zip HEAD` and inspect the zip.
 
+## MIGRATION IN PROGRESS (branch `redesign/2.0`)
+
+The service is being rebuilt on a single-threaded dispatcher with
+per-playback `PlaybackSession` state and a STARTING/STABILIZING/STABLE
+stream-state machine (see `resources/lib/aom/` module docstrings). On that
+branch, the sections below describing `AddonManager`, `EventManager`, the
+`playback_state` dict, `_last_applied`, the 2.0s startup grace window, and
+the `last_audio_codec` mirror flow are **superseded** — trust the code and
+the `aom` docstrings over this file until the scheduled end-of-migration
+rewrite. The **settings-state doctrine** (live proxy, dialog write ordering,
+fresh-`setting_id()` derivation) remains fully accurate and binding.
+
 ## Entry points
 
 Two extension points defined in `addon.xml`:
