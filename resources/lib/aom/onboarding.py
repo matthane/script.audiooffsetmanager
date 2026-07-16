@@ -19,6 +19,7 @@ User-facing strings resolve through the ``Gui`` adapter's
 macros — a Phase 7 work item); error toasts pass Gui a custom title/icon.
 """
 
+import os
 import sys
 
 import xbmc
@@ -84,12 +85,39 @@ class _Onboarding:
             duration_ms=10000)
 
         xbmc.sleep(5000)
-        xbmc.Player().stop()
+        self._stop_if_still_test_video()
 
         self._gui.notification(
             self._gui.localized(STRING_TEST_VIDEO_COMPLETED),
             duration_ms=10000)
         xbmc.executebuiltin(f'Addon.OpenSettings({ADDON_ID})')
+
+    def _stop_if_still_test_video(self):
+        """Stop playback only while the test video is still the playing item.
+
+        The stop fires 5s after play() on wall time, not on a playback
+        handle: by then the test video may have failed to open, or the user
+        may have started something else, and a blind ``Player().stop()``
+        would kill that instead. Paths compare separator/case-normalized
+        (Kodi reports either slash direction on Windows), and the
+        isPlaying/getPlayingFile pair can race a natural stop, so a raise
+        reads as "not our video".
+        """
+        player = xbmc.Player()
+        try:
+            playing = player.getPlayingFile() if player.isPlaying() else None
+        except Exception:
+            playing = None
+        if playing is None:
+            self._log("AOM_Onboarding: test video no longer playing; "
+                      "nothing to stop", xbmc.LOGDEBUG)
+            return
+        if (os.path.normcase(os.path.normpath(playing))
+                != os.path.normcase(os.path.normpath(self._test_video_path))):
+            self._log(f"AOM_Onboarding: another item is playing ({playing}); "
+                      f"leaving it alone", xbmc.LOGDEBUG)
+            return
+        player.stop()
 
     def bypass_test_video(self):
         """Clear new_install without playing the test video.
