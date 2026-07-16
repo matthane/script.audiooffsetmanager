@@ -19,8 +19,9 @@ probe stamped with a superseded session still observed the real platform.
 Writes defer while the addon settings dialog is open (settings-state
 doctrine: its save-on-close would clobber them). A skipped probe is not
 retried explicitly — the values are re-observed and re-stored by the next
-gather, and the ``new_install`` latch is only consumed when its store
-actually ran, so nothing is lost, only delayed.
+gather, and the ``new_install`` latch is only consumed after its store
+succeeds (a deferred or failed write leaves it armed for the next probe),
+so nothing is lost, only delayed.
 
 Pure app layer: no Kodi imports; settings via the injected adapter, the
 dialog question via the injected gateway.
@@ -49,7 +50,7 @@ class PlatformRecorder:
         self._settings.store_boolean_if_changed('advanced_hlg',
                                                 event.advanced_hlg)
         if self._new_install:
-            self._new_install = False
-            self._settings.store_boolean_if_changed('new_install', False)
-            self._log("AOM_PlatformRecorder: new-install flag cleared on "
-                      "first playback")
+            if self._settings.store_boolean_if_changed('new_install', False):
+                self._new_install = False
+                self._log("AOM_PlatformRecorder: new-install flag cleared on "
+                          "first playback")
