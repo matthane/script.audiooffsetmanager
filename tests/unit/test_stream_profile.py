@@ -1,16 +1,17 @@
-"""Characterization tests for resources.lib.stream_profile.StreamProfile.
+"""Characterization tests for aom.domain.profile.StreamProfile.
 
-Pins the CURRENT behavior of the settings-lookup key (`setting_id()`) and the
-display helpers before Phase 1 relocates StreamProfile to aom.domain.profile.
-The setting-id format is frozen: existing users' stored offsets are keyed by it,
-so these assertions must survive the move unchanged.
+Pins the behavior of the settings-lookup key (`setting_id()`) and the display
+helpers. Written in Phase 0 against the legacy module and retargeted when the
+Phase 1 re-export shim was deleted (Phase 7). The setting-id format is frozen:
+existing users' stored offsets are keyed by it, so these assertions must
+survive every refactor unchanged.
 
 StreamProfile depends only on `dataclasses` (pure Python) — no Kodi stubs needed.
 """
 
 import pytest
 
-from resources.lib.stream_profile import StreamProfile
+from resources.lib.aom.domain.profile import StreamProfile
 
 
 def make_profile(hdr_type, fps_type, audio_format,

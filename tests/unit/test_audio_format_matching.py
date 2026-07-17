@@ -1,36 +1,28 @@
-"""Characterization tests for StreamInfo.get_audio_info match order.
+"""Characterization tests for the audio-format match order.
 
-Pins how a raw Kodi codec string is mapped to one of the seven settings
-audio-format buckets, before Phase 1/4 relocate this into aom.domain.formats +
-the gateway. Two properties are load-bearing and must not regress:
+Phase 4 home: ``aom.app.stream_detector._derive_audio_format`` (the pure
+derivation the StreamDetector runs on every probe). Pins how a raw Kodi codec
+string is mapped to one of the seven settings audio-format buckets. Two
+properties are load-bearing and must not regress:
 
-  * substring match order: 'eac3' is tested before 'ac3' (ac3 is a substring of
-    eac3), so a Dolby Digital+ stream keys to eac3, never ac3;
-  * fallback: an unrecognized-but-present codec becomes 'pcm' (never 'unknown'),
-    while the literal 'unknown'/'none' sentinels pass through untouched.
+  * substring match order: 'eac3' is tested before 'ac3' (ac3 is a substring
+    of eac3), so a Dolby Digital+ stream keys to eac3, never ac3;
+  * fallback: an unrecognized-but-present codec becomes 'pcm' (never
+    'unknown'), while the 'unknown'/'none' sentinels normalize to
+    formats.UNKNOWN — the legacy two-layer behavior (get_audio_info passed
+    sentinels through; gather_stream_info collapsed both to 'unknown')
+    combined into one function.
 
-StreamInfo.get_audio_info delegates the actual JSON-RPC read to
-rpc_client.get_audio_info, which is monkeypatched here so no live RPC runs.
-The 'pt-' passthrough prefix is stripped inside rpc_client (verified in its own
-test at the xbmc.executeJSONRPC level), so StreamInfo sees already-stripped codecs.
+The 'pt-' passthrough prefix is stripped in the gateway (see
+tests/unit/test_gateway.py); the substring match also tolerates an
+unstripped prefix, pinned here as defense in depth.
 """
-
-import json
 
 import pytest
 
-from resources.lib import rpc_client
-from resources.lib.stream_info import StreamInfo
-
-
-@pytest.fixture
-def stream_info():
-    return StreamInfo()
-
-
-def _patch_rpc(monkeypatch, codec, channels=6):
-    monkeypatch.setattr(rpc_client, "get_audio_info",
-                        lambda player_id: (codec, channels))
+from resources.lib.aom.app.stream_detector import (_derive_audio_format,
+                                                   derive_stream_facts)
+from resources.lib.aom.domain import formats
 
 
 @pytest.mark.parametrize("raw_codec, expected", [
@@ -42,71 +34,50 @@ def _patch_rpc(monkeypatch, codec, channels=6):
     ("dca", "dca"),
     ("pcm", "pcm"),
 ])
-def test_recognized_codecs_map_to_their_bucket(monkeypatch, stream_info,
-                                               raw_codec, expected):
-    _patch_rpc(monkeypatch, raw_codec)
-    audio_format, _channels = stream_info.get_audio_info(player_id=1)
-    assert audio_format == expected
+def test_recognized_codecs_map_to_their_bucket(raw_codec, expected):
+    assert _derive_audio_format(raw_codec) == expected
 
 
-def test_eac3_is_matched_before_ac3(monkeypatch, stream_info):
+def test_eac3_is_matched_before_ac3():
     # 'ac3' is a substring of 'eac3'; the ordered list must catch eac3 first.
-    _patch_rpc(monkeypatch, "eac3")
-    assert stream_info.get_audio_info(1)[0] == "eac3"
+    assert _derive_audio_format("eac3") == "eac3"
     # And the ordering that guarantees it is pinned directly on the source list.
-    formats = stream_info.valid_audio_formats
-    assert formats.index("eac3") < formats.index("ac3")
+    order = list(formats.AUDIO_FORMATS)
+    assert order.index("eac3") < order.index("ac3")
 
 
 @pytest.mark.parametrize("raw_codec", ["aac", "flac", "opus", "mp3", "vorbis"])
-def test_unrecognized_present_codec_falls_back_to_pcm(monkeypatch, stream_info,
-                                                      raw_codec):
-    _patch_rpc(monkeypatch, raw_codec)
-    assert stream_info.get_audio_info(1)[0] == "pcm"
+def test_unrecognized_present_codec_falls_back_to_pcm(raw_codec):
+    assert _derive_audio_format(raw_codec) == "pcm"
 
 
 @pytest.mark.parametrize("sentinel", ["unknown", "none"])
-def test_unknown_and_none_sentinels_pass_through(monkeypatch, stream_info,
-                                                 sentinel):
-    _patch_rpc(monkeypatch, sentinel)
-    assert stream_info.get_audio_info(1)[0] == sentinel
+def test_unknown_and_none_sentinels_normalize_to_unknown(sentinel):
+    assert _derive_audio_format(sentinel) == formats.UNKNOWN
 
 
-def test_matching_is_case_insensitive(monkeypatch, stream_info):
-    _patch_rpc(monkeypatch, "EAC3")
-    assert stream_info.get_audio_info(1)[0] == "eac3"
+def test_matching_is_case_insensitive():
+    assert _derive_audio_format("EAC3") == "eac3"
 
 
-def test_channels_are_passed_through_unchanged(monkeypatch, stream_info):
-    _patch_rpc(monkeypatch, "truehd", channels=8)
-    assert stream_info.get_audio_info(1) == ("truehd", 8)
+def test_unstripped_pt_prefix_still_matches_by_substring():
+    # The gateway strips 'pt-'; even if one slipped through, the substring
+    # match keys it correctly.
+    assert _derive_audio_format("pt-eac3") == "eac3"
+    assert _derive_audio_format("pt-truehd") == "truehd"
 
 
-# --- rpc layer: 'pt-' passthrough prefix stripping --------------------------
-
-def _fake_audio_rpc(codec, channels):
-    def _rpc(_request):
-        return json.dumps(
-            {"result": {"currentaudiostream": {"codec": codec, "channels": channels}}}
-        )
-    return _rpc
-
-
-@pytest.mark.parametrize("raw_codec, expected", [
-    ("pt-truehd", "truehd"),
-    ("pt-eac3", "eac3"),
-    ("truehd", "truehd"),   # no prefix -> unchanged
-])
-def test_rpc_client_strips_pt_passthrough_prefix(monkeypatch, raw_codec, expected):
-    import xbmc
-    monkeypatch.setattr(xbmc, "executeJSONRPC", _fake_audio_rpc(raw_codec, 8))
-    audio_format, channels = rpc_client.get_audio_info(1)
-    assert audio_format == expected
-    assert channels == 8
-
-
-def test_pt_prefixed_codec_end_to_end_through_stream_info(monkeypatch, stream_info):
-    # rpc strips 'pt-' -> 'eac3', then StreamInfo matches it to the eac3 bucket.
-    import xbmc
-    monkeypatch.setattr(xbmc, "executeJSONRPC", _fake_audio_rpc("pt-eac3", 6))
-    assert stream_info.get_audio_info(1)[0] == "eac3"
+def test_channels_and_format_flow_into_the_profile():
+    facts = derive_stream_facts(
+        player_id=1,
+        raw_codec="truehd",
+        raw_channels=8,
+        raw_fps="23.976",
+        raw_hdr="dolbyvision",
+        raw_hdr_fallback="",
+        raw_gamut="",
+        fps_override_enabled=lambda hdr: False,
+    )
+    assert facts.profile.audio_format == "truehd"
+    assert facts.profile.audio_channels == 8
+    assert facts.profile.setting_id() == "dolbyvision_all_truehd"

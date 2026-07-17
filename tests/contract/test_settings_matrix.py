@@ -3,9 +3,9 @@
 The addon keys every stored offset by `<hdr>_<fps>_<audio>`. There must be one
 integer setting per combination of the format vocabulary, with the exact
 -1000/+1000/25 constraints. This pins all 315 ids and cross-checks the
-vocabulary against the valid_* lists in resources/lib/stream_info.py, so a drift
-between the code's vocabulary and the shipped settings (which silently means "no
-offset found") fails the build.
+vocabulary against the runtime consumer (the stream detector's pure
+derivation), so a drift between the code's vocabulary and the shipped
+settings (which silently means "no offset found") fails the build.
 """
 
 import re
@@ -17,8 +17,12 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SETTINGS_XML = REPO_ROOT / "resources" / "settings.xml"
 
-# The frozen vocabulary. Mirrors resources/lib/stream_info.py valid_* lists;
-# `test_vocabulary_matches_stream_info` guards that mirror.
+# The frozen vocabulary — INTENTIONALLY hardcoded, independent of
+# aom.domain.formats. This test is the drift ORACLE: if it derived its
+# expectations from formats.py, a bad vocabulary edit would update the
+# expectations in lockstep and the test would prove nothing. Growing the
+# vocabulary means updating BOTH formats.py and this copy, deliberately.
+# `test_formats_enumeration_matches_independent_oracle` bridges the two.
 HDR_TYPES = ("dolbyvision", "hdr10", "hdr10plus", "hlg", "sdr")
 FPS_SPECIFIC = ("23", "24", "25", "29", "30", "50", "59", "60")
 FPS_BUCKETS = ("all",) + FPS_SPECIFIC        # 'all' = per-HDR FPS override off
@@ -53,13 +57,23 @@ def test_expected_matrix_is_315_unique_ids():
     assert len(set(EXPECTED_IDS)) == 315
 
 
-def test_vocabulary_matches_stream_info_valid_lists():
-    # StreamInfo imports cleanly under Kodistubs; read its live vocabulary.
-    from resources.lib.stream_info import StreamInfo
-    stream_info = StreamInfo()
-    assert tuple(stream_info.valid_hdr_types) == HDR_TYPES
-    assert tuple(stream_info.valid_audio_formats) == AUDIO_FORMATS
-    assert tuple(str(f) for f in stream_info.valid_fps_types) == FPS_SPECIFIC
+def test_vocabulary_matches_stream_detector_derivation():
+    # The runtime consumer (the detector's pure derivation, imported under
+    # Kodistubs) must produce setting ids drawn from exactly this oracle's
+    # vocabulary — and every one must exist in the shipped settings.xml.
+    from resources.lib.aom.app.stream_detector import derive_stream_facts
+    for hdr in HDR_TYPES:
+        for audio in AUDIO_FORMATS:
+            for override_on, fps_key in ((False, "all"), (True, "23")):
+                facts = derive_stream_facts(
+                    player_id=1, raw_codec=audio, raw_channels=6,
+                    raw_fps="23.976", raw_hdr=hdr, raw_hdr_fallback="",
+                    raw_gamut="",
+                    fps_override_enabled=lambda h, on=override_on: on)
+                setting_id = facts.profile.setting_id()
+                assert setting_id == "{0}_{1}_{2}".format(hdr, fps_key, audio)
+                assert setting_id in SETTINGS_BY_ID, (
+                    "derived id missing from settings.xml: " + setting_id)
 
 
 @pytest.mark.parametrize("setting_id", EXPECTED_IDS)
@@ -74,6 +88,14 @@ def test_offset_setting_present_typed_and_constrained(setting_id):
         "{0}: maximum must be 1000".format(setting_id)
     assert setting.findtext("constraints/step") == "25", \
         "{0}: step must be 25".format(setting_id)
+
+
+def test_formats_enumeration_matches_independent_oracle():
+    # Bridge: the SSOT's own enumeration must equal this test's independent
+    # hardcoded product (same ids, same canonical order). Catches three-way
+    # drift between formats.py, the generator, and this oracle.
+    from resources.lib.aom.domain import formats
+    assert tuple(formats.all_setting_keys()) == EXPECTED_IDS
 
 
 def test_no_unexpected_offset_pattern_ids():

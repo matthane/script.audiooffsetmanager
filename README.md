@@ -10,7 +10,7 @@ Audio Offset Manager is a utility addon for Kodi (v20.0+) designed to enhance yo
 
 - **Dynamic Audio Offset Application**: Automatically sets audio delay based on the HDR type, audio format, and FPS value of the current video, applying user-defined offsets to ensure consistent audio-visual sync without needing repeated manual adjustments.
 
-- **Active Monitoring Mode**: Monitors when users manually adjust audio delay via Kodi's OSD settings, stores those adjustments, and applies them for future playback of similar content. This feature is particularly useful for initial AV calibration, allowing users to fine-tune audio sync and have those settings automatically applied to similar content in the future.
+- **Active Monitoring Mode**: Monitors when users manually adjust audio delay during playback — from any input method, including Kodi's OSD settings dialog, keymapped delay keys, remote apps, and JSON-RPC — stores those adjustments, and applies them for future playback of similar content. This feature is particularly useful for initial AV calibration, allowing users to fine-tune audio sync and have those settings automatically applied to similar content in the future.
 
 - **Custom Seek-Backs**: Offers user-configurable "seek-back" functionality to rewind a few seconds in specific playback situations to keep audio synchronized, such as:
   - When playback starts or resumes
@@ -59,6 +59,25 @@ This addon streamlines your viewing experience by automating the process of audi
 ## Compatibility
 
 This addon is designed for Kodi v20.0 and above. It may not function correctly with earlier versions of Kodi.
+
+### Interoperability with other addons
+
+When Audio Offset Manager performs one of its own seek-backs, it announces it
+by setting the home window property `script.audiooffsetmanager.seeking` to
+`1` for the duration of the seek, then clearing it. Other addons that react
+to player seeks (for example PM4K / Plexmod for Kodi) can read this property
+to distinguish Audio Offset Manager's corrective seeks from user-initiated
+ones:
+
+```python
+import xbmcgui
+if xbmcgui.Window(10000).getProperty('script.audiooffsetmanager.seeking') == '1':
+    pass  # seek originated from Audio Offset Manager
+```
+
+Audio Offset Manager also honors quiet periods around seeks announced by
+players it coexists with, so the two sides do not fight over playback
+position.
 
 ## Contributing and Reporting Issues
 
