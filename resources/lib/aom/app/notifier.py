@@ -36,10 +36,11 @@ the dying window and vanishes with the fade. A toast raised in roughly
 toast flashed for ~100ms). The notifier remembers when it last raised a toast
 and for how long, and ONLY a toast that would land inside that guarded window
 is deferred — released past the fade via a scheduled ``RaiseToast``
-(key-replaced: the newest contender wins). Every other toast fires
-immediately, exactly as before. Best-effort by design: toasts raised by Kodi
-itself or other addons share the same GUI window but are invisible to this
-bookkeeping.
+(key-replaced: the newest contender wins, across message kinds too — the
+survivor is always the fresher fact — and an immediate raise cancels any
+pending release outright). Every other toast fires immediately, exactly as
+before. Best-effort by design: toasts raised by Kodi itself or other addons
+share the same GUI window but are invisible to this bookkeeping.
 
 Settings (``notifications_enabled`` / ``notification_duration_ms``) are read
 through the injected facade; toasts go through the injected gui. Pure app
@@ -59,11 +60,15 @@ class Notifier:
     """Owns offset toasts: deferral-until-stable, dedupe, and the fade guard."""
 
     DEDUPE_SECONDS = 1.0
-    # Width of the guarded window after a toast's display time expires: covers
-    # Kodi's open-animation timer restart (the display timer starts at the end
-    # of the window's open animation, so true expiry lags our raise stamp by
-    # up to a few hundred ms) plus the close animation itself, with slop.
-    FADE_GUARD_SECONDS = 1.0
+    # Width of the guarded window after a toast's display time expires — and
+    # therefore where the deferred release lands. Budget: Kodi's display timer
+    # starts at the END of the window's open animation (so true expiry lags
+    # our raise stamp by up to a few hundred ms), the skin-defined close
+    # animation runs a few hundred more, and the release must land PAST that
+    # total with margin, never at its edge. One constant governs both the
+    # detection band and the release target so no unguarded slice can open
+    # between them.
+    FADE_GUARD_SECONDS = 1.25
     # GUIDialogKaiToast::AddToQueue clamps displayTime to a floor of
     # TOAST_MESSAGE_TIME (1000) + 500, whatever the caller asked for.
     KODI_MIN_DISPLAY_MS = 1500
@@ -78,11 +83,10 @@ class Notifier:
         self._gui = gui
         self._clock = clock
         self._log = log_debug
-        # Dedupe state: (string_id, setting_id, ms) and its monotonic stamp.
-        self._last_toast = None
-        self._last_toast_at = None
-        # Fade-guard state: the duration the last raised toast was given.
-        self._last_duration_ms = None
+        # The last raised toast, or None: (dedupe key, monotonic stamp,
+        # duration given). One field so the dedupe/fade-guard lockstep is
+        # structural rather than by convention.
+        self._last_raise = None
 
         dispatcher.subscribe(events.OffsetApplied, self._on_offset_applied)
         dispatcher.subscribe(events.UserOffsetSaved, self._on_user_offset_saved)
@@ -141,9 +145,12 @@ class Notifier:
         self._toast(STRING_OFFSET_SAVED, event.ms, event.profile)
 
     def _on_raise_toast(self, event):
-        # The fade-guarded release: all gating (enabled, dedupe, guard) was
-        # decided at request time; by construction the fire time is past the
-        # predecessor's fade, so raise directly.
+        # The fade-guarded release. Dedupe and the guard were decided at
+        # request time and cannot have gone stale (an immediate raise cancels
+        # this timer; a contender key-replaces it), but the enabled gate is a
+        # live setting and must be re-checked at fire time.
+        if not self._settings.notifications_enabled():
+            return
         self._raise(event.string_id, event.ms, event.profile)
 
     # -- internals --------------------------------------------------------------
@@ -153,13 +160,11 @@ class Notifier:
             return
 
         now = self._clock()
-        key = (string_id, profile.setting_id(), ms)
-        # _last_toast and _last_toast_at are set in lockstep, and a real key
-        # (a tuple) never equals the None sentinel, so the key comparison
-        # alone guards the subtraction.
-        if key == self._last_toast and \
-                now - self._last_toast_at < self.DEDUPE_SECONDS:
-            return
+        if self._last_raise is not None:
+            last_key, last_at, _ = self._last_raise
+            if self._dedupe_key(string_id, ms, profile) == last_key and \
+                    now - last_at < self.DEDUPE_SECONDS:
+                return
 
         delay = self._fade_guard_delay(now)
         if delay > 0.0:
@@ -178,20 +183,24 @@ class Notifier:
         Zero (raise immediately) unless the toast would land inside
         [shown, shown + FADE_GUARD_SECONDS] after our last raise, where
         ``shown`` is the display time the last toast was given, floored at
-        Kodi's internal clamp. Earlier than that window, the toast window is
-        still open and Kodi swaps the content in place with a fresh timer;
-        later, it is fully closed and reopens fresh — only the fade window
-        between them swallows toasts.
+        Kodi's internal clamp: earlier arrivals are in-place swaps on the
+        still-open window, later ones reopen it fresh (the module docstring
+        has the Kodi mechanics).
         """
-        if self._last_toast_at is None:
+        if self._last_raise is None:
             return 0.0
-        shown_s = max(self._last_duration_ms, self.KODI_MIN_DISPLAY_MS) / 1000.0
-        elapsed = now - self._last_toast_at
+        _, last_at, last_duration_ms = self._last_raise
+        shown_s = max(last_duration_ms, self.KODI_MIN_DISPLAY_MS) / 1000.0
+        elapsed = now - last_at
         if elapsed < shown_s or elapsed >= shown_s + self.FADE_GUARD_SECONDS:
             return 0.0
         return shown_s + self.FADE_GUARD_SECONDS - elapsed
 
     def _raise(self, string_id, ms, profile):
+        # This raise makes any pending deferred release stale by definition —
+        # the fresher fact is taking the window. (No-op when we ARE the
+        # deferred release: its timer was consumed before dispatch.)
+        self._dispatcher.cancel(self._FADE_KEY)
         duration_ms = self._settings.notification_duration_ms()
         sign = '+' if ms > 0 else ''
         message = (f"{self._gui.localized(string_id)}: {sign}{ms} ms\n"
@@ -199,6 +208,9 @@ class Notifier:
 
         self._gui.notification(message, duration_ms)
         self._log(f"AOM_Notifier: {message}")
-        self._last_toast = (string_id, profile.setting_id(), ms)
-        self._last_toast_at = self._clock()
-        self._last_duration_ms = duration_ms
+        self._last_raise = (self._dedupe_key(string_id, ms, profile),
+                            self._clock(), duration_ms)
+
+    @staticmethod
+    def _dedupe_key(string_id, ms, profile):
+        return (string_id, profile.setting_id(), ms)

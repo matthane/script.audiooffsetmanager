@@ -177,19 +177,16 @@ class ExecuteSeek:
 class RaiseToast:
     """Self-scheduled toast release delayed past a fading predecessor.
 
-    Kodi's toast window (GUIDialogKaiToast) swaps a queued toast's content
-    into the window in place while it is showing (restarting the display
-    timer) and opens fresh when it is fully closed — both fine. But a toast
-    that pops from Kodi's queue while the window is running its close
-    animation is painted onto the dying window and vanishes with the fade
-    (nothing cancels an in-progress close). The Notifier defers a toast that
-    would land in that fade window and releases it through this event
-    (key-replaced: of several toasts contending for one fade window, the
-    newest wins — it reflects the freshest fact).
+    Kodi's toast window swallows a toast that pops from its queue during the
+    close animation — the fade-guard section of ``aom.app.notifier``'s module
+    docstring is the authoritative account of the mechanics. Scheduled under
+    a single key: the newest contender wins (across message kinds too — the
+    survivor is always the fresher fact), and an immediate raise cancels the
+    pending release outright.
 
     Deliberately NOT session-stamped: the payload describes an apply/store
     that already happened and stays true (and worth announcing) even if the
-    session ends inside the sub-second deferral.
+    session ends inside the deferral.
     """
     string_id: int
     ms: int
