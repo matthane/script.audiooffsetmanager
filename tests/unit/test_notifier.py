@@ -25,6 +25,9 @@ from tests.fakes import FakeClock, FakeGui
 
 DEDUPE = Notifier.DEDUPE_SECONDS
 DURATION_MS = 3000
+DURATION_S = DURATION_MS / 1000.0
+GUARD = Notifier.FADE_GUARD_SECONDS
+KODI_MIN_S = Notifier.KODI_MIN_DISPLAY_MS / 1000.0
 
 
 def make_profile(hdr_type='dolbyvision', fps_type='all', audio_format='truehd',
@@ -352,6 +355,110 @@ class TestDedupe:
         assert len(rig.toasts) == 2
         assert rig.toasts[0][0].startswith(f"#{STRING_OFFSET_APPLIED}")
         assert rig.toasts[1][0].startswith(f"#{STRING_OFFSET_SAVED}")
+
+
+# ============================================================================
+# Fade guard (Kodi close-animation swallow)
+# ============================================================================
+
+class TestFadeGuard:
+    """A toast landing in the previous toast's fade-out window gets painted
+    onto the dying GUIDialogKaiToast window and vanishes with it; the guard
+    defers exactly those toasts past the fade and no others."""
+
+    def _applied(self, rig, session, profile, ms):
+        rig.post(events.OffsetApplied(session_id=session.session_id,
+                                      profile=profile, ms=ms, provisional=False))
+
+    def test_toast_inside_fade_window_is_deferred_past_it(self, rig):
+        # The field repro (2.0.0~beta2, CoreELEC): an "applied" toast landing
+        # ~200ms after the previous toast's display time expired rode its
+        # fade-out and flashed for ~100ms. It must defer past the fade and
+        # then show for its full duration.
+        profile = make_profile()
+        session = rig.start(profile)
+        self._applied(rig, session, profile, -50)
+        assert len(rig.toasts) == 1
+
+        rig.advance(DURATION_S + 0.2)           # inside [shown, shown+guard)
+        self._applied(rig, session, profile, -75)
+        assert len(rig.toasts) == 1             # deferred, not swallowed
+        assert rig.logged("deferring toast")
+
+        rig.advance(GUARD - 0.2)                # guarded window has passed
+        assert rig.toasts[1] == ("#32092: -75 ms\nDV | TrueHD", DURATION_MS)
+
+    def test_toast_while_window_still_open_fires_immediately(self, rig):
+        # Mid-display Kodi swaps the content in place and restarts the
+        # display timer — native behavior, no deferral allowed.
+        profile = make_profile()
+        session = rig.start(profile)
+        self._applied(rig, session, profile, -50)
+
+        rig.advance(DURATION_S - 0.5)
+        self._applied(rig, session, profile, -75)
+        assert len(rig.toasts) == 2
+
+    def test_toast_after_fade_window_fires_immediately(self, rig):
+        profile = make_profile()
+        session = rig.start(profile)
+        self._applied(rig, session, profile, -50)
+
+        rig.advance(DURATION_S + GUARD)         # window fully closed
+        self._applied(rig, session, profile, -75)
+        assert len(rig.toasts) == 2
+
+    def test_newest_contender_supersedes_a_deferred_toast(self, rig):
+        # Two toasts contending for one fade window: the release is
+        # key-replaced, so only the newest (freshest fact) surfaces.
+        profile = make_profile()
+        session = rig.start(profile)
+        self._applied(rig, session, profile, -50)
+
+        rig.advance(DURATION_S + 0.1)
+        self._applied(rig, session, profile, -75)   # deferred
+        rig.advance(0.1)
+        self._applied(rig, session, profile, -60)   # key-replaces the -75
+
+        rig.advance(GUARD)
+        assert len(rig.toasts) == 2
+        assert rig.toasts[1][0] == "#32092: -60 ms\nDV | TrueHD"
+
+    def test_guard_uses_kodis_display_floor_not_the_raw_setting(self, rig):
+        # Kodi clamps displayTime to KODI_MIN_DISPLAY_MS: with a 1s user
+        # duration the window is really open for 1.5s, so a toast at 1.2s is
+        # still an in-place swap (immediate) and 1.6s is inside the CLAMPED
+        # display's fade window (deferred).
+        rig.settings.duration = 1000
+        profile = make_profile()
+        session = rig.start(profile)
+        self._applied(rig, session, profile, -50)
+
+        rig.advance(1.2)                        # raw duration passed; clamp not
+        self._applied(rig, session, profile, -75)
+        assert len(rig.toasts) == 2             # window still open: swap
+
+        rig.advance(KODI_MIN_S + 0.1)           # 1.6s after the second raise
+        self._applied(rig, session, profile, -60)
+        assert len(rig.toasts) == 2             # deferred
+
+        rig.advance(GUARD)
+        assert len(rig.toasts) == 3
+
+    def test_deferred_toast_survives_session_end(self, rig):
+        # RaiseToast is deliberately not session-stamped: the payload
+        # announces a store/apply that already happened and stays true even
+        # if playback stops inside the sub-second deferral.
+        profile = make_profile()
+        session = rig.start(profile)
+        self._applied(rig, session, profile, -50)
+
+        rig.advance(DURATION_S + 0.2)
+        self._applied(rig, session, profile, -75)   # deferred
+        rig.post(events.PlaybackStopped())
+
+        rig.advance(GUARD)
+        assert len(rig.toasts) == 2
 
 
 # ============================================================================

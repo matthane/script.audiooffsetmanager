@@ -171,6 +171,31 @@ class ExecuteSeek:
     requested_at: float
 
 
+# --- Notifier events ----------------------------------------------------------
+
+@dataclass(frozen=True)
+class RaiseToast:
+    """Self-scheduled toast release delayed past a fading predecessor.
+
+    Kodi's toast window (GUIDialogKaiToast) swaps a queued toast's content
+    into the window in place while it is showing (restarting the display
+    timer) and opens fresh when it is fully closed — both fine. But a toast
+    that pops from Kodi's queue while the window is running its close
+    animation is painted onto the dying window and vanishes with the fade
+    (nothing cancels an in-progress close). The Notifier defers a toast that
+    would land in that fade window and releases it through this event
+    (key-replaced: of several toasts contending for one fade window, the
+    newest wins — it reflects the freshest fact).
+
+    Deliberately NOT session-stamped: the payload describes an apply/store
+    that already happened and stays true (and worth announcing) even if the
+    session ends inside the sub-second deferral.
+    """
+    string_id: int
+    ms: int
+    profile: object  # StreamProfile
+
+
 # --- Watcher events -----------------------------------------------------------
 
 @dataclass(frozen=True)
