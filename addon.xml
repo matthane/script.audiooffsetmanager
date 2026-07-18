@@ -8,9 +8,10 @@
     <extension point="xbmc.addon.metadata">
         <source>https://github.com/matthane/script.audiooffsetmanager</source>
         <news>v2.1.0 (2026-07-18)
-- HDR10+ offset settings are now available on Kodi 22 and later, and on any other platform once it first detects HDR10+
+- HDR10+ offset settings are now available on Kodi 22 and later, and on other platforms once HDR10+ is first detected during playback
 - Offset changes made in the addon settings during playback are now applied as soon as the settings dialog is saved
 - Notifications now show the offset value in the heading and the stream details below, so nothing scrolls or gets cut off
+- Removed the onboarding flow and the bundled test video. Platform capabilities are now detected during normal video playback
 
 v2.0.0 (2026-07-16)
 - More reliable offset application: stream changes are detected and verified before offsets are applied, eliminating misapplied offsets during playback startup and format switches
@@ -18,7 +19,6 @@ v2.0.0 (2026-07-16)
 - Smarter notifications: they wait for the stream to settle, and no longer get cut short when two notifications arrive close together
 - Improved coexistence with PM4K (Plexmod for Kodi): seek-backs are announced via the script.audiooffsetmanager.seeking window property
 - New Advanced settings category with a debug logging toggle
-- Removed the onboarding flow and the bundled test video. Platform capabilities are now detected during the first video playback
         </news>
         <summary lang="en_GB">Dynamically manages audio offsets</summary>
         <description lang="en_GB">This add-on intelligently adjusts the audio offset based on the detected HDR type, audio format, and FPS type according to user-configured settings, along with other helpful features</description>
