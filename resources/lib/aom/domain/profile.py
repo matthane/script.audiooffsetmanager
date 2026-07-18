@@ -21,14 +21,7 @@ class StreamProfile:
     audio_channels: object
 
     def setting_id(self):
-        """Settings id for this profile: `<hdr>_<fps>_<audio>`. FROZEN format.
-
-        (DESIGN.md sketched this as ``setting_key()``, but every call site —
-        and the frozen-vocabulary language in CLAUDE.md — standardized on the
-        legacy ``setting_id()`` name during construction, so the planned
-        rename was dropped rather than churning the whole codebase; the
-        Phase 9 DESIGN.md reconciliation records the decision.)
-        """
+        """Settings id for this profile: `<hdr>_<fps>_<audio>`. FROZEN format."""
         return formats.setting_key(self.hdr_type, self._fps_key(),
                                    self.audio_format)
 

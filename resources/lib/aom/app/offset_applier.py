@@ -1,7 +1,6 @@
 """Offset application: gate via policy, apply via gateway, announce typed.
 
-The apply half of the legacy OffsetManager (its notification half became the
-Notifier). One decision path, two triggers:
+One decision path, two triggers:
 
 - ``ProfileChanged`` — the detector adopted a (new) complete profile: the
   apply trigger. NOT ``PlaybackStarted``: the profile is always None at AV
@@ -10,7 +9,7 @@ Notifier). One decision path, two triggers:
   the next stabilization, and the ``session.applied`` dedupe makes the
   common already-applied case a no-op.
 
-Contracts (both reviewed and pinned by tests):
+Contracts (pinned by tests):
 
 - **applied-before-RPC**: ``session.applied`` is recorded BEFORE the
   ``set_audio_delay`` call and restored on failure. The AdjustmentWatcher's
@@ -28,7 +27,7 @@ Notifier hold the toast until stabilization. This component never toasts.
 
 Offsets come from the injected ``OffsetTable`` (get by profile; the settings
 generator guarantees every setting id exists, so "missing offset" is not a
-state — the legacy ``delay_ms is None`` branch is gone).
+state).
 
 Pure app layer: Kodi I/O via the injected gateway, settings via the injected
 adapter, log sinks injected; no Kodi imports.

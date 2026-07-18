@@ -1,20 +1,17 @@
 """Kodi settings adapter: typed reads/writes plus intent-level accessors.
 
-Replaces the legacy ``SettingsManager`` singleton + ``SettingsFacade`` pair
-(Phase 7 deletes them) with a plain, injected class. There is no singleton
-here: the runtime constructs exactly one ``Settings`` and injects it into every
-component that needs settings (required constructor deps are the house rule,
-same as ``KodiGateway``).
+A plain, injected class — no singleton: the runtime constructs exactly one
+``Settings`` and injects it into every component that needs settings
+(required constructor deps are the house rule, same as ``KodiGateway``).
 
 Why one instance is enough — and not a correctness barrier: Kodi's
 ``xbmcaddon.Addon(ADDON_ID).getSettings()`` returns a LIVE proxy onto the
-in-process settings store, not a frozen snapshot (see the repo CLAUDE.md
-settings doctrine). Every read sees current values and every write is visible
-everywhere at once, so the store cannot drift out of sync with itself. Holding
-one proxy per process is a tidiness convenience, not the thing that makes
-reads/writes consistent.
+in-process settings store, not a frozen snapshot. Every read sees current
+values and every write is visible everywhere at once, so the store cannot
+drift out of sync with itself. Holding one proxy per process is a tidiness
+convenience, not the thing that makes reads/writes consistent.
 
-LIFETIME RULE (field-verified on Kodi 21.2/Windows, 2026-07-15): the proxy is
+LIFETIME RULE (field-verified on Kodi 21.2/Windows): the proxy is
 live ONLY while the ``xbmcaddon.Addon`` it came from stays alive. A
 ``Settings`` object whose parent ``Addon`` was a garbage-collected temporary
 degrades into a detached copy — writes report success but never persist to
@@ -22,16 +19,12 @@ the real store or ``settings.xml``, and outside changes (settings dialog
 edits) never arrive. ``__init__`` therefore keeps the ``Addon`` on ``self``;
 never rewrite it as ``xbmcaddon.Addon(...).getSettings()``.
 
-Faithful port of the legacy semantics, with two deliberate upgrades noted as
-Phase 7 work: the bare ``except:`` clauses become ``except Exception`` here, and
-the ``AOM_SettingsManager`` log prefix becomes ``AOM_Settings``. The
-read-before-write skip in the ``store_*_if_changed`` helpers is load-bearing and
-preserved verbatim: it keeps the settings-dialog clobber surface minimal (no
-write means nothing for a dialog save-on-close to fight over) per the doctrine.
+The read-before-write skip in the ``store_*_if_changed`` helpers is
+load-bearing: it keeps the settings-dialog clobber surface minimal (no write
+means nothing for a dialog save-on-close to fight over) per the doctrine.
 
-This layer may import ``xbmc*``/``xbmcaddon`` and ``resources.lib.aom.*`` only;
-importing any legacy ``resources.lib.<module>`` fails
-``tests/contract/test_architecture.py``.
+This layer may import ``xbmc*``/``xbmcaddon`` and ``resources.lib.aom.*``
+only (``tests/contract/test_architecture.py`` enforces the layering).
 """
 
 import xbmc
@@ -80,8 +73,8 @@ class Settings:
         False when the underlying write raises. NOTE the pre-read runs
         through get_bool, which swallows read errors into the default — so a
         failed read of a setting whose target value equals that default
-        skips the write and reports success (exact legacy semantics; reads
-        of valid ids do not fail in practice).
+        skips the write and reports success (accepted: reads of valid ids
+        do not fail in practice).
         """
         if self.get_bool(setting_id) == value:
             return True
@@ -92,7 +85,7 @@ class Settings:
 
         Returns True when the store succeeds or is skipped (already equal);
         False when the underlying write raises. See store_boolean_if_changed
-        for the pre-read-vs-default caveat (legacy semantics).
+        for the pre-read-vs-default caveat.
         """
         if self.get_int(setting_id) == value:
             return True
@@ -112,7 +105,7 @@ class Settings:
                 f"'{setting_id}'.", xbmc.LOGWARNING)
             return False
 
-    # --- intent-level reads (SettingsFacade parity) -------------------------
+    # --- intent-level reads -------------------------------------------------
 
     def is_hdr_enabled(self, hdr_type):
         return self.get_bool(f"enable_{hdr_type}")
@@ -143,10 +136,9 @@ class Settings:
 
 class OffsetTable:
     """Per-profile offset storage. tools/generate_settings.py guarantees every
-    <hdr>_<fps>_<audio> setting id exists, so get() always answers an int (the
-    legacy 'delay_ms is None' branch is not a state). The setting key is
-    derived from the profile AT CALL TIME (settings doctrine: never a captured
-    key)."""
+    <hdr>_<fps>_<audio> setting id exists, so get() always answers an int
+    ('no stored value' is not a state). The setting key is derived from the
+    profile AT CALL TIME (settings doctrine: never a captured key)."""
 
     def __init__(self, settings):
         self._settings = settings

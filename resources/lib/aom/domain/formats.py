@@ -1,7 +1,7 @@
 """Format vocabulary — the single source of truth for stream classification.
 
 Everything that enumerates HDR types, audio formats, or FPS buckets derives
-from this module: `StreamInfo` validation, `StreamProfile` display names and
+from this module: stream detection, `StreamProfile` display names and
 setting keys, the settings.xml generator (tools/generate_settings.py), and the
 contract tests. Changing the vocabulary here is how a format is added or
 removed; nothing else may hardcode these lists. (Sole exception:
@@ -21,7 +21,7 @@ AUDIO_FORMATS = ('truehd', 'eac3', 'ac3', 'dtshd_ma', 'dtshd_hra', 'dca', 'pcm')
 
 # Specific FPS buckets (integer values as detected from the player), plus the
 # 'all' pseudo-bucket used when the per-HDR FPS override is disabled.
-# Elements are ints ON PURPOSE: StreamInfo membership-tests the player's
+# Elements are ints ON PURPOSE: the stream detector membership-tests the player's
 # integer fps against this tuple. Setting keys and display lookups use
 # str(bucket). test_formats pins the int-ness.
 FPS_BUCKETS = (23, 24, 25, 29, 30, 50, 59, 60)

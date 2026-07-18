@@ -1,14 +1,12 @@
 """Stream detection: scheduled single-shot probes + whole-profile verification.
 
-Replaces StreamInfo's blocking gather (RPC retry sleeps, formerly on the Kodi
-pump / dispatcher thread) and AvChangeFilter's codec-only verify thread.
 Patience lives HERE, expressed as budgeted, session-stamped, cancelable
 scheduled events — never as sleeps:
 
 - ``PlaybackStarted`` starts a discovery chain: ``ProbeStream(attempt=n)``
   every ~0.5s (jittered) until the profile is complete or the budget runs
-  out. The budget (~10s) matches the legacy worst case of rpc_client's two
-  stacked 10x0.5s retry loops (player id, then audio codec).
+  out. The budget (~10s) covers slow platforms negotiating the player id
+  and the audio codec.
 - A complete profile is adopted (this component is the SOLE writer of
   ``session.profile`` and the owner of every stream-state transition), then
   verified: ``VerifyStream`` re-gathers after 1s and requires the WHOLE
@@ -16,15 +14,12 @@ scheduled events — never as sleeps:
   marking the session STABLE and posting ``StreamStabilized``.
 - A failed verification (profile changed or went incomplete inside the
   window) re-adopts or re-schedules verification instead of stranding the
-  session STABILIZING — the recovery edge the legacy filter lacked.
+  session STABILIZING — the recovery edge.
 - ``AvChanged`` triggers an immediate single-shot re-probe: unchanged
-  profile → ignored (the legacy duplicate-codec filter, strengthened —
-  HDR/FPS-only changes, invisible to the codec filter, now re-verify too);
-  changed → re-adopt + re-verify; lost → regress to STABILIZING and let the
-  verify loop chase it.
+  profile → ignored; changed → re-adopt + re-verify; lost → regress to
+  STABILIZING and let the verify loop chase it.
 
-Every gather posts ``StreamProbed`` platform facts for the PlatformRecorder
-(legacy parity: StreamInfo stored capabilities on every gather).
+Every gather posts ``StreamProbed`` platform facts for the PlatformRecorder.
 
 "Same stream" is judged on the OFFSET-RELEVANT identity — the setting_id()
 axes (hdr/fps-bucket/audio) — not raw dataclass equality: incidental fields
@@ -34,19 +29,6 @@ the stream changing for offset purposes. An identity-equal gather silently
 refreshes ``session.profile`` (so downstream readers see fresh incidental
 fields) with no events and no state change; comparing raw equality instead
 would strand verification in a perpetual re-adopt loop.
-
-Intentional divergences from legacy (reviewed):
-- Offsets now re-apply ~1s EARLIER on mid-play changes: adoption posts
-  ``ProfileChanged`` immediately (the apply is provisional; notifications
-  still wait for STABLE), where legacy applied only after its 1s debounce.
-- HDR/FPS-bucket-only mid-play changes are full change episodes now (offset
-  re-apply, notification, and the legacy ON_AV_CHANGE that drives change
-  seek-backs); legacy's codec-only filter ignored them entirely, silently
-  keeping a stale offset.
-- A stream whose profile never completes (budget exhausted) fires no legacy
-  AV events at all, so the active monitor is not started for it; legacy
-  started the monitor on hdr+fps-only profiles, but its write path
-  re-validated the full profile and could never store anything.
 
 Pure app layer: Kodi I/O goes through the injected gateway, settings reads
 through the injected facade; no Kodi imports, log sinks are injected.
@@ -73,7 +55,7 @@ class StreamFacts:
     ``hdr_source`` records which branch of the chain-of-evidence produced
     the HDR type ('primary', 'fallback', 'default-sdr', or 'gamut-hlg') —
     surfaced in the probe log line so field logs show WHICH detection path
-    fired, replacing legacy StreamInfo's per-branch debug lines.
+    fired.
     """
     profile: StreamProfile
     platform_hdr_full: bool
@@ -100,9 +82,8 @@ def _same_stream(profile, adopted):
 def _derive_audio_format(raw_codec):
     """Map a reported codec string onto the settings vocabulary.
 
-    Verbatim combination of legacy StreamInfo.get_audio_info (ordered
-    substring match — eac3 before ac3 is load-bearing — with PCM fallback)
-    and gather_stream_info's final unknown-normalization.
+    Ordered substring match — eac3 before ac3 is load-bearing — with PCM
+    fallback; 'unknown'/'none' normalize to the unknown sentinel.
     """
     reported = raw_codec.lower()
     for valid_format in formats.AUDIO_FORMATS:
@@ -118,11 +99,11 @@ def derive_stream_facts(player_id, raw_codec, raw_channels, raw_fps, raw_hdr,
     """Pure derivation of a StreamProfile from raw single-shot readings.
 
     The HDR chain-of-evidence, echo guards, HLG-via-gamut sniff, FPS
-    bucketing and override collapse are ported verbatim from legacy
-    StreamInfo.gather_stream_info — including its asymmetry that the
-    post-normalization echo check compares against the PRIMARY label even
-    for the fallback value (the fallback returns '' rather than an echo
-    when unresolved, so only the primary echo shape occurs in practice).
+    bucketing and override collapse all live here. One deliberate
+    asymmetry: the post-normalization echo check compares against the
+    PRIMARY label even for the fallback value (the fallback returns ''
+    rather than an echo when unresolved, so only the primary echo shape
+    occurs in practice).
 
     Args are raw strings as read from the gateway; ``fps_override_enabled``
     is a callable ``hdr_type -> bool`` (settings read resolved by the
@@ -185,9 +166,8 @@ class StreamDetector:
     """Probe/verify orchestration; sole writer of ``session.profile``."""
 
     PROBE_SPACING_SECONDS = 0.5
-    # ~10s of discovery at 0.5s spacing: parity with legacy rpc_client's two
-    # stacked retry loops (10x0.5s for the player id, then 10x0.5s for a
-    # non-'none' codec).
+    # ~10s of discovery at 0.5s spacing — enough for slow platforms to
+    # negotiate the player id and the audio codec.
     PROBE_BUDGET = 20
     VERIFY_WINDOW_SECONDS = 1.0
 
@@ -286,8 +266,7 @@ class StreamDetector:
             self._adopt(session, facts.profile)
         elif session.profile is None:
             # Discovery gave up earlier and the stream is still incomplete —
-            # a change means it may be completing now; restart the budget
-            # (legacy's in-call retry loops would have kept chasing here).
+            # a change means it may be completing now; restart the budget.
             self._discovering = True
             self._log("AOM_StreamDetector: AV change after exhausted "
                       "discovery; restarting probes")
@@ -385,5 +364,5 @@ class StreamDetector:
         return facts
 
     def _jittered_spacing(self):
-        # Legacy rpc_client retry jitter, verbatim: base*(0.8..1.2), floor 0.1s.
+        # Retry jitter: base*(0.8..1.2), floor 0.1s.
         return max(0.1, self.PROBE_SPACING_SECONDS * (0.8 + self._rng() * 0.4))

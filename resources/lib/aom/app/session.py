@@ -36,25 +36,21 @@ def _noop(_message):
 @dataclass
 class PlaybackSession:
     session_id: int
-    # Monotonic session birth time. No consumer during Phase 3; becomes the
-    # seek quiet-window's "session start counts as seek activity" input when
-    # the seek scheduler lands (DESIGN: ExternalSeekCoordinator).
+    # Monotonic session birth time — the seek quiet-window's "session start
+    # counts as seek activity" input.
     started_at: float
     stream_state: StreamState = StreamState.STARTING
     # The session's profile. Written ONLY by the StreamDetector (its sole
-    # writer), on the dispatcher thread — where every reader now lives too
-    # (the last cross-thread reader, ActiveMonitor via the StreamInfo shim,
-    # was replaced by the dispatcher-driven AdjustmentWatcher in Phase 6).
+    # writer), on the dispatcher thread — where every reader lives too.
     profile: object = None
     # True while a profile (re)adoption has happened since the last
     # StreamStabilized post. The detector consumes it to stamp
     # StreamStabilized.profile_changed, which downstream consumers (the seek
     # scheduler's 'adjust' replay) use to ignore pure re-confirmations (a
-    # codec blip that reverted) — legacy's duplicate-codec filter never
-    # fired for those either.
+    # codec blip that reverted).
     profile_changed_since_stabilized: bool = False
     # (setting_key, delay_ms) — what we believe Kodi's audio delay is set to.
-    # TWO sanctioned writers, both on the dispatcher thread: OffsetManager
+    # TWO sanctioned writers, both on the dispatcher thread: the OffsetApplier
     # records it BEFORE each apply RPC (restoring on failure), and the
     # AdjustmentWatcher updates it when it stores a user's manual value (the
     # user's value IS the applied value; skipping this would make the next
@@ -65,9 +61,8 @@ class PlaybackSession:
     paused: bool = False
     # How many times this session has earned STABLE. Written only by
     # mark_stable() (the diagram's one edge into STABLE); the detector stamps
-    # StreamStabilized.initial from it, which replaced the scheduler's
-    # startup-skip latch (initial_av_change_consumed) — the "is this startup
-    # settling?" question is now answered by the state machine itself.
+    # StreamStabilized.initial from it — the "is this startup settling?"
+    # question is answered by the state machine itself.
     stabilized_count: int = 0
     # Monotonic timestamps; None = never (a 0.0 sentinel would be wrong for
     # monotonic clocks, whose epoch is arbitrary).
@@ -83,7 +78,7 @@ class PlaybackSession:
     watch_pending: tuple = None
 
     def describe(self):
-        """One-line state snapshot for field logs (replaces debug_snapshot).
+        """One-line state snapshot for field logs.
 
         Emitted by the applier after each apply decision so field logs keep a
         greppable state line at the moments that matter.
@@ -147,8 +142,8 @@ class SessionTracker:
     def is_alive(self, session_id):
         """True while the given session is still the live one.
 
-        Every caller — and since the AdjustmentWatcher replaced ActiveMonitor,
-        every reader of session state at all — runs on the dispatcher thread.
+        Every caller — indeed every reader of session state — runs on the
+        dispatcher thread.
         The single read of self.current is kept: it is free, and it makes the
         method safe for any future off-thread caller without a change here.
         """

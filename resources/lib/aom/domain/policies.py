@@ -15,17 +15,15 @@ def parse_delay_ms(delay_str):
     (U+2212, used by some CLDR locales), and narrow no-break spaces anywhere
     around the unit. Clamps to +/-10 s. Returns None on unparseable input.
 
-    Two Phase 6 fixes over the verbatim legacy parser (their Phase 0/1
-    behavior pins in test_delay_parsing.py / test_policies.py were flipped
-    alongside):
+    Two subtleties:
 
     - A narrow no-break space as the SOLE separator before the unit
-      ('-0.075<U+202F>s', the CLDR unit-separator convention) parses now:
+      ('-0.075<U+202F>s', the CLDR unit-separator convention) parses:
       NNBSP is normalized to a regular space BEFORE the unit is stripped,
-      instead of being deleted (which used to leave '-0.075s' for float()).
+      so the number survives for float().
     - The ms conversion rounds instead of truncating: float('-0.115') * 1000
-      is -114.999...; the legacy int() returned -114 for a slider value of
-      -115 ms.
+      is -114.999..., which a plain int() would give back as -114 for a
+      slider value of -115 ms.
     """
     try:
         normalized = (delay_str.replace('\u202f', ' ')  # narrow no-break space
@@ -59,7 +57,7 @@ def is_complete(profile):
 
 def seek_decision(now, requested_at, last_activity, last_own_seek,
                   quiet_window, deadline):
-    """The seek quiet-window policy — six legacy guards stated as one rule.
+    """The seek quiet-window policy, stated as one rule.
 
     Do not seek until there has been no seek activity — ours, another
     addon's, or the user's — for ``quiet_window`` seconds; defer otherwise;
@@ -67,15 +65,15 @@ def seek_decision(now, requested_at, last_activity, last_own_seek,
     of our own seeks has already served (executed AT or AFTER the moment
     this request was made — same-instant counts as served, the safe side
     against a double rewind) is abandoned: its purpose — replaying the
-    glitched seconds — is done (the legacy cross-type cooldown's job).
+    glitched seconds — is done.
 
     Args (all timestamps monotonic; the caller resolves them):
         now: current time.
         requested_at: when this seek was requested.
         last_activity: most recent seek-like activity — any SeekOccurred,
             vendor busy signal, our own executed seek, or session start
-            (session start counting as activity is what reproduces the
-            legacy 2s post-start settle without a bespoke constant).
+            (session start counting as activity is what gives the natural
+            post-start settle without a bespoke constant).
         last_own_seek: when WE last executed a seek this session, or None.
         quiet_window: required quiet seconds before seeking.
         deadline: max seconds after requested_at before giving up.
@@ -83,8 +81,7 @@ def seek_decision(now, requested_at, last_activity, last_own_seek,
     Returns:
         'seek' | 'defer' | 'abandon'. Deadline is checked before quietness:
         a request that aged past the deadline is abandoned even if the
-        window happens to be quiet now (legacy parity: the PM4K idle wait
-        skipped after its timeout regardless).
+        window happens to be quiet now.
     """
     if last_own_seek is not None and last_own_seek >= requested_at:
         return 'abandon'

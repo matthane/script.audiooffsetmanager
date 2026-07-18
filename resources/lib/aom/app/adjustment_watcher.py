@@ -1,23 +1,15 @@
 """Adjustment watching: poll the audio-delay infolabel, store user changes.
 
-Replaces the legacy ``ActiveMonitor`` — a dedicated thread that watched the
-Kodi audio-settings/OSD-slider dialog IDs (10124/10145) and, on dialog close,
-read the slider value and stored it. That dialog-ID coupling had two costs:
-it needed its own thread (and the cross-thread profile read that came with
-it), and it saw ONLY adjustments made through the OSD. A change made with a
-keymap, a remote app, or a JSON-RPC ``Player.SetAudioDelay`` never opened a
-dialog, so the legacy monitor's ``audio_settings_open`` / ``slider_was_open``
-state machine never fired and the change was silently lost.
-
-The new design polls ``Player.AudioDelay`` on the dispatcher thread via
+The watcher polls ``Player.AudioDelay`` on the dispatcher thread via
 self-scheduled ``WatchTick`` events. No threads, no dialog IDs, no
 open/close state machine — every source of an adjustment is caught because
-we watch the VALUE, not the GUI that (sometimes) sets it.
+we watch the VALUE, not the GUI that (sometimes) sets it: a change made
+with a keymap, a remote app, or a JSON-RPC ``Player.SetAudioDelay`` never
+opens the OSD slider dialog, so watching dialog IDs would silently miss it.
 
-Eligibility (``_eligible``) mirrors legacy ``OffsetManager._should_start_
-active_monitor``: a profile exists, active monitoring is enabled, the HDR and
-FPS axes are known, and the HDR type is enabled. This is deliberately a
-PARTIAL unknown-check — HDR + FPS, not audio — for legacy parity; the store
+Eligibility (``_eligible``): a profile exists, active monitoring is enabled,
+the HDR and FPS axes are known, and the HDR type is enabled. This is
+deliberately a PARTIAL unknown-check — HDR + FPS, not audio; the store
 path (``_store``) re-validates the WHOLE profile (``policies.is_complete``)
 before writing, so an audio-unknown stream is still watched but never stored.
 
@@ -29,12 +21,12 @@ never stored — this is the failed-RPC-leftover guard: a delay left behind by
 an apply RPC that failed, or pre-existing player state, must not be written
 over the user's configured offset.
 
-Quiescence replaces the legacy "slider closed" moment: a foreign value must
+Quiescence stands in for a "user is done" signal: a foreign value must
 hold unchanged for ``QUIESCENCE_SECONDS`` before it is stored (the tick
 cadence tightens to ``ACTIVE_TICK_SECONDS`` while a candidate is pending).
-Two teardown-phantom defenses back this up (Phase 8 field bug, 2026-07-15):
-during a slow stop — PM4K flows and natural end-of-media on CoreELEC
-measured 0.3-1.15s — Kodi's delay infolabel reads a parseable 0 while the
+Two teardown-phantom defenses back this up (a field-observed hazard):
+during a slow stop — field-measured at 0.3-1.15s on some platforms —
+Kodi's delay infolabel reads a parseable 0 while the
 session is still alive, which is indistinguishable from a user dialing to
 0. ``QUIESCENCE_SECONDS`` is sized to outrun that window, and the store
 path re-checks ``gateway.active_player_id()`` at store time, discarding
@@ -50,27 +42,23 @@ own applied value shows up in the infolabel just like a user's would. The
 applier records ``session.applied = (setting_id, delay_ms)`` BEFORE issuing
 the RPC precisely so ``observed == session.applied[1]`` here is always
 current; a match is our own value — baseline-refresh, never store. A
-corollary (reviewed, accepted): an automatic apply landing INSIDE a pending
+corollary (deliberate): an automatic apply landing INSIDE a pending
 quiescence window supersedes the candidate — the pending value was dialed
 for the stream that just changed, so its target profile is ambiguous and
-dropping beats storing it under the wrong key (the legacy monitor did the
-latter — the adopt-vs-store interleaving this design closes).
+dropping beats storing it under the wrong key.
 
 Stores also defer while the addon settings dialog (window 10140) is open:
 the dialog saves its working copy of our settings on close, which would
 clobber any write made underneath it (settings-state doctrine). The quiesced
 candidate is simply held on the active cadence until the dialog closes.
 
-Store-time profile derivation on the dispatcher thread closes the legacy
-adjust-vs-adopt interleaving: the old monitor thread stored under the live
-profile while the detector could re-adopt a different one concurrently. Now
+Store-time profile derivation closes the adopt-vs-store interleaving hazard:
 adoption (StreamDetector) and store (here) are serialized on ONE thread and
 the setting key is derived from ``session.profile`` at the store instant, so
 a value always lands under the profile in force when quiescence completed.
 
 On a successful store the watcher posts a session-stamped
-``UserOffsetSaved`` (profile + ms captured at store time), the typed
-replacement for the legacy unstamped ``USER_ADJUSTMENT`` bus signal.
+``UserOffsetSaved`` (profile + ms captured at store time).
 
 Pure app layer: Kodi I/O via the injected gateway, eligibility reads via the
 injected settings adapter, offset reads/writes via the injected OffsetTable
@@ -89,11 +77,11 @@ class AdjustmentWatcher:
 
     IDLE_TICK_SECONDS = 1.0     # poll cadence when nothing is happening
     ACTIVE_TICK_SECONDS = 0.25  # tightened cadence while observing a change
-    # Foreign value must hold this long to be stored. 2.0s (raised from 1.0)
-    # outruns the teardown phantom: field-measured stop windows where the
-    # delay infolabel reads a parseable 0 while the session is still alive
-    # ran 0.3-1.15s (Phase 8, CoreELEC/PM4K 2026-07-15; a 1.15s window beat
-    # the old 1.0s quiescence and stored 0 over the user's offset).
+    # Foreign value must hold this long to be stored. 2.0s outruns the
+    # teardown phantom: field-measured stop windows where the delay infolabel
+    # reads a parseable 0 while the session is still alive ran up to 1.15s
+    # (a shorter quiescence would let that window store 0 over the user's
+    # offset).
     QUIESCENCE_SECONDS = 2.0
     INFOLABEL_AUDIO_DELAY = 'Player.AudioDelay'
     _TICK_KEY = 'aom.watcher.tick'
@@ -118,7 +106,7 @@ class AdjustmentWatcher:
     # -- eligibility ------------------------------------------------------------
 
     def _eligible(self, profile):
-        """Legacy OffsetManager._should_start_active_monitor parity.
+        """Decide whether this profile should be watched.
 
         Deliberately a PARTIAL unknown-check: HDR and FPS must be known, but
         NOT audio — an audio-unknown stream is still watched. The store path
@@ -228,7 +216,7 @@ class AdjustmentWatcher:
         if now - pending[1] < self.QUIESCENCE_SECONDS:
             return self.ACTIVE_TICK_SECONDS
         if self._gateway.active_player_id() == -1:
-            # Teardown phantom guard (Phase 8 field bug): during a slow stop
+            # Teardown phantom guard: during a slow stop
             # the delay infolabel can read a parseable 0 while PlaybackStopped
             # hasn't landed yet, so the quiesced "adjustment" belongs to a
             # dying player. Never store an adjustment for a player that no
@@ -242,8 +230,6 @@ class AdjustmentWatcher:
             # Settings-state doctrine: never write a setting while the addon
             # settings dialog is open — its save-on-close would clobber the
             # store. Hold the quiesced candidate and retry until it closes.
-            # (Legacy was structurally immune: its only change source, the
-            # OSD slider, cannot be open at the same time as this dialog.)
             self._log("AOM_AdjustmentWatcher: settings dialog open; "
                       "deferring store")
             return self.ACTIVE_TICK_SECONDS
@@ -300,8 +286,7 @@ class AdjustmentWatcher:
         while monitoring was disabled would otherwise compare against the
         stale baseline on re-enable and be stored as a fresh adjustment —
         but only a change observed WHILE watching is an adjustment. Clearing
-        makes the first post-gap observation re-adopt silently (exactly the
-        fresh state a restarted legacy monitor had).
+        makes the first post-gap observation re-adopt silently.
         """
         session.watch_pending = None
         session.watch_baseline_ms = None

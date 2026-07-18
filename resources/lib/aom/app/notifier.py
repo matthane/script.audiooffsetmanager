@@ -1,10 +1,7 @@
 """User-facing offset notifications — the app-layer toast owner.
 
-Replaces the legacy NotificationHandler AND the pending-notification dance
-OffsetManager used to run inline (``_maybe_send_pending_notification`` plus the
-provisional-suppression block in ``apply_audio_offset``). Everything about
-"should a toast fire, and which message" now lives here, driven by typed
-events on the dispatcher thread:
+Everything about "should a toast fire, and which message" lives here,
+driven by typed events on the dispatcher thread:
 
 * ``OffsetApplied`` — an automatic apply. A provisional apply (the stream is
   not yet STABLE) does NOT toast; its message is HELD on
@@ -20,13 +17,12 @@ events on the dispatcher thread:
   Toasts from the event's own profile/ms (captured at store time on the
   dispatcher thread); session/settings are deliberately NOT re-read.
 
-Deferral-until-stable and the 1s duplicate-suppression window are both ported
-from the legacy path. The dedupe clock is the injected ``time.monotonic`` — a
-deliberate upgrade from the legacy ``time.time``, which mis-measured the
-window across wall-clock adjustments.
+The dedupe clock for the 1s duplicate-suppression window is the injected
+``time.monotonic`` — deliberately not ``time.time``, which would mis-measure
+the window across wall-clock adjustments.
 
-The fade guard (new in 2.0.0~beta3) covers a Kodi GUI hazard the legacy path
-never noticed: GUIDialogKaiToast swaps a queued toast's content into the
+The fade guard covers a Kodi GUI hazard:
+GUIDialogKaiToast swaps a queued toast's content into the
 window in place while it is showing (restarting the display timer, window
 stays open — fine) and opens fresh when fully closed (fine), but a toast
 popping from Kodi's queue during the window's CLOSE ANIMATION is painted onto
@@ -38,8 +34,8 @@ and for how long, and ONLY a toast that would land inside that guarded window
 is deferred — released past the fade via a scheduled ``RaiseToast``
 (key-replaced: the newest contender wins, across message kinds too — the
 survivor is always the fresher fact — and an immediate raise cancels any
-pending release outright). Every other toast fires immediately, exactly as
-before. Best-effort by design: toasts raised by Kodi itself or other addons
+pending release outright). Every other toast fires immediately.
+Best-effort by design: toasts raised by Kodi itself or other addons
 share the same GUI window but are invisible to this bookkeeping.
 
 Settings (``notifications_enabled`` / ``notification_duration_ms``) are read
@@ -115,8 +111,7 @@ class Notifier:
         session = self._sessions.current
         if session.pending_notification is None:
             return
-        # Defensive parity with the legacy release check: only release once the
-        # session is genuinely STABLE.
+        # Defensive: only release once the session is genuinely STABLE.
         if session.stream_state is not StreamState.STABLE:
             return
         pending_setting_id, pending_ms = session.pending_notification
@@ -137,8 +132,7 @@ class Notifier:
         # A manual save supersedes any held provisional toast: the user's
         # value is the fact on the ground, and releasing the old held ms on
         # the next stabilization would announce a value that no longer
-        # applies. (Legacy parity: its non-suppressed apply path cleared the
-        # pending toast before the equivalent sequence could surface it.)
+        # applies.
         self._sessions.current.pending_notification = None
         # The payload is the profile/ms captured at store time by the watcher;
         # do NOT re-read session/settings for the message.

@@ -1,10 +1,8 @@
 """Seek-back scheduling: the quiet-window policy, enforced by rescheduling.
 
-Replaces SeekBacks' six interacting guards (PM4K busy check, 2.5s
-recently-busy window, 6s wait-for-idle loop, 2.5s recent-Kodi-seek window,
-per-event debounce, mandatory 2s settle sleep) with ONE rule, decided by the
-pure ``policies.seek_decision`` and enforced by ``ExecuteSeek`` events that
-re-check every 0.5s instead of blocking the dispatcher:
+ONE rule, decided by the pure ``policies.seek_decision`` and enforced by
+``ExecuteSeek`` events that re-check every 0.5s instead of blocking the
+dispatcher:
 
     Do not seek until there has been no seek activity — ours, another
     addon's, or the user's — for QUIET_WINDOW seconds. Defer by
@@ -16,11 +14,10 @@ separate vendor gate), ask the policy (sole owner of the quiet/deadline/
 served math), then apply the stability preference: a 'seek' verdict is
 downgraded to defer while the session is not yet STABLE, for up to
 STABILITY_GRACE seconds — after which the quiet window alone decides, so a
-stream whose profile never completes still gets its replay (legacy sought
-blind after 2s on every stream; holding the user's replay hostage to
-detection success would be a regression).
+stream whose profile never completes still gets its replay (holding the
+user's replay hostage to detection success would be wrong).
 
-Behavior mapping from legacy SeekBacks (parity unless noted):
+Behavior notes:
 
 - Triggers: PlaybackStarted -> 'resume'; Resumed -> 'unpause'; a
   change-announcing, non-initial StreamStabilized (the detector stamps
@@ -29,33 +26,29 @@ Behavior mapping from legacy SeekBacks (parity unless noted):
   manual adjustment; session-stamped, so a store racing an in-place reopen
   can never seek the new session) -> 'change'.
 - Per-reason trigger debounce: a trigger within DEBOUNCE_SECONDS of that
-  reason's last EXECUTED seek is dropped (legacy seek_history semantics);
-  a re-trigger while pending key-replaces the attempt chain (and its
-  event-carried requested_at restarts the deadline). The enabled check
-  runs at trigger time (legacy 'change' parity); an enabled-but-zero
-  length warns like legacy did.
+  reason's last EXECUTED seek is dropped; a re-trigger while pending
+  key-replaces the attempt chain (and its event-carried requested_at
+  restarts the deadline). The enabled check runs at trigger time; an
+  enabled-but-zero length warns.
 - Cross-type suppression: a request served by one of our own seeks
-  (executed at/after the request) is abandoned by the policy. Divergence:
-  legacy also DROPPED genuinely-new triggers arriving <2s after any own
-  seek; those now defer and execute — a fresh user action gets its replay.
-- The legacy mandatory 2s settle falls out of session-start-as-activity.
-  Divergence: legacy exempted 'resume' from the recent-Kodi-seek guard;
-  now Kodi's own resume-position seek defers the replay ~2s past itself
-  (net timing ≈ legacy), and a start under a sustained seek storm abandons
-  at the deadline rather than rewinding under an actively seeking user.
-- Pause cancels the pending seek at fire time. (Legacy consumed the
-  trigger while paused too — and could even seek into a paused player
-  after its settle window; fire-time cancellation closes that.)
+  (executed at/after the request) is abandoned by the policy. A
+  genuinely-new trigger arriving shortly after one of our own seeks
+  defers and executes — a fresh user action gets its replay.
+- A post-start settle falls out of session-start-as-activity: Kodi's own
+  resume-position seek defers the replay ~2s past itself, and a start
+  under a sustained seek storm abandons at the deadline rather than
+  rewinding under an actively seeking user.
+- Pause cancels the pending seek at fire time (a replay must never land
+  in a paused player).
 - Stale requests are inert: ExecuteSeek is session-stamped and stop/end/
-  reopen cancels the (closed, per-reason) timer keys — the legacy
-  stop+autostart edge is structurally impossible. There is no side
+  reopen cancels the (closed, per-reason) timer keys. There is no side
   bookkeeping to strand: the request state IS the key-replaced timer and
   its event payload.
 
 ``ExternalSeekCoordinator`` owns the inter-addon seek protocol, both
 directions: the read side (vendor busy-property list as DATA — PM4K's two
-properties today; its busy-recency is deliberately cross-session, legacy
-``_last_pm4k_busy`` parity — aggregated with session activity into the
+properties today; its busy-recency is deliberately cross-session —
+aggregated with session activity into the
 policy's ``last_activity`` view) and the write side (the seek actuator,
 which sets our reciprocal ``script.audiooffsetmanager.seeking`` property
 around the seek so other addons get the courtesy we consume from PM4K).
@@ -102,7 +95,7 @@ class ExternalSeekCoordinator:
     def last_activity(self, session):
         """Most recent seek-like activity relevant to this session.
 
-        Session start counts as activity (reproducing the legacy post-start
+        Session start counts as activity (the natural post-start
         settle); SeekOccurred and our own executed seeks feed
         ``session.last_seek_activity``; vendor busy sightings are
         coordinator-wide (they outlive sessions).
@@ -119,8 +112,8 @@ class ExternalSeekCoordinator:
 
         ``player_id=None`` means the caller has no detected profile to read
         it from (a stream seeking past the stability grace): query the
-        player directly — the legacy execution-time lookup — and let the
-        gateway's legacy default (player 1) absorb a -1 answer.
+        player directly and let the gateway's default (player 1) absorb a
+        -1 answer.
         """
         if player_id is None:
             player_id = self._gateway.active_player_id()
@@ -190,8 +183,7 @@ class SeekScheduler:
             return  # pure re-confirmation: nothing changed, nothing to replay
         if event.initial:
             # Startup settling, not an adjustment — stamped by the detector
-            # from the state machine's own stabilization count (this replaced
-            # the per-session initial_av_change_consumed latch).
+            # from the state machine's own stabilization count.
             self._log("AOM_SeekScheduler: Skipping initial AV change (startup)")
             return
         self._request('adjust')
@@ -215,8 +207,7 @@ class SeekScheduler:
 
         if session.paused:
             # Replaying into a paused player is pointless; an unpause is its
-            # own trigger. (Fire-time cancellation also closes legacy's gap
-            # of seeking into a player paused during its settle window.)
+            # own trigger.
             self._log(f"AOM_SeekScheduler: Playback is paused; cancelling "
                       f"{event.reason} seek back")
             return

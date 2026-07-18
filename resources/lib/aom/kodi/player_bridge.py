@@ -2,7 +2,7 @@
 
 Kodi pumps Player callbacks sequentially; anything slow here delays every
 subsequent callback for this addon. Therefore this class holds ZERO logic —
-no logging, no settings reads, no state. Translation to legacy events, state
+no logging, no settings reads, no state. Translation into app events, state
 bookkeeping, and all decisions happen in dispatcher handlers.
 """
 

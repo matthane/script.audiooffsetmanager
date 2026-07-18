@@ -5,10 +5,9 @@ the class). Payloads are explicit fields — never positional *args.
 
 Every event has a live producer; SeekChapter and SpeedChanged are posted by
 the player bridge but currently have no consumer — kept deliberately so the
-bridge covers Kodi's full playback-callback surface (DESIGN marks them
-reserved; note that chapter jumps also fire onPlayBackSeek, so the seek
-quiet window already sees them via SeekOccurred). Pure Python: no Kodi
-imports.
+bridge covers Kodi's full playback-callback surface (reserved; note that
+chapter jumps also fire onPlayBackSeek, so the seek quiet window already
+sees them via SeekOccurred). Pure Python: no Kodi imports.
 """
 
 from dataclasses import dataclass
@@ -90,9 +89,8 @@ class VerifyStream:
 class StreamProbed:
     """A detection pass observed the platform (consumed by PlatformRecorder).
 
-    Posted on EVERY gather — probes, AV-change re-probes, and verifications —
-    matching legacy StreamInfo, which stored platform capabilities on every
-    gather. Carries facts, not decisions: the recorder owns the writes.
+    Posted on EVERY gather — probes, AV-change re-probes, and verifications.
+    Carries facts, not decisions: the recorder owns the writes.
     """
     session_id: int
     platform_hdr_full: bool
@@ -106,16 +104,15 @@ class StreamStabilized:
     ``profile_changed`` is False for a pure re-confirmation (a blip that
     reverted with no adoption in between): the state machine re-earned
     STABLE, but no stream change is being announced. The seek scheduler
-    skips the 'adjust' replay for those — legacy's duplicate-codec filter
-    never fired an event for a reverting blip either. The default is True
-    (announce) so hand-posted events keep the announcing behavior.
+    skips the 'adjust' replay for those. The default is True (announce) so
+    hand-posted events keep the announcing behavior.
 
     ``initial`` is True on the session's FIRST stabilization — startup
     settling, not a mid-play change. The detector stamps it from
     ``session.stabilized_count`` (owned by the state machine's only edge
-    into STABLE), and the seek scheduler skips the 'adjust' replay for it —
-    what used to be a consumer-side latch on the session. The default is
-    False (the mid-play case) so hand-posted change events act like changes.
+    into STABLE), and the seek scheduler skips the 'adjust' replay for it.
+    The default is False (the mid-play case) so hand-posted change events
+    act like changes.
     """
     session_id: int
     profile_changed: bool = True
@@ -147,8 +144,7 @@ class UserOffsetSaved:
     STORE TIME on the dispatcher thread: consumers (notification, 'change'
     seek-back) act on exactly what was stored, and an in-place reopen
     between post and dispatch makes the event inert instead of targeting
-    the new session — the legacy USER_ADJUSTMENT bus wire carried no
-    payload and no stamp, leaving both races open (P5 review finding).
+    the new session.
     """
     session_id: int
     profile: object  # StreamProfile

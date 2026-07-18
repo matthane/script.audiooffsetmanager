@@ -1,22 +1,20 @@
 """Script-side onboarding: the test-video flow, the bypass, and settings.
 
-The composition glue for the ``RunScript`` entry point (``script.py``),
-replacing the legacy ``script_handler.py`` + ``test_video.py``. Like
+The composition glue for the ``RunScript`` entry point (``script.py``). Like
 ``runtime.py`` it sits at the ``aom`` package root, outside the layered
 subpackages, and wires the Kodi adapters for its own process: the service
 and the script run as SEPARATE processes whose only shared state is the live
 on-disk settings store (settings doctrine — no manual reload exists or is
 needed).
 
-Write-ordering doctrine (unchanged, and load-bearing): the bypass button in
+Write-ordering doctrine (load-bearing): the bypass button in
 settings.xml uses ``<close>true</close>``, so the settings dialog is already
 CLOSED when ``bypass_test_video`` writes ``new_install`` — writing while the
 dialog is open would let its save-on-close overwrite us. The short sleep
 afterwards lets the write settle before the dialog reopens and re-reads it.
 
 User-facing strings resolve through the ``Gui`` adapter's
-``getLocalizedString`` (the legacy modules used ``$ADDON[...]`` label
-macros — a Phase 7 work item); error toasts pass Gui a custom title/icon.
+``getLocalizedString``; error toasts pass Gui a custom title/icon.
 """
 
 import os

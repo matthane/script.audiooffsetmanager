@@ -2,11 +2,9 @@
 
 This is single-shot BY DESIGN. Each call performs exactly one JSON-RPC
 round-trip (or one InfoLabel / window-property read) and returns — no retry
-loops, no sleeps, no jitter. The legacy ``rpc_client`` baked patience in here
-(10 attempts x ~0.5s jittered sleeps); the redesign moves that patience UP
-into the app-layer scheduler, where a retry becomes a cancelable *scheduled
-event* rather than a blocking loop that stalls the dispatcher thread. Budgets
-and back-off live there, not here.
+loops, no sleeps, no jitter. Patience lives UP in the app-layer scheduler,
+where a retry is a cancelable *scheduled event* rather than a blocking loop
+that stalls the dispatcher thread. Budgets and back-off live there, not here.
 
 This is the only ``aom`` layer permitted to import ``xbmc``/``xbmcgui``.
 """
@@ -34,8 +32,7 @@ class KodiGateway:
         """
         self._log = log
         # Home-window handle, created LAZILY on first window-property use:
-        # constructing a gateway (including at legacy shim import time) must
-        # perform no Kodi GUI I/O.
+        # constructing a gateway must perform no Kodi GUI I/O.
         self._home_window = None
 
     def _execute_rpc(self, request):
@@ -67,11 +64,10 @@ class KodiGateway:
     def audio_info(self, player_id):
         """Return ``(codec, channels)`` for the current audio stream.
 
-        Single ``Player.GetProperties`` call. NOTE the deliberate semantic
-        difference from the legacy ``get_audio_info``: a codec of ``'none'`` is
-        returned AS-IS. The legacy function retried while the codec was
-        ``'none'`` (audio not yet negotiated); that patience now belongs to the
-        caller, so this gateway reports whatever the player currently says.
+        Single ``Player.GetProperties`` call. NOTE: a codec of ``'none'``
+        (audio not yet negotiated) is returned AS-IS — the patience to wait
+        it out belongs to the caller, so this gateway reports whatever the
+        player currently says.
 
         A missing ``currentaudiostream`` (LOGDEBUG) or any exception (LOGERROR)
         yields ``("unknown", "unknown")``.
@@ -117,9 +113,9 @@ class KodiGateway:
     def set_audio_delay(self, player_id, delay_seconds):
         """Set the audio delay via ``Player.SetAudioDelay``; return success.
 
-        Already single-shot in the legacy client, ported verbatim: an ``error``
-        key in the response logs LOGWARNING and returns False; success logs
-        LOGDEBUG and returns True; an exception logs LOGERROR and returns False.
+        An ``error`` key in the response logs LOGWARNING and returns False;
+        success logs LOGDEBUG and returns True; an exception logs LOGERROR
+        and returns False.
         """
         try:
             response = self._execute_rpc({
@@ -147,12 +143,11 @@ class KodiGateway:
     def seek_back(self, seconds, player_id=None):
         """Seek backward by ``seconds`` via ``Player.Seek``; return success.
 
-        Ported verbatim from the legacy ``seek_back``, including the quirk that
-        a ``player_id`` of ``None`` falls back to player id ``1`` (legacy
-        behavior kept for parity). Error/exception handling mirrors
-        :meth:`set_audio_delay`.
+        A ``player_id`` of ``None`` deliberately falls back to player id
+        ``1`` (Kodi's video player in practice). Error/exception handling
+        mirrors :meth:`set_audio_delay`.
         """
-        # Legacy behavior kept for parity: no explicit player id -> assume 1.
+        # No explicit player id -> assume player 1 (deliberate, see docstring).
         target_player_id = player_id if player_id is not None else 1
         request = {
             "jsonrpc": "2.0",
