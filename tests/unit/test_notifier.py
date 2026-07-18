@@ -135,11 +135,11 @@ def test_manual_save_supersedes_a_held_provisional_toast(rig):
     rig.post(events.UserOffsetSaved(session_id=session.session_id,
                                     profile=profile, ms=50))
     assert session.pending_notification is None       # hold superseded
-    assert rig.toasts == [("#32093: +50 ms\nDV | TrueHD", DURATION_MS)]
+    assert rig.toasts == [("DV | TrueHD", DURATION_MS, "#32093: +50 ms")]
 
     rig.mark_stable(session)
     rig.post(events.StreamStabilized(session_id=session.session_id))
-    assert rig.toasts == [("#32093: +50 ms\nDV | TrueHD", DURATION_MS)]
+    assert rig.toasts == [("DV | TrueHD", DURATION_MS, "#32093: +50 ms")]
     # No stale "applied +30" ever surfaces.
 
 
@@ -149,7 +149,7 @@ def test_manual_save_supersedes_a_held_provisional_toast(rig):
 
 class TestImmediateApply:
 
-    def test_non_provisional_toasts_immediately_with_legacy_message(self, rig):
+    def test_non_provisional_toasts_immediately(self, rig):
         profile = make_profile()
         session = rig.start(profile)
 
@@ -157,7 +157,7 @@ class TestImmediateApply:
                                       profile=profile, ms=-125,
                                       provisional=False))
 
-        assert rig.toasts == [("#32092: -125 ms\nDV | TrueHD", DURATION_MS)]
+        assert rig.toasts == [("DV | TrueHD", DURATION_MS, "#32092: -125 ms")]
         assert session.pending_notification is None
 
     def test_non_provisional_clears_any_prior_pending(self, rig):
@@ -169,7 +169,7 @@ class TestImmediateApply:
                                       profile=profile, ms=-50,
                                       provisional=False))
         assert session.pending_notification is None
-        assert rig.toasts == [("#32092: -50 ms\nDV | TrueHD", DURATION_MS)]
+        assert rig.toasts == [("DV | TrueHD", DURATION_MS, "#32092: -50 ms")]
 
 
 # ============================================================================
@@ -192,7 +192,7 @@ class TestDeferral:
         rig.mark_stable(session)
         rig.post(events.StreamStabilized(session_id=session.session_id))
 
-        assert rig.toasts == [("#32092: -75 ms\nDV | TrueHD", DURATION_MS)]
+        assert rig.toasts == [("DV | TrueHD", DURATION_MS, "#32092: -75 ms")]
         assert session.pending_notification is None
         assert rig.logged("Released pending offset notification")
 
@@ -258,7 +258,7 @@ class TestDeferral:
         rig.mark_stable(session)
         rig.post(events.StreamStabilized(session_id=session.session_id))
 
-        assert rig.toasts == [("#32092: -40 ms\nHDR10 | DD+", DURATION_MS)]
+        assert rig.toasts == [("HDR10 | DD+", DURATION_MS, "#32092: -40 ms")]
         assert session.pending_notification is None
 
 
@@ -278,7 +278,7 @@ class TestUserOffsetSaved:
         rig.post(events.UserOffsetSaved(session_id=session.session_id,
                                         profile=event_profile, ms=60))
 
-        assert rig.toasts == [("#32093: +60 ms\nDV | TrueHD", DURATION_MS)]
+        assert rig.toasts == [("DV | TrueHD", DURATION_MS, "#32093: +60 ms")]
 
 
 # ============================================================================
@@ -355,8 +355,8 @@ class TestDedupe:
         rig.post(events.UserOffsetSaved(session_id=session.session_id,
                                         profile=profile, ms=-50))
         assert len(rig.toasts) == 2
-        assert rig.toasts[0][0].startswith(f"#{STRING_OFFSET_APPLIED}")
-        assert rig.toasts[1][0].startswith(f"#{STRING_OFFSET_SAVED}")
+        assert rig.toasts[0][2].startswith(f"#{STRING_OFFSET_APPLIED}")
+        assert rig.toasts[1][2].startswith(f"#{STRING_OFFSET_SAVED}")
 
 
 # ============================================================================
@@ -383,7 +383,7 @@ class TestFadeGuard:
         assert rig.logged("deferring toast")
 
         rig.advance(GUARD - 0.2)                # guarded window has passed
-        assert rig.toasts[1] == ("#32092: -75 ms\nDV | TrueHD", DURATION_MS)
+        assert rig.toasts[1] == ("DV | TrueHD", DURATION_MS, "#32092: -75 ms")
 
     def test_toast_while_window_still_open_fires_immediately(self, rig):
         # Mid-display Kodi swaps the content in place and restarts the
@@ -419,7 +419,7 @@ class TestFadeGuard:
 
         rig.advance(GUARD)
         assert len(rig.toasts) == 2
-        assert rig.toasts[1][0] == "#32092: -60 ms\nDV | TrueHD"
+        assert rig.toasts[1][2] == "#32092: -60 ms"
 
     def test_immediate_raise_cancels_a_pending_deferred_toast(self, rig):
         # The boundary race (review finding, confirmed against the real
@@ -448,10 +448,10 @@ class TestFadeGuard:
         rig.applied(session, profile, -60)          # immediate (past band)
         rig.settings.notifications_enabled = original
 
-        assert rig.toasts[-1][0] == "#32092: -60 ms\nDV | TrueHD"
+        assert rig.toasts[-1][2] == "#32092: -60 ms"
         rig.advance(GUARD + 1.0)                    # stale timer must be dead
         assert len(rig.toasts) == 2
-        assert not any("-75" in message for message, _ in rig.toasts)
+        assert not any("-75" in title for _, _, title in rig.toasts)
 
     def test_deferred_toast_suppressed_when_notifications_disabled(self, rig):
         # The enabled gate is a live setting: a toast deferred while
@@ -543,4 +543,5 @@ class TestSignRendering:
         rig.post(events.OffsetApplied(session_id=session.session_id,
                                       profile=profile, ms=ms, provisional=False))
 
-        assert rig.toasts == [(f"#32092: {rendered}\nDV | TrueHD", DURATION_MS)]
+        assert rig.toasts == [("DV | TrueHD", DURATION_MS,
+                               f"#32092: {rendered}")]

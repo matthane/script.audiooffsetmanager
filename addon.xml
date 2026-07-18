@@ -10,6 +10,7 @@
         <news>v2.1.0 (2026-07-18)
 - HDR10+ offset settings are now available on Kodi 22 and later, and on any other platform once it first detects HDR10+
 - Offset changes made in the addon settings during playback are now applied as soon as the settings dialog is saved
+- Notifications now show the offset value in the heading and the stream details below, so nothing scrolls or gets cut off
 
 v2.0.0 (2026-07-16)
 - More reliable offset application: stream changes are detected and verified before offsets are applied, eliminating misapplied offsets during playback startup and format switches

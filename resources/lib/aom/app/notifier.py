@@ -38,6 +38,11 @@ pending release outright). Every other toast fires immediately.
 Best-effort by design: toasts raised by Kodi itself or other addons
 share the same GUI window but are invisible to this bookkeeping.
 
+Toast shape: the applied/saved heading (with the offset value) is the toast
+TITLE and the profile summary is the whole message — Kodi's toast message
+label is a single line, so packing both into the message with a newline
+makes it auto-scroll (perceived as flashing) and truncate the codec.
+
 Settings (``notifications_enabled`` / ``notification_duration_ms``) are read
 through the injected facade; toasts go through the injected gui. Pure app
 layer: stdlib + ``resources.lib.aom`` only.
@@ -196,12 +201,14 @@ class Notifier:
         # deferred release: its timer was consumed before dispatch.)
         self._dispatcher.cancel(self._FADE_KEY)
         duration_ms = self._settings.notification_duration_ms()
+        # Heading as toast title, summary as the whole message (the toast
+        # shape section of the module docstring has the rationale).
         sign = '+' if ms > 0 else ''
-        message = (f"{self._gui.localized(string_id)}: {sign}{ms} ms\n"
-                   f"{profile.summary(include_fps=True)}")
+        heading = f"{self._gui.localized(string_id)}: {sign}{ms} ms"
+        message = profile.summary(include_fps=True)
 
-        self._gui.notification(message, duration_ms)
-        self._log(f"AOM_Notifier: {message}")
+        self._gui.notification(message, duration_ms, title=heading)
+        self._log(f"AOM_Notifier: {heading} — {message}")
         self._last_raise = (self._dedupe_key(string_id, ms, profile),
                             self._clock(), duration_ms)
 

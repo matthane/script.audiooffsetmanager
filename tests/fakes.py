@@ -175,11 +175,11 @@ class FakeGui:
     """Records toasts; localized() returns a deterministic marker."""
 
     def __init__(self):
-        self.notifications = []          # (message, duration_ms)
+        self.notifications = []          # (message, duration_ms, title)
         self.localized_strings = {}      # optional overrides: id -> str
 
     def localized(self, string_id):
         return self.localized_strings.get(string_id, f"#{string_id}")
 
-    def notification(self, message, duration_ms):
-        self.notifications.append((message, duration_ms))
+    def notification(self, message, duration_ms, title=None):
+        self.notifications.append((message, duration_ms, title))
