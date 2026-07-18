@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.audiooffsetmanager" version="2.0.0" name="Audio Offset Manager" provider-name="matthane">
+<addon id="script.audiooffsetmanager" version="2.1.0" name="Audio Offset Manager" provider-name="matthane">
     <requires>
         <import addon="xbmc.python" version="3.0.1"/>
     </requires>
@@ -7,7 +7,11 @@
     <extension point="xbmc.python.script" library="script.py" />
     <extension point="xbmc.addon.metadata">
         <source>https://github.com/matthane/script.audiooffsetmanager</source>
-        <news>v2.0.0 (2026-07-16)
+        <news>v2.1.0 (2026-07-18)
+- HDR10+ offset settings are now available on any platform where Kodi itself detects HDR10+, such as Kodi 22 and later. They appear after the first playback of an HDR10+ video
+- Offset changes made in the addon settings during playback are now applied as soon as the settings dialog is saved
+
+v2.0.0 (2026-07-16)
 - More reliable offset application: stream changes are detected and verified before offsets are applied, eliminating misapplied offsets during playback startup and format switches
 - Manual offset adjustments are now detected from any input method (keymaps, remotes, JSON-RPC), not just the Kodi audio settings dialog
 - Smarter notifications: they wait for the stream to settle, and no longer get cut short when two notifications arrive close together
