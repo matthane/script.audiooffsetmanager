@@ -24,7 +24,11 @@ Behavior notes:
   ``initial`` on the session's first stabilization — startup settling gets
   no 'adjust' replay) -> 'adjust'; UserOffsetSaved (the watcher stored a
   manual adjustment; session-stamped, so a store racing an in-place reopen
-  can never seek the new session) -> 'change'.
+  can never seek the new session) -> 'change'; a user-initiated
+  OffsetApplied (a settings-dialog offset edit, stamped by the applier —
+  detector-driven applies carry False and never seek) -> 'change' too,
+  through the same debounce, so the dialog edit replays exactly like the
+  slider adjustment it is.
 - Per-reason trigger debounce: a trigger within DEBOUNCE_SECONDS of that
   reason's last EXECUTED seek is dropped; a re-trigger while pending
   key-replaces the attempt chain (and its event-carried requested_at
@@ -156,6 +160,7 @@ class SeekScheduler:
         dispatcher.subscribe(events.SeekOccurred, self._on_seek_occurred)
         dispatcher.subscribe(events.StreamStabilized, self._on_stream_stabilized)
         dispatcher.subscribe(events.UserOffsetSaved, self._on_user_offset_saved)
+        dispatcher.subscribe(events.OffsetApplied, self._on_offset_applied)
         dispatcher.subscribe(events.ExecuteSeek, self._on_execute_seek)
         dispatcher.subscribe(events.PlaybackStopped, self._on_playback_ended)
         dispatcher.subscribe(events.PlaybackEnded, self._on_playback_ended)
@@ -190,6 +195,18 @@ class SeekScheduler:
 
     def _on_user_offset_saved(self, event):
         """The watcher stored a manual adjustment: replay the glitched audio."""
+        if not self._sessions.is_alive(event.session_id):
+            return
+        self._request('change')
+
+    def _on_offset_applied(self, event):
+        """A user-initiated apply (settings-dialog edit) replays like 'change'.
+
+        Automatic applies (detector adoption, stabilization retry) carry
+        ``user_initiated=False`` and must never seek.
+        """
+        if not event.user_initiated:
+            return
         if not self._sessions.is_alive(event.session_id):
             return
         self._request('change')

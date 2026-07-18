@@ -66,7 +66,12 @@ class SpeedChanged:
 
 @dataclass(frozen=True)
 class SettingsChanged:
-    """Kodi Monitor.onSettingsChanged: refresh cached flags; never write here."""
+    """Kodi Monitor.onSettingsChanged: a settings save landed.
+
+    Handlers refresh cached flags, re-apply the live session's offset, or
+    re-evaluate watch eligibility — never write settings (the write would
+    re-fire this event).
+    """
 
 
 # --- Detection events (posted/consumed from the StreamDetector phase on) ----
@@ -129,11 +134,19 @@ class ProfileChanged:
 
 @dataclass(frozen=True)
 class OffsetApplied:
-    """An offset was applied via JSON-RPC (provisional until STABLE)."""
+    """An offset was applied via JSON-RPC (provisional until STABLE).
+
+    ``user_initiated`` is True only for the settings-save trigger (the user
+    reconfigured the offset in the addon settings dialog): the seek
+    scheduler replays those like a manual adjustment ('change'), while
+    detector-driven applies must never seek. The default is False so a
+    hand-posted event acts like an automatic apply.
+    """
     session_id: int
     profile: object  # StreamProfile
     ms: int
     provisional: bool
+    user_initiated: bool = False
 
 
 @dataclass(frozen=True)

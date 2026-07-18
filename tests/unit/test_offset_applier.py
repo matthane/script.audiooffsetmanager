@@ -93,6 +93,7 @@ class TestApplyPath:
         assert announced.profile == profile
         assert announced.ms == -125
         assert announced.provisional is True       # not yet STABLE
+        assert announced.user_initiated is False   # automatic: never seeks
         assert rig.logged('session#1')             # describe() snapshot line
 
     def test_stable_session_announces_non_provisional(self, rig):
@@ -176,6 +177,83 @@ class TestApplyPath:
 
         assert rig.gateway.applied == [(1, 0.0)]
         assert session.applied == ('dolbyvision_all_truehd', 0)
+
+
+class TestSettingsChangedTrigger:
+
+    def test_dialog_edit_applies_immediately(self, rig):
+        # The settings-save edge: an offset reconfigured mid-playback reaches
+        # the player on dialog save, and announces (toast path) like any apply.
+        profile = make_profile()
+        session = rig.start(profile, offset_ms=-125)
+        session.mark_stable()
+        rig.profile_changed()
+
+        rig.offsets.offsets[profile.setting_id()] = -150   # dialog edit
+        rig.post(events.SettingsChanged())
+
+        assert rig.gateway.applied == [(1, -0.125), (1, -0.150)]
+        assert session.applied == ('dolbyvision_all_truehd', -150)
+        assert len(rig.announced) == 2
+        assert rig.announced[1].ms == -150
+        assert rig.announced[1].provisional is False
+        assert rig.announced[1].user_initiated is True   # seeks like 'change'
+
+    def test_unrelated_settings_save_is_deduped(self, rig):
+        # A save that did not touch the current profile's offset is a no-op.
+        profile = make_profile()
+        rig.start(profile)
+        rig.profile_changed()
+
+        rig.post(events.SettingsChanged())
+
+        assert len(rig.gateway.applied) == 1
+        assert len(rig.announced) == 1
+        assert rig.logged('skipping duplicate apply')
+
+    def test_no_session_is_a_no_op(self, rig):
+        rig.post(events.SettingsChanged())
+        assert rig.gateway.applied == []
+        assert rig.announced == []
+
+    def test_incomplete_profile_skips_quietly(self, rig):
+        # The quiet gate: unlike the detector-driven triggers, a settings
+        # save against an unknown-format stream emits no skip-log line.
+        profile = make_profile(audio_format='unknown')
+        rig.start(profile)
+
+        rig.post(events.SettingsChanged())
+
+        assert rig.gateway.applied == []
+        assert not rig.logged('Unknown format detected')
+
+    def test_pending_manual_adjustment_blocks_the_apply(self, rig):
+        # A save landing while the user is mid-adjustment must not yank the
+        # dial back to the stored value (the watcher owns the delay then).
+        profile = make_profile()
+        session = rig.start(profile, offset_ms=-125)
+        rig.profile_changed()
+
+        session.watch_pending = (-80, 0.0)                 # dial in flight
+        rig.offsets.offsets[profile.setting_id()] = -150
+        rig.post(events.SettingsChanged())
+
+        assert len(rig.gateway.applied) == 1               # no yank
+        assert len(rig.announced) == 1
+
+    def test_torn_down_player_skips_without_rpc(self, rig):
+        # Teardown phantom: a save in the stop gap (session alive, player
+        # list already empty) must not RPC a dead player or warn.
+        profile = make_profile()
+        rig.start(profile, offset_ms=-125)
+        rig.profile_changed()
+
+        rig.gateway.player_id = -1                         # player list empty
+        rig.offsets.offsets[profile.setting_id()] = -150
+        rig.post(events.SettingsChanged())
+
+        assert len(rig.gateway.applied) == 1               # no doomed RPC
+        assert rig.warnings == []
 
 
 class TestGating:

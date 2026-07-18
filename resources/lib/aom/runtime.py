@@ -18,8 +18,9 @@ Subscription order is load-bearing (dispatch follows it, per event type):
 2. detector — owns ``session.profile`` and the stream-state machine;
 3. recorder — sole StreamProbed consumer (data flow, not an ordering
    constraint; listed for the construction narrative);
-4. applier — on ProfileChanged/StreamStabilized the offset is applied (and
-   ``session.applied`` recorded) before anything downstream reads it;
+4. applier — on ProfileChanged/StreamStabilized/SettingsChanged the offset
+   is applied (and ``session.applied`` recorded) before anything downstream
+   reads it;
 5. notifier — its StreamStabilized release runs after the applier's retry
    pass for the same stabilization;
 6. seek scheduler — seeks for a stabilization are planned only after the

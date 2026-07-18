@@ -396,6 +396,78 @@ def test_auto_apply_never_emits_user_offset_saved(rig, monkeypatch):
     assert saved == []
 
 
+def test_watcher_store_echo_never_reapplies(rig, monkeypatch):
+    # The store's own SettingsChanged echo, end-to-end with both components
+    # live: _store runs to completion (settings write, then session.applied
+    # update) on the dispatcher thread before the posted echo can dispatch,
+    # so the applier's dedupe reads the just-stored value and no-ops — no
+    # second RPC and no 'applied' toast for the user's own adjustment.
+    runtime, clock, gateway, applied, notified = rig
+
+    monkeypatch.setattr(runtime.settings, 'active_monitoring_enabled',
+                        lambda: True)
+    monkeypatch.setattr(runtime.offsets, 'store', lambda profile, ms: True)
+
+    runtime.dispatcher.post(events.PlaybackStarted())
+    runtime.dispatcher.run_pending()
+    session = runtime.session_tracker.current
+    _settle(runtime, clock)                    # STABLE; startup apply done
+    rpc_baseline = len(applied)
+
+    # The watcher first observes our own apply echoing back (baseline)...
+    gateway.infolabels['Player.AudioDelay'] = '-0.125 s'
+    for _ in range(2):
+        clock.advance(1.0)
+        runtime.dispatcher.run_pending()
+    assert session.watch_baseline_ms == -125
+
+    # ...then the user dials -80 on the player's delay control; ticks
+    # observe the change and let it quiesce into a store.
+    gateway.infolabels['Player.AudioDelay'] = '-0.080 s'
+    for _ in range(6):
+        clock.advance(1.0)
+        runtime.dispatcher.run_pending()
+    assert session.applied == ('dolbyvision_all_truehd', -80)   # stored
+
+    # Kodi's onSettingsChanged echo of that write lands afterwards, with the
+    # store now answering the saved value.
+    monkeypatch.setattr(runtime.offsets, 'get', lambda profile: -80)
+    toast_baseline = len(_applied_toasts(notified))
+    runtime.dispatcher.post(events.SettingsChanged())
+    runtime.dispatcher.run_pending()
+
+    assert len(applied) == rpc_baseline                  # dedupe: no re-apply
+    assert len(_applied_toasts(notified)) == toast_baseline
+
+
+def test_dialog_offset_edit_applies_toasts_and_seeks_back(rig, monkeypatch):
+    # The settings-save edge end-to-end: a mid-playback dialog edit reaches
+    # the player on save, toasts immediately (STABLE), and replays like a
+    # manual 'change' — while the automatic applies around it never seek.
+    runtime, clock, gateway, applied, notified = rig
+
+    monkeypatch.setattr(runtime.settings, 'seek_back_config',
+                        lambda reason: (reason == 'change', 4))
+
+    runtime.dispatcher.post(events.PlaybackStarted())
+    runtime.dispatcher.run_pending()
+    _settle(runtime, clock)                    # STABLE; startup apply done
+    assert gateway.seeks == []                 # the automatic apply: no seek
+
+    monkeypatch.setattr(runtime.offsets, 'get', lambda profile: -150)
+    runtime.dispatcher.post(events.SettingsChanged())
+    runtime.dispatcher.run_pending()
+
+    assert applied[-1] == (1, -150)            # applied on dialog save
+    assert _applied_toasts(notified)[-1] == (-150, 'dolbyvision_all_truehd')
+
+    # The 'change' replay executes once the quiet window clears.
+    for _ in range(8):
+        clock.advance(0.5)
+        runtime.dispatcher.run_pending()
+    assert gateway.seeks == [(4, 1)]
+
+
 def test_user_offset_saved_notifies_live_session_only(rig):
     # The manual-offset toast consumes the watcher's typed event: it
     # describes the payload captured at store time, and a stamp from a

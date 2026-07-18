@@ -255,6 +255,28 @@ class TestTriggersAndDebounce:
         rig.post(events.UserOffsetSaved(session_id=sid, profile=None, ms=-50))
         assert 'change' in rig.pending
 
+    def test_user_initiated_apply_requests_change_but_auto_apply_never_does(self, rig):
+        rig.start()
+        rig.make_stable()
+        sid = rig.session.session_id
+
+        # Automatic applies (detector adoption, stabilization retry) carry
+        # the default stamp and must never seek.
+        rig.post(events.OffsetApplied(session_id=sid, profile=None, ms=-50,
+                                      provisional=False))
+        assert 'change' not in rig.pending
+
+        # A stale stamp is inert, same as UserOffsetSaved.
+        rig.post(events.OffsetApplied(session_id=sid + 1, profile=None,
+                                      ms=-50, provisional=False,
+                                      user_initiated=True))
+        assert 'change' not in rig.pending
+
+        # The settings-dialog edit replays like the slider adjustment it is.
+        rig.post(events.OffsetApplied(session_id=sid, profile=None, ms=-50,
+                                      provisional=False, user_initiated=True))
+        assert 'change' in rig.pending
+
 
 # ============================================================================
 # Execution guards (each pins one legacy guard's replacement)

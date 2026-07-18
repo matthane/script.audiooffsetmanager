@@ -1,6 +1,6 @@
 """Offset application: gate via policy, apply via gateway, announce typed.
 
-One decision path, two triggers:
+One decision path, three triggers:
 
 - ``ProfileChanged`` — the detector adopted a (new) complete profile: the
   apply trigger. NOT ``PlaybackStarted``: the profile is always None at AV
@@ -8,6 +8,24 @@ One decision path, two triggers:
 - ``StreamStabilized`` — the retry edge: a failed apply RPC is retried on
   the next stabilization, and the ``session.applied`` dedupe makes the
   common already-applied case a no-op.
+- ``SettingsChanged`` — the settings-save edge: an offset reconfigured in
+  the addon settings dialog during playback reaches the live player on
+  dialog save, not on the next profile adoption. The same dedupe makes
+  every save that did not change the current profile's offset a no-op.
+  The AdjustmentWatcher's store-echo is covered by dispatcher
+  serialization, NOT by write ordering: ``_store`` runs to completion
+  (settings write, then ``session.applied`` update) on the dispatcher
+  thread before the posted ``SettingsChanged`` can be dispatched, so the
+  dedupe always compares against the just-stored value. An apply here
+  announces via ``OffsetApplied`` like any other: an immediate toast when
+  the session is STABLE (the dialog-edit case in practice), the usual
+  held-until-stable path otherwise — and it stamps the event
+  ``user_initiated``, which the seek scheduler keys its 'change' replay
+  on, so a dialog edit seeks back exactly like a slider adjustment while
+  detector-driven applies never seek. The handler carries its own QUIET
+  gates (see its docstring) — every settings save in the process lands
+  on this trigger, so a non-actionable save must produce neither log
+  noise nor a doomed RPC.
 
 Contracts (pinned by tests):
 
@@ -53,6 +71,7 @@ class OffsetApplier:
 
         dispatcher.subscribe(events.ProfileChanged, self._on_profile_changed)
         dispatcher.subscribe(events.StreamStabilized, self._on_stream_stabilized)
+        dispatcher.subscribe(events.SettingsChanged, self._on_settings_changed)
 
     # -- triggers (dispatcher thread) --------------------------------------------
 
@@ -64,9 +83,39 @@ class OffsetApplier:
         """Retry edge: re-run the apply; the dedupe no-ops the common case."""
         self._apply(event.session_id)
 
+    def _on_settings_changed(self, _event):
+        """Settings-save edge: push a reconfigured offset to the live player.
+
+        Not session-stamped (the save has no session); applies to whatever
+        session is live now. Unlike the detector-driven triggers, this one
+        fires for EVERY settings save in the process, so the non-actionable
+        cases are gated QUIETLY — no skip-log line per save:
+
+        - no session, or no complete profile yet: nothing to key the offset
+          by (the adoption that completes the profile applies it anyway);
+        - a pending manual observation: the user is mid-adjustment on the
+          player's own delay control — re-applying the stored value now
+          would yank the dial, and the watcher would then read our write as
+          self-echo and drop the user's candidate;
+        - no live player (the watcher's teardown-phantom guard, applied at
+          the same hazard): a save landing in the sub-second stop gap would
+          RPC a dead player and warn about a retry that can never come.
+        """
+        session = self._sessions.current
+        if session is None:
+            return
+        profile = session.profile
+        if profile is None or not policies.is_complete(profile):
+            return
+        if session.watch_pending is not None:
+            return
+        if self._gateway.active_player_id() == -1:
+            return
+        self._apply(session.session_id, user_initiated=True)
+
     # -- the apply -----------------------------------------------------------------
 
-    def _apply(self, session_id):
+    def _apply(self, session_id, user_initiated=False):
         if not self._sessions.is_alive(session_id):
             return  # superseded session: the event is inert
         session = self._sessions.current
@@ -108,7 +157,7 @@ class OffsetApplier:
                   f"(provisional={provisional}); {session.describe()}")
         self._dispatcher.post(events.OffsetApplied(
             session_id=session.session_id, profile=profile, ms=delay_ms,
-            provisional=provisional))
+            provisional=provisional, user_initiated=user_initiated))
 
     def _should_apply(self, profile):
         """Resolve the inputs and log the reason; the decision is the policy's."""
