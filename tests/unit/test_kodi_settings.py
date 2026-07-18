@@ -57,9 +57,9 @@ def test_settings_keeps_parent_addon_alive():
 
     ``xbmcaddon.Addon(...).getSettings()`` as a one-liner leaves the Addon a
     garbage-collected temporary, which orphans the Settings proxy: writes
-    report success but never persist (``new_install`` clear was lost) and
-    dialog edits never arrive. The proxy is live only while its parent Addon
-    is alive, so Settings must hold the Addon it derived ``_settings`` from.
+    report success but never persist and dialog edits never arrive. The
+    proxy is live only while its parent Addon is alive, so Settings must
+    hold the Addon it derived ``_settings`` from.
     """
     import xbmcaddon
 
@@ -121,7 +121,7 @@ class TestStoreBooleanIfChanged:
         settings._settings.getBool = _Spy(result=True)
         set_spy = _Spy()
         settings._settings.setBool = set_spy
-        assert settings.store_boolean_if_changed('new_install', True) is True
+        assert settings.store_boolean_if_changed('enable_notifications', True) is True
         assert set_spy.calls == []
         assert logs == []
 
@@ -130,22 +130,22 @@ class TestStoreBooleanIfChanged:
         settings._settings.getBool = _Spy(result=False)
         set_spy = _Spy()
         settings._settings.setBool = set_spy
-        assert settings.store_boolean_if_changed('new_install', True) is True
-        assert set_spy.calls == [('new_install', True)]
+        assert settings.store_boolean_if_changed('enable_notifications', True) is True
+        assert set_spy.calls == [('enable_notifications', True)]
         assert len(logs) == 1
         message, level = logs[0]
         assert level == xbmc.LOGDEBUG
-        assert "Storing boolean setting new_install: True" in message
+        assert "Storing boolean setting enable_notifications: True" in message
 
     def test_write_raises_returns_false_and_warns(self):
         settings, logs = _make_settings()
         settings._settings.getBool = _Spy(result=False)
         settings._settings.setBool = _Spy(raises=RuntimeError("no dice"))
-        assert settings.store_boolean_if_changed('new_install', True) is False
+        assert settings.store_boolean_if_changed('enable_notifications', True) is False
         # LOGDEBUG "Storing" then LOGWARNING "Error storing".
         levels = [level for _, level in logs]
         assert levels == [xbmc.LOGDEBUG, xbmc.LOGWARNING]
-        assert "Error storing boolean setting 'new_install'" in logs[-1][0]
+        assert "Error storing boolean setting 'enable_notifications'" in logs[-1][0]
 
     def test_pre_read_raising_falls_through_to_write(self):
         settings, logs = _make_settings()
@@ -154,8 +154,8 @@ class TestStoreBooleanIfChanged:
         settings._settings.getBool = _Spy(raises=RuntimeError("read down"))
         set_spy = _Spy()
         settings._settings.setBool = set_spy
-        assert settings.store_boolean_if_changed('new_install', True) is True
-        assert set_spy.calls == [('new_install', True)]
+        assert settings.store_boolean_if_changed('enable_notifications', True) is True
+        assert set_spy.calls == [('enable_notifications', True)]
 
 
 class TestStoreIntegerIfChanged:
@@ -240,12 +240,6 @@ class TestIntentReads:
         spy = self._spy_bool(settings)
         assert settings.debug_logging_enabled() is True
         assert spy.calls == [('enable_debug_logging',)]
-
-    def test_is_new_install(self):
-        settings, _ = _make_settings()
-        spy = self._spy_bool(settings)
-        assert settings.is_new_install() is True
-        assert spy.calls == [('new_install',)]
 
     def test_seek_back_config_maps_ids(self):
         settings, _ = _make_settings()

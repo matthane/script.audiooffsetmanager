@@ -130,9 +130,6 @@ class Settings:
     def debug_logging_enabled(self):
         return self.get_bool('enable_debug_logging')
 
-    def is_new_install(self):
-        return self.get_bool('new_install')
-
 
 class OffsetTable:
     """Per-profile offset storage. tools/generate_settings.py guarantees every

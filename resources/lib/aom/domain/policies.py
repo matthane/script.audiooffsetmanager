@@ -92,21 +92,18 @@ def seek_decision(now, requested_at, last_activity, last_own_seek,
     return 'seek'
 
 
-def should_apply(profile, new_install, hdr_enabled):
+def should_apply(profile, hdr_enabled):
     """Decide whether an offset may be applied for this profile.
 
     Args:
         profile: StreamProfile or None.
-        new_install: bool — onboarding not completed yet.
         hdr_enabled: bool — the `enable_<hdr>` setting for profile.hdr_type
             (caller resolves it; pass False when profile is None).
 
     Returns:
         (allowed, reason) — reason is None when allowed, else one of
-        'new_install', 'no_profile', 'unknown_format', 'hdr_disabled'.
+        'no_profile', 'unknown_format', 'hdr_disabled'.
     """
-    if new_install:
-        return False, 'new_install'
     if profile is None:
         return False, 'no_profile'
     if not is_complete(profile):

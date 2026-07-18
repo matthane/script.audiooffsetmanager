@@ -2,7 +2,7 @@
 
 Rig pattern shared with the sibling app suites: FakeClock + manually pumped
 Dispatcher + real SessionTracker (subscribed first), a scriptable FakeGateway,
-and small local settings/offset fakes (the applier's read surface is tiny).
+and the shared FakeFacade/FakeOffsetTable doubles from tests.fakes.
 OffsetApplied posts are collected off the bus.
 
 The applied-before-RPC ordering contract also has cross-component pins in
@@ -17,7 +17,7 @@ from resources.lib.aom.app.offset_applier import OffsetApplier
 from resources.lib.aom.app.session import SessionTracker
 from resources.lib.aom.domain.profile import StreamProfile
 from resources.lib.aom.domain.stream_state import StreamState
-from tests.fakes import FakeClock, FakeGateway, FakeOffsetTable
+from tests.fakes import FakeClock, FakeFacade, FakeGateway, FakeOffsetTable
 
 
 def make_profile(hdr_type='dolbyvision', fps_type='all', audio_format='truehd',
@@ -25,20 +25,6 @@ def make_profile(hdr_type='dolbyvision', fps_type='all', audio_format='truehd',
     return StreamProfile(hdr_type=hdr_type, fps_type=fps_type,
                          audio_format=audio_format, video_fps=23,
                          player_id=player_id, audio_channels=8)
-
-
-class FakeSettings:
-    """The applier's settings read surface: gating inputs only."""
-
-    def __init__(self):
-        self.new_install = False
-        self.hdr_enabled = True
-
-    def is_new_install(self):
-        return self.new_install
-
-    def is_hdr_enabled(self, hdr_type):
-        return self.hdr_enabled
 
 
 class Rig:
@@ -53,7 +39,7 @@ class Rig:
         self.tracker = SessionTracker(self.dispatcher, clock=self.clock,
                                       log_debug=self.debug.append)
         self.gateway = FakeGateway()
-        self.settings = FakeSettings()
+        self.settings = FakeFacade()
         self.offsets = FakeOffsetTable()
         self.applier = OffsetApplier(
             self.dispatcher, self.tracker, self.gateway, self.settings,
@@ -193,13 +179,6 @@ class TestApplyPath:
 
 
 class TestGating:
-
-    def test_new_install_skips(self, rig):
-        rig.settings.new_install = True
-        rig.start(make_profile())
-        rig.profile_changed()
-        assert rig.gateway.applied == []
-        assert rig.logged('New install detected')
 
     def test_hdr_disabled_skips(self, rig):
         rig.settings.hdr_enabled = False

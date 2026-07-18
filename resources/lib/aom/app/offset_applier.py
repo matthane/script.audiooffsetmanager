@@ -122,15 +122,11 @@ class OffsetApplier:
                        self._settings.is_hdr_enabled(profile.hdr_type))
         allowed, reason = policies.should_apply(
             profile,
-            new_install=self._settings.is_new_install(),
             hdr_enabled=hdr_enabled)
         if allowed:
             return True
 
-        if reason == 'new_install':
-            self._log("AOM_OffsetApplier: New install detected. Skipping "
-                      "audio offset application.")
-        elif reason == 'no_profile':
+        if reason == 'no_profile':
             self._log("AOM_OffsetApplier: No stream profile available; "
                       "skipping offset")
         elif reason == 'unknown_format':

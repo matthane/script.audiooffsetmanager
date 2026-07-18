@@ -85,27 +85,21 @@ def test_is_complete_any_unknown_axis(kwargs):
 # --- should_apply ------------------------------------------------------------
 
 def test_should_apply_ok():
-    assert policies.should_apply(make_profile(), new_install=False,
+    assert policies.should_apply(make_profile(),
                                  hdr_enabled=True) == (True, None)
 
 
-def test_should_apply_new_install_blocks_first():
-    # new_install is checked before anything else (mirrors legacy order).
-    assert policies.should_apply(None, new_install=True,
-                                 hdr_enabled=False) == (False, "new_install")
-
-
 def test_should_apply_no_profile():
-    assert policies.should_apply(None, new_install=False,
+    assert policies.should_apply(None,
                                  hdr_enabled=False) == (False, "no_profile")
 
 
 def test_should_apply_unknown_format():
     profile = make_profile(audio_format="unknown")
-    assert policies.should_apply(profile, new_install=False,
+    assert policies.should_apply(profile,
                                  hdr_enabled=True) == (False, "unknown_format")
 
 
 def test_should_apply_hdr_disabled():
-    assert policies.should_apply(make_profile(), new_install=False,
+    assert policies.should_apply(make_profile(),
                                  hdr_enabled=False) == (False, "hdr_disabled")

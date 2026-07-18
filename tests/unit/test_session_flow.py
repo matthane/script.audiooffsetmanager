@@ -69,7 +69,6 @@ def rig(monkeypatch):
 
     # --- settings seams (the single Settings adapter, shared by all) ----------
     settings = runtime.settings
-    monkeypatch.setattr(settings, 'is_new_install', lambda: False)
     monkeypatch.setattr(settings, 'is_hdr_enabled', lambda hdr: True)
     monkeypatch.setattr(settings, 'fps_override_enabled', lambda hdr: False)
     monkeypatch.setattr(runtime.offsets, 'get', lambda profile: -125)
