@@ -16,8 +16,8 @@ Subscription order is load-bearing (dispatch follows it, per event type):
 1. tracker — the session exists (or is torn down) before any other handler
    of the same lifecycle event runs;
 2. detector — owns ``session.profile`` and the stream-state machine;
-3. recorder — sole StreamProbed consumer (data flow, not an ordering
-   constraint; listed for the construction narrative);
+3. recorder — sole StreamProbed/ServiceStarted consumer (data flow, not an
+   ordering constraint; listed for the construction narrative);
 4. applier — on ProfileChanged/StreamStabilized/SettingsChanged the offset
    is applied (and ``session.applied`` recorded) before anything downstream
    reads it;
@@ -103,6 +103,9 @@ class ServiceRuntime:
         self.dispatcher.log_runtimes = debug
 
     def run(self):
+        # Queued before the thread starts, so startup work (the recorder's
+        # build-version capability check) dispatches first.
+        self.dispatcher.post(events.ServiceStarted())
         self.dispatcher.start()
         self.logger.debug("AOM_Runtime: service started")
 

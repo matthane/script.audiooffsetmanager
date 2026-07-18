@@ -74,6 +74,18 @@ class SettingsChanged:
     """
 
 
+# --- Lifecycle events (posted by the composition root) ----------------------
+
+@dataclass(frozen=True)
+class ServiceStarted:
+    """Posted once by the runtime when the service starts.
+
+    Startup work that must run on the dispatcher thread (e.g. the recorder's
+    build-version capability check) hangs off this event instead of running
+    in a constructor on the service main thread.
+    """
+
+
 # --- Detection events (posted/consumed from the StreamDetector phase on) ----
 
 @dataclass(frozen=True)

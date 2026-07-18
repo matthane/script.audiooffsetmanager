@@ -8,7 +8,7 @@
     <extension point="xbmc.addon.metadata">
         <source>https://github.com/matthane/script.audiooffsetmanager</source>
         <news>v2.1.0 (2026-07-18)
-- HDR10+ offset settings are now available on any platform where Kodi itself detects HDR10+, such as Kodi 22 and later. They appear after the first playback of an HDR10+ video
+- HDR10+ offset settings are now available on Kodi 22 and later, and on any other platform once it first detects HDR10+
 - Offset changes made in the addon settings during playback are now applied as soon as the settings dialog is saved
 
 v2.0.0 (2026-07-16)

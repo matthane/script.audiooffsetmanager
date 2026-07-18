@@ -12,9 +12,15 @@ here) pumped with run_pending(), and a recording settings double capturing
 every store_boolean_if_changed call in order.
 """
 
+import pytest
+
 from resources.lib.aom.app import events
 from resources.lib.aom.app.dispatcher import Dispatcher
-from resources.lib.aom.app.platform_recorder import PlatformRecorder
+from resources.lib.aom.app.platform_recorder import (
+    INFOLABEL_BUILD_VERSION,
+    PlatformRecorder,
+    parse_kodi_major,
+)
 from tests.fakes import FakeClock, FakeGateway
 
 
@@ -135,3 +141,60 @@ def test_hdr10plus_latch_is_never_written_false():
     assert all(setting != 'platform_hdr10plus'
                for setting, _value in facade.stored)
     assert errors == []
+
+
+def test_hdr10plus_latches_from_build_version_at_startup():
+    # Kodi 22+ reports 'hdr10plus' natively, so the capability is known from
+    # the build version alone: ServiceStarted latches it with no playback.
+    dispatcher, gateway, facade, _debug, errors = make_rig()
+
+    gateway.infolabels[INFOLABEL_BUILD_VERSION] = '22.0 (22.0.0) Git:20260101-abcdef'
+    dispatcher.post(events.ServiceStarted())
+    dispatcher.run_pending()
+    assert facade.stored == [('platform_hdr10plus', True)]
+    assert errors == []
+
+
+def test_older_build_version_does_not_latch():
+    dispatcher, gateway, facade, _debug, errors = make_rig()
+
+    gateway.infolabels[INFOLABEL_BUILD_VERSION] = '21.2 (21.2.0) Git:20241122-abc'
+    dispatcher.post(events.ServiceStarted())
+    dispatcher.run_pending()
+    assert facade.stored == []
+    assert errors == []
+
+
+def test_unparseable_build_version_is_inert():
+    # The fake's unresolved InfoLabel answer is '' (the real gateway can also
+    # hand back a label echo); neither parses, neither latches, no error.
+    dispatcher, _gateway, facade, _debug, errors = make_rig()
+
+    dispatcher.post(events.ServiceStarted())
+    dispatcher.run_pending()
+    assert facade.stored == []
+    assert errors == []
+
+
+def test_startup_check_defers_while_settings_dialog_open():
+    dispatcher, gateway, facade, debug, errors = make_rig()
+
+    gateway.infolabels[INFOLABEL_BUILD_VERSION] = '22.0 (22.0.0)'
+    gateway.settings_dialog = True
+    dispatcher.post(events.ServiceStarted())
+    dispatcher.run_pending()
+    assert facade.stored == []
+    assert any('deferring startup capability check' in line for line in debug)
+    assert errors == []
+
+
+@pytest.mark.parametrize("raw,expected", [
+    ('22.0 (22.0.0) Git:20260101-abcdef', 22),
+    ('21.2 (21.2.0)', 21),
+    ('  20.5', 20),
+    ('', None),
+    (None, None),
+    ('System.BuildVersion', None),   # label echo = unresolved
+])
+def test_parse_kodi_major(raw, expected):
+    assert parse_kodi_major(raw) == expected

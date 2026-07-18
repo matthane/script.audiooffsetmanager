@@ -106,8 +106,9 @@ on stream changes.
   `StreamStabilized`.
 - `PlatformRecorder` — persists platform capability flags observed on every
   probe (`platform_hdr_full`, `advanced_hlg`, plus the sticky
-  `platform_hdr10plus` latch that unlocks the HDR10+ settings once HDR10+
-  detection is proven — natively on Kodi 22 or via the full HDR label).
+  `platform_hdr10plus` latch that unlocks the HDR10+ settings: at service
+  start when the Kodi build is 22+ (native `hdr10plus` reporting), or from
+  the full HDR label / an observed `hdr10plus` profile on any probe).
 - `OffsetApplier` ([offset_applier.py](resources/lib/aom/app/offset_applier.py))
   — applies the stored offset on `ProfileChanged` (provisional) and retries
   on `StreamStabilized`; records `session.applied` BEFORE the JSON-RPC call
