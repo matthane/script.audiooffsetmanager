@@ -52,10 +52,9 @@ processes**:
   with explicit constructor injection, subscribes them **in a load-bearing
   order** (documented in the runtime module docstring), starts the dispatcher
   thread, then blocks on the monitor until Kodi aborts.
-- `script.py` → [aom/onboarding.py](resources/lib/aom/onboarding.py)
-  `handle_script_call` — the user-invoked helper (`xbmc.python.script`).
-  Routes the `RunScript` argument: `play_test_video`, `bypass_test_video`, or
-  (no/unknown arg) opens addon settings.
+- `script.py` — the user-invoked helper (`xbmc.python.script`). Opens the
+  addon settings; there is no argument routing (the onboarding flow it once
+  routed was removed).
 
 ## Architecture
 
@@ -157,7 +156,7 @@ regenerating and consciously accepting the migration consequences.
 
 The addon both reads configuration *and* writes runtime/user state back into
 `settings.xml` (offset values from the adjustment watcher,
-`platform_hdr_full`, `advanced_hlg`, `new_install`). The store itself is
+`platform_hdr_full`, `advanced_hlg`). The store itself is
 consistent; the hazards are the proxy's lifetime, the dialog's working copy,
 and stale *derived* state.
 
@@ -182,11 +181,10 @@ Keep the `Addon` on `self` for the proxy's whole lifetime
 While the addon settings dialog is open, Kodi holds values in a dialog
 buffer and **writes that buffer back on close** — a programmatic
 `setBool`/`setInt` made while the dialog is open can be clobbered when the
-dialog saves. Correct **write ordering** fixes this, not reloads: action
-buttons that lead to writes use `<close>true</close>` so the dialog is
-closed before the write, and the write settles before settings reopen
-(`bypass_test_video` in [aom/onboarding.py](resources/lib/aom/onboarding.py)
-is the worked example). The watcher additionally defers its store while
+dialog saves. Correct **write ordering** fixes this, not reloads: any future
+action button that leads to a write must use `<close>true</close>` so the
+dialog is closed before the write, and let the write settle before settings
+reopen. The watcher and the platform recorder defer their stores while
 `gateway.settings_dialog_open()` reports the dialog up.
 
 ### The real hazard: stale derived state
