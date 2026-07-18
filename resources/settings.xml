@@ -2997,8 +2997,18 @@
             <group id="4" label="32077">
                 <setting id="enable_hdr10plus" type="boolean" label="32042" help="32043">
                     <dependencies>
-                        <dependency type="enable" setting="platform_hdr_full">true</dependency>
-                        <dependency type="visible" setting="platform_hdr_full">true</dependency>
+                        <dependency type="enable">
+                            <or>
+                                <condition setting="platform_hdr_full">true</condition>
+                                <condition setting="platform_hdr10plus">true</condition>
+                            </or>
+                        </dependency>
+                        <dependency type="visible">
+                            <or>
+                                <condition setting="platform_hdr_full">true</condition>
+                                <condition setting="platform_hdr10plus">true</condition>
+                            </or>
+                        </dependency>
                     </dependencies>
                     <level>0</level>
                     <default>false</default>
@@ -7626,7 +7636,13 @@
         <!-- Category for information -->
         <category id="platform_info" label="32053" help="32089">
             <group id="10" label="32051">
-                <setting id="platform_hdr_full" type="boolean" label="32052">
+                <setting id="platform_hdr_full" type="boolean" label="32105">
+                    <level>0</level>
+                    <enable>false</enable>
+                    <default>false</default>
+                    <control type="toggle"/>
+                </setting>
+                <setting id="platform_hdr10plus" type="boolean" label="32052">
                     <level>0</level>
                     <enable>false</enable>
                     <default>false</default>

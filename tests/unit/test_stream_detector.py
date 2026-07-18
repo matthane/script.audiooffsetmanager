@@ -161,6 +161,15 @@ class TestDeriveStreamFacts:
         # '+' is rewritten to 'plus' before vocabulary lookup.
         assert derive(raw_hdr='HDR10+').profile.hdr_type == 'hdr10plus'
 
+    def test_native_hdr10plus_via_fallback(self):
+        # Kodi 22 presents HDR10+ natively through VideoPlayer.HdrType (Kodi
+        # 20/21 reported plain 'hdr10' there): the fallback branch accepts it
+        # like any vocabulary type, no full HDR infolabel required.
+        facts = derive(raw_hdr=INFOLABEL_HDR, raw_hdr_fallback='hdr10plus')
+        assert facts.profile.hdr_type == 'hdr10plus'
+        assert facts.hdr_source == 'fallback'
+        assert facts.platform_hdr_full is False
+
     def test_unrecognized_hdr_is_unknown(self):
         assert derive(raw_hdr='banana').profile.hdr_type == formats.UNKNOWN
 

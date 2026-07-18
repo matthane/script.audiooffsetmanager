@@ -6,6 +6,14 @@ as an event-driven consumer of ``StreamProbed``, so detection itself stays
 pure. The flags drive settings-UI visibility: capability-gated elements
 appear once the first playback stores them.
 
+``platform_hdr10plus`` is a sticky latch, never written False: it means
+"this platform has proven it can detect HDR10+". The full HDR label implies
+it (that label distinguishes HDR10+ from HDR10), and a native ``hdr10plus``
+report proves it directly — Kodi 22's ``VideoPlayer.HdrType`` presents
+HDR10+ without the amlogic infolabels, where Kodi 20/21 reported plain
+``hdr10``. Latching (rather than mirroring the live probe) keeps the
+capability true across the non-HDR10+ streams that follow.
+
 No session guard on purpose: platform facts are session-independent — a
 probe stamped with a superseded session still observed the real platform.
 
@@ -38,3 +46,5 @@ class PlatformRecorder:
                                                 event.platform_hdr_full)
         self._settings.store_boolean_if_changed('advanced_hlg',
                                                 event.advanced_hlg)
+        if event.platform_hdr_full or event.hdr_type == 'hdr10plus':
+            self._settings.store_boolean_if_changed('platform_hdr10plus', True)

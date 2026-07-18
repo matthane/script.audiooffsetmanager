@@ -364,3 +364,7 @@ msgstr ""
 msgctxt "#32104"
 msgid "Show log items and debug snapshots within Kodi's standard log level"
 msgstr ""
+
+msgctxt "#32105"
+msgid "Full HDR detection"
+msgstr ""

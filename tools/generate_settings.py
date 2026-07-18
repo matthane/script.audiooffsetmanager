@@ -56,8 +56,10 @@ HDR_CATEGORY_LABELS = formats.HDR_CATEGORY_LABELS
 HDR_GROUP_IDS = formats.HDR_GROUP_IDS
 
 # HDR10+ enable is gated on the detected platform capability (see
-# _enable_hdr_setting). This is dependency SHAPE (generator structure), not
-# vocabulary data, so it stays here.
+# _enable_hdr_setting): either the full HDR infolabel (platform_hdr_full) or
+# the sticky native-HDR10+ latch (platform_hdr10plus, observed once Kodi
+# itself presents 'hdr10plus'). This is dependency SHAPE (generator
+# structure), not vocabulary data, so it stays here.
 HDR_ENABLE_PLATFORM_GATED = {"hdr10plus"}
 
 # --- Navigation comments (decorative; free to diverge from the vocabulary). --
@@ -176,6 +178,11 @@ def _dep_visible_group(operator, conditions):
                 children=[Node(operator, children=conditions)])
 
 
+def _dep_enable_group(operator, conditions):
+    return Node("dependency", [("type", "enable")],
+                children=[Node(operator, children=conditions)])
+
+
 def _dependencies(*deps):
     return Node("dependencies", children=list(deps))
 
@@ -248,9 +255,12 @@ def _enable_hdr_setting(hdr):
     """The `enable_<hdr>` toggle (HDR10+ is gated on platform capability)."""
     label, help_id = HDR_ENABLE_STRING_IDS[hdr]
     if hdr in HDR_ENABLE_PLATFORM_GATED:
+        def _gate():
+            return [_condition("platform_hdr_full", "true"),
+                    _condition("platform_hdr10plus", "true")]
         children = [_dependencies(
-            _dep_enable("platform_hdr_full", "true"),
-            _dep_visible("platform_hdr_full", "true"),
+            _dep_enable_group("or", _gate()),
+            _dep_visible_group("or", _gate()),
         ), _level("0")]
     else:
         children = [_level("0")]
@@ -460,7 +470,8 @@ def _emit_platform_info(out):
     out.append('{0}<category id="platform_info" label="32053" help="32089">'.format(
         _indent(2)))
     out.append('{0}<group id="10" label="32051">'.format(_indent(3)))
-    _render(_info_toggle("platform_hdr_full", "32052"), 4, out)
+    _render(_info_toggle("platform_hdr_full", "32105"), 4, out)
+    _render(_info_toggle("platform_hdr10plus", "32052"), 4, out)
     _render(_info_toggle("advanced_hlg", "32054"), 4, out)
     out.append("{0}</group>".format(_indent(3)))
     out.append("{0}</category>".format(_indent(2)))

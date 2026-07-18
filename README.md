@@ -38,7 +38,7 @@ This addon streamlines your viewing experience by automating the process of audi
 ### Video Formats
 - Dolby Vision
 - HDR10
-- HDR10+ (platform/build specific)
+- HDR10+ (Kodi 22 and later, or platform/build specific on older versions)
 - HLG
 - SDR
 
@@ -51,7 +51,7 @@ This addon streamlines your viewing experience by automating the process of audi
 
 1. Download the addon from the Kodi repository or install it manually.
 2. Enable the addon in Kodi's addon settings.
-3. Play any video briefly so the addon can detect your platform's capabilities. Settings that depend on a detected capability, such as HDR10+, appear after this first playback.
+3. Play any video briefly so the addon can detect your platform's capabilities. Settings that depend on a detected capability appear after this first playback. The HDR10+ settings appear once the platform first detects HDR10+, which on most platforms means playing an HDR10+ video.
 4. Configure your desired audio offsets for different HDR types, audio formats, and FPS types in the addon settings. Enabling FPS based offsets allows different offsets to be applied and saved based on the FPS of the source video, in addition to the HDR type and audio format, allowing for more fine-tuned control.
 5. If you want to perform initial AV calibration, enable the active monitoring mode in the addon settings. This will allow the addon to learn and store your manual audio offset adjustments for future use.
 6. The addon will run as a background service, automatically applying your configured offsets during playback.

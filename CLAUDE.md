@@ -105,7 +105,9 @@ on stream changes.
   windows, sole writer of `session.profile`; posts `ProfileChanged` /
   `StreamStabilized`.
 - `PlatformRecorder` — persists platform capability flags observed on every
-  probe (`platform_hdr_full`, `advanced_hlg`).
+  probe (`platform_hdr_full`, `advanced_hlg`, plus the sticky
+  `platform_hdr10plus` latch that unlocks the HDR10+ settings once HDR10+
+  detection is proven — natively on Kodi 22 or via the full HDR label).
 - `OffsetApplier` ([offset_applier.py](resources/lib/aom/app/offset_applier.py))
   — applies the stored offset on `ProfileChanged` (provisional) and retries
   on `StreamStabilized`; records `session.applied` BEFORE the JSON-RPC call
@@ -156,7 +158,8 @@ regenerating and consciously accepting the migration consequences.
 
 The addon both reads configuration *and* writes runtime/user state back into
 `settings.xml` (offset values from the adjustment watcher,
-`platform_hdr_full`, `advanced_hlg`). The store itself is
+`platform_hdr_full`, `platform_hdr10plus`, `advanced_hlg`). The store
+itself is
 consistent; the hazards are the proxy's lifetime, the dialog's working copy,
 and stale *derived* state.
 

@@ -95,11 +95,14 @@ class StreamProbed:
     """A detection pass observed the platform (consumed by PlatformRecorder).
 
     Posted on EVERY gather — probes, AV-change re-probes, and verifications.
-    Carries facts, not decisions: the recorder owns the writes.
+    Carries facts, not decisions: the recorder owns the writes. ``hdr_type``
+    is the derived profile HDR type; the recorder latches the HDR10+
+    platform capability from it.
     """
     session_id: int
     platform_hdr_full: bool
     advanced_hlg: bool
+    hdr_type: str
 
 
 @dataclass(frozen=True)

@@ -360,7 +360,8 @@ class StreamDetector:
         self._dispatcher.post(events.StreamProbed(
             session_id=session_id,
             platform_hdr_full=facts.platform_hdr_full,
-            advanced_hlg=facts.advanced_hlg))
+            advanced_hlg=facts.advanced_hlg,
+            hdr_type=facts.profile.hdr_type))
         return facts
 
     def _jittered_spacing(self):

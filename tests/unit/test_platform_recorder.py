@@ -1,10 +1,11 @@
 """Unit tests for aom.app.platform_recorder.PlatformRecorder.
 
-The recorder is a pure event consumer: on every StreamProbed it writes the two
+The recorder is a pure event consumer: on every StreamProbed it writes the
 platform-capability flags through the settings adapter's store-if-changed
-helper (the dedupe is the ADAPTER's job — the recorder always calls). Writes
-defer while the addon settings dialog is open (doctrine) — the gateway
-answers that question.
+helper (the dedupe is the ADAPTER's job — the recorder always calls), plus
+the sticky platform_hdr10plus latch (only ever written True, from the full
+HDR label or a native 'hdr10plus' report). Writes defer while the addon
+settings dialog is open (doctrine) — the gateway answers that question.
 
 Driven like the other app-layer tests: a real Dispatcher (no timers needed
 here) pumped with run_pending(), and a recording settings double capturing
@@ -40,10 +41,12 @@ def make_rig():
     return dispatcher, gateway, facade, debug, errors
 
 
-def _probe(session_id=1, platform_hdr_full=True, advanced_hlg=False):
+def _probe(session_id=1, platform_hdr_full=True, advanced_hlg=False,
+           hdr_type='sdr'):
     return events.StreamProbed(session_id=session_id,
                                platform_hdr_full=platform_hdr_full,
-                               advanced_hlg=advanced_hlg)
+                               advanced_hlg=advanced_hlg,
+                               hdr_type=hdr_type)
 
 
 def test_stores_platform_facts_on_every_probe():
@@ -51,16 +54,20 @@ def test_stores_platform_facts_on_every_probe():
 
     dispatcher.post(_probe(platform_hdr_full=True, advanced_hlg=False))
     dispatcher.run_pending()
+    # The full HDR label implies HDR10+ capability, so the latch rides along.
     assert facade.stored == [('platform_hdr_full', True),
-                             ('advanced_hlg', False)]
+                             ('advanced_hlg', False),
+                             ('platform_hdr10plus', True)]
 
     # A second probe records again with the new values: the recorder ALWAYS
     # calls store-if-changed (whether the value actually changed is the
-    # facade's concern, not the recorder's).
+    # facade's concern, not the recorder's). No capability evidence -> the
+    # latch is NOT called (it is sticky, never written False).
     dispatcher.post(_probe(platform_hdr_full=False, advanced_hlg=True))
     dispatcher.run_pending()
     assert facade.stored == [
         ('platform_hdr_full', True), ('advanced_hlg', False),
+        ('platform_hdr10plus', True),
         ('platform_hdr_full', False), ('advanced_hlg', True),
     ]
     assert errors == []
@@ -82,7 +89,8 @@ def test_writes_defer_while_settings_dialog_open():
     dispatcher.post(_probe())
     dispatcher.run_pending()
     assert facade.stored == [('platform_hdr_full', True),
-                             ('advanced_hlg', False)]
+                             ('advanced_hlg', False),
+                             ('platform_hdr10plus', True)]
     assert errors == []
 
 
@@ -97,5 +105,33 @@ def test_records_regardless_of_session_id():
                            advanced_hlg=True))
     dispatcher.run_pending()
     assert facade.stored == [('platform_hdr_full', True),
-                             ('advanced_hlg', True)]
+                             ('advanced_hlg', True),
+                             ('platform_hdr10plus', True)]
+    assert errors == []
+
+
+def test_hdr10plus_latches_from_native_report():
+    # Kodi 22 presents 'hdr10plus' through VideoPlayer.HdrType without the
+    # full HDR infolabel: the observation alone proves the capability.
+    dispatcher, _gateway, facade, _debug, errors = make_rig()
+
+    dispatcher.post(_probe(platform_hdr_full=False, hdr_type='hdr10plus'))
+    dispatcher.run_pending()
+    assert facade.stored == [('platform_hdr_full', False),
+                             ('advanced_hlg', False),
+                             ('platform_hdr10plus', True)]
+    assert errors == []
+
+
+def test_hdr10plus_latch_is_never_written_false():
+    # Streams that are not HDR10+ say nothing about the capability: on a
+    # platform with no full HDR label the latch is simply not called, so a
+    # previously stored True can never be knocked back down.
+    dispatcher, _gateway, facade, _debug, errors = make_rig()
+
+    for hdr_type in ('sdr', 'hdr10', 'dolbyvision', 'unknown'):
+        dispatcher.post(_probe(platform_hdr_full=False, hdr_type=hdr_type))
+    dispatcher.run_pending()
+    assert all(setting != 'platform_hdr10plus'
+               for setting, _value in facade.stored)
     assert errors == []
