@@ -181,7 +181,5 @@ class FakeGui:
     def localized(self, string_id):
         return self.localized_strings.get(string_id, f"#{string_id}")
 
-    def notification(self, message, duration_ms, title=None, icon=None):
-        # title/icon mirror the real Gui's optional params; recorded toasts
-        # keep the 2-tuple shape the suites assert on.
+    def notification(self, message, duration_ms):
         self.notifications.append((message, duration_ms))

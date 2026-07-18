@@ -4,9 +4,8 @@ DESIGN layering: `aom.domain` is pure Python (no Kodi, no legacy modules);
 `aom.app` imports only stdlib + aom — with the Phase 7 removal of the
 legacy_router MIGRATION shim, the exemption set is EMPTY and construction is
 complete; `aom.kodi` is the only package allowed to import xbmc*.
-`aom/runtime.py` and `aom/onboarding.py` are composition roots (per-process
-entry glue) and exempt by design (they sit outside the three checked
-subpackages).
+`aom/runtime.py` is the composition root (per-process entry glue) and
+exempt by design (it sits outside the three checked subpackages).
 """
 
 import ast
