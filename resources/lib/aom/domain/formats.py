@@ -95,7 +95,8 @@ HDR_CATEGORY_LABELS = {
     'sdr': ('32024', '32087'),
 }
 
-# Per-HDR settings group id (the hand-written file numbers groups 1..10,12).
+# Per-HDR settings group id. The numbering is a fossil of the original
+# hand-written file; groups 2..10 and 12 remain (1 was onboarding, removed).
 HDR_GROUP_IDS = {
     'dolbyvision': '2',
     'hdr10': '3',

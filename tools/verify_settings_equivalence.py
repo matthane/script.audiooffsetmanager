@@ -31,6 +31,11 @@ defaults to the pinned pre-normalization commit so re-runs still compare
 against the true hand-written file (comparing against HEAD would be vacuous
 now that HEAD's settings.xml *is* generator output). Pass an explicit rev as
 argv[1] to compare against a different baseline.
+
+RETIRED: since the onboarding removal (new_install, the test-video buttons,
+and their dependencies were deleted from the generator), a re-run against the
+pinned baseline FAILS BY DESIGN — the divergence is intentional, not a
+regression. Kept only as the historical record of the Phase 1 proof.
 """
 from __future__ import print_function
 

@@ -3,9 +3,9 @@
 
 `settings.xml` is a pure Cartesian product: one integer offset slider for every
 `<hdr>_<fps>_<audio>` combination (315 of them), wrapped in a fixed structural
-skeleton (onboarding, per-HDR enable toggles, seek-back, notifications,
-platform-info and advanced categories). Hand-maintaining ~7,750 lines of that is
-error-prone, so this generator emits the whole file instead:
+skeleton (per-HDR enable toggles, seek-back, notifications, platform-info and
+advanced categories). Hand-maintaining ~7,700 lines of that is error-prone, so
+this generator emits the whole file instead:
 
 - Everything *vocabulary-shaped* — the HDR types, audio formats, FPS buckets,
   the offset-slider matrix and its label/help ids — derives from
@@ -55,9 +55,9 @@ HDR_ENABLE_STRING_IDS = formats.HDR_ENABLE_STRING_IDS
 HDR_CATEGORY_LABELS = formats.HDR_CATEGORY_LABELS
 HDR_GROUP_IDS = formats.HDR_GROUP_IDS
 
-# HDR10+ enable is gated on the detected platform capability instead of the
-# usual "not a new install" visibility rule (see _enable_hdr_setting). This is
-# dependency SHAPE (generator structure), not vocabulary data, so it stays here.
+# HDR10+ enable is gated on the detected platform capability (see
+# _enable_hdr_setting). This is dependency SHAPE (generator structure), not
+# vocabulary data, so it stays here.
 HDR_ENABLE_PLATFORM_GATED = {"hdr10plus"}
 
 # --- Navigation comments (decorative; free to diverge from the vocabulary). --
@@ -159,10 +159,6 @@ def _enable(value):
     return Node("enable", text=str(value))
 
 
-def _data(text):
-    return Node("data", text=text)
-
-
 def _condition(setting, value):
     return Node("condition", [("setting", setting)], text=value)
 
@@ -186,11 +182,6 @@ def _dependencies(*deps):
 
 def _control_toggle():
     return Node("control", [("type", "toggle")])
-
-
-def _control_button_action():
-    return Node("control", [("type", "button"), ("format", "action")],
-                children=[Node("close", text="true")])
 
 
 def _control_slider_integer():
@@ -257,17 +248,18 @@ def _enable_hdr_setting(hdr):
     """The `enable_<hdr>` toggle (HDR10+ is gated on platform capability)."""
     label, help_id = HDR_ENABLE_STRING_IDS[hdr]
     if hdr in HDR_ENABLE_PLATFORM_GATED:
-        deps = _dependencies(
+        children = [_dependencies(
             _dep_enable("platform_hdr_full", "true"),
             _dep_visible("platform_hdr_full", "true"),
-        )
+        ), _level("0")]
     else:
-        deps = _dependencies(_dep_visible("new_install", "false"))
+        children = [_level("0")]
+    children += [_default("false"), _control_toggle()]
     return Node(
         "setting",
         [("id", "enable_" + hdr), ("type", "boolean"),
          ("label", label), ("help", help_id)],
-        children=[deps, _level("0"), _default("false"), _control_toggle()],
+        children=children,
     )
 
 
@@ -310,32 +302,12 @@ def _fps_spinner_setting(hdr):
 
 # --- Fixed structural settings (verbatim shapes, incl. child ordering). ----- #
 
-def _new_install_setting():
-    return Node(
-        "setting", [("id", "new_install"), ("type", "boolean")],
-        children=[_level("4"), _default("true"), _control_toggle()],
-    )
-
-
-def _action_button(setting_id, label, help_id, script_arg, dependencies):
-    """An action button: level, data, control, then dependencies (source order)."""
-    return Node(
-        "setting",
-        [("id", setting_id), ("type", "action"), ("label", label), ("help", help_id)],
-        children=[
-            _level("0"),
-            _data("RunScript(script.audiooffsetmanager,{0})".format(script_arg)),
-            _control_button_action(),
-            dependencies,
-        ],
-    )
-
-
-def _toggle_setting(setting_id, label, help_id, dependencies, default,
-                    level_first=False):
-    """A boolean toggle. Some source toggles put <level> before <dependencies>."""
-    children = ([_level("0"), dependencies] if level_first
-                else [dependencies, _level("0")])
+def _toggle_setting(setting_id, label, help_id, dependencies, default):
+    """A boolean toggle; ``dependencies=None`` omits the element. Level always
+    renders first — the one shape every emitted toggle now shares."""
+    children = [_level("0")]
+    if dependencies is not None:
+        children.append(dependencies)
     children += [_default(default), _control_toggle()]
     return Node(
         "setting",
@@ -366,7 +338,6 @@ def _info_toggle(setting_id, label):
         "setting",
         [("id", setting_id), ("type", "boolean"), ("label", label)],
         children=[
-            _dependencies(_dep_visible("new_install", "false")),
             _level("0"),
             _enable("false"),
             _default("false"),
@@ -422,21 +393,6 @@ def _emit_hdr_category(out, hdr):
     out.append("{0}</category>".format(_indent(2)))
 
 
-def _emit_onboarding(out):
-    out.append('{0}<category id="onboarding" label="32057" help="">'.format(_indent(2)))
-    out.append('{0}<group id="1" label="32055" help="">'.format(_indent(3)))
-    out.append(_comment(4, "Addon onboarding"))
-    _render(_new_install_setting(), 4, out)
-    _render(_action_button(
-        "play_test_video", "32059", "32060", "play_test_video",
-        _dependencies(_dep_visible("new_install", "true"))), 4, out)
-    _render(_action_button(
-        "bypass_test_video", "32082", "32083", "bypass_test_video",
-        _dependencies(_dep_visible("new_install", "true"))), 4, out)
-    out.append("{0}</group>".format(_indent(3)))
-    out.append("{0}</category>".format(_indent(2)))
-
-
 def _emit_seek_back(out):
     out.append('{0}<category id="seek_back_settings" label="32016" help="32017">'.format(
         _indent(2)))
@@ -444,45 +400,34 @@ def _emit_seek_back(out):
     # Group 7 — notifications.
     out.append('{0}<group id="7" label="32081">'.format(_indent(3)))
     _emit_setting(out, _toggle_setting(
-        "enable_notifications", "32079", "32080",
-        _dependencies(_dep_visible("new_install", "false")), "true"),
+        "enable_notifications", "32079", "32080", None, "true"),
         comment="Enable Notifications Toggle")
     _emit_setting(out, _seconds_slider(
         "notification_seconds", "enable_notifications", "32090", "32091",
-        _dependencies(_dep_visible_group("and", [
-            _condition("enable_notifications", "true"),
-            _condition("new_install", "false"),
-        ])), "5"),
+        _dependencies(_dep_visible("enable_notifications", "true")), "5"),
         comment="Notification Duration (seconds) Slider", blank_before=True)
     out.append("{0}</group>".format(_indent(3)))
 
     # Group 8 — active monitoring.
     out.append('{0}<group id="8" label="32047">'.format(_indent(3)))
     _emit_setting(out, _toggle_setting(
-        "enable_active_monitoring", "32045", "32046",
-        _dependencies(_dep_visible("new_install", "false")), "true"),
+        "enable_active_monitoring", "32045", "32046", None, "true"),
         comment="Enable Active Monitoring Toggle")
     out.append("{0}</group>".format(_indent(3)))
 
     # Group 9 — seek-back behaviours.
     out.append('{0}<group id="9" label="32018">'.format(_indent(3)))
     _emit_setting(out, _toggle_setting(
-        "enable_seek_back_adjust", "32019", "32020",
-        _dependencies(_dep_visible("new_install", "false")), "true"),
+        "enable_seek_back_adjust", "32019", "32020", None, "true"),
         comment="Enable Seek Back on Adjust Behavior Toggle")
     _emit_setting(out, _seconds_slider(
         "seek_back_adjust_seconds", "enable_seek_back_adjust", "32021", "32022",
-        _dependencies(_dep_visible_group("and", [
-            _condition("enable_seek_back_adjust", "true"),
-            _condition("new_install", "false"),
-        ])), "4"),
+        _dependencies(_dep_visible("enable_seek_back_adjust", "true")), "4"),
         comment="Seek Back Adjust Amount (seconds) Slider", blank_before=True)
     _emit_setting(out, _toggle_setting(
         "enable_seek_back_change", "32048", "32049",
-        _dependencies(_dep_visible_group("and", [
-            _condition("enable_active_monitoring", "true"),
-            _condition("new_install", "false"),
-        ])), "false", level_first=True),
+        _dependencies(_dep_visible("enable_active_monitoring", "true")),
+        "false"),
         comment="Enable Seek Back on Change Behavior Toggle", blank_before=True)
     _emit_setting(out, _seconds_slider(
         "seek_back_change_seconds", "enable_seek_back_change", "32021", "32050",
@@ -492,9 +437,7 @@ def _emit_seek_back(out):
         ])), "4"),
         comment="Seek Back Change Amount (seconds) Slider", blank_before=True)
     _emit_setting(out, _toggle_setting(
-        "enable_seek_back_resume", "32034", "32035",
-        _dependencies(_dep_visible("new_install", "false")), "false",
-        level_first=True),
+        "enable_seek_back_resume", "32034", "32035", None, "false"),
         comment="Enable Seek Back on Start/resume Toggle", blank_before=True)
     _emit_setting(out, _seconds_slider(
         "seek_back_resume_seconds", "enable_seek_back_resume", "32036", "32037",
@@ -502,9 +445,7 @@ def _emit_seek_back(out):
         comment="Seek Back on Start/resume Amount (seconds) Slider",
         blank_before=True)
     _emit_setting(out, _toggle_setting(
-        "enable_seek_back_unpause", "32038", "32039",
-        _dependencies(_dep_visible("new_install", "false")), "false",
-        level_first=True),
+        "enable_seek_back_unpause", "32038", "32039", None, "false"),
         comment="Enable Seek Back on unpause Toggle", blank_before=True)
     _emit_setting(out, _seconds_slider(
         "seek_back_unpause_seconds", "enable_seek_back_unpause", "32040", "32041",
@@ -521,15 +462,6 @@ def _emit_platform_info(out):
     out.append('{0}<group id="10" label="32051">'.format(_indent(3)))
     _render(_info_toggle("platform_hdr_full", "32052"), 4, out)
     _render(_info_toggle("advanced_hlg", "32054"), 4, out)
-    _render(_action_button(
-        "re-validate", "32063", "32064", "play_test_video",
-        _dependencies(
-            _dep_visible("new_install", "false"),
-            _dep_visible_group("or", [
-                _condition("platform_hdr_full", "false"),
-                _condition("advanced_hlg", "false"),
-            ]),
-        )), 4, out)
     out.append("{0}</group>".format(_indent(3)))
     out.append("{0}</category>".format(_indent(2)))
 
@@ -551,8 +483,6 @@ def build_settings_text():
     """Return the full settings.xml text (LF-terminated)."""
     out = [XML_DECLARATION, '<settings version="1">',
            '{0}<section id="script.audiooffsetmanager">'.format(_indent(1))]
-
-    _emit_onboarding(out)
 
     for hdr in formats.HDR_TYPES:
         if hdr in CATEGORY_COMMENT:
