@@ -1,3 +1,7 @@
+> **This addon has been superseded by [Audio Offset Manager: Evolved](https://github.com/matthane/script.audiooffsetmanager.evolved).** New development happens there; this repository remains available for existing users with final update 2.1.0.
+
+<br>
+
 <img src="https://raw.githubusercontent.com/matthane/script.audiooffsetmanager/refs/heads/main/resources/icon.png" width="256" height="256" alt="Audio Offset Manager">
 
 # Audio Offset Manager
